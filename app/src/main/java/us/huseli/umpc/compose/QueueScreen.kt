@@ -33,13 +33,13 @@ import kotlinx.coroutines.launch
 import us.huseli.umpc.PlayerState
 import us.huseli.umpc.R
 import us.huseli.umpc.data.MPDSong
-import us.huseli.umpc.viewmodels.MPDViewModel
+import us.huseli.umpc.viewmodels.QueueViewModel
 import kotlin.math.max
 
 @Composable
 fun QueueScreen(
     modifier: Modifier = Modifier,
-    viewModel: MPDViewModel = hiltViewModel(),
+    viewModel: QueueViewModel = hiltViewModel(),
     listState: LazyListState = rememberLazyListState(),
     onGotoAlbumClick: (MPDSong) -> Unit,
     onGotoArtistClick: (MPDSong) -> Unit,
@@ -94,7 +94,6 @@ fun QueueScreen(
         }
 
         LazyColumn(modifier = modifier, state = listState) {
-            @Suppress("Destructure")
             items(queue) { song ->
                 val isCurrentSong = song.id == currentSongId
                 val albumArt by viewModel.getAlbumArtState(song)

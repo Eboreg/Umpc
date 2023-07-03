@@ -3,6 +3,7 @@ package us.huseli.umpc.compose
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -15,11 +16,18 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.sharp.PlayArrow
 import androidx.compose.material.icons.sharp.QueueMusic
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalAbsoluteTonalElevation
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.ShapeDefaults
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ImageBitmap
@@ -42,16 +50,17 @@ fun AlbumRow(
     years: String? = null,
     collapsedHeight: Dp = 54.dp,
     expandedHeight: Dp = 108.dp,
-    isExpanded: Boolean,
-    onClick: () -> Unit,
     onEnqueueClick: () -> Unit,
     onPlayClick: () -> Unit,
+    expandedContent: @Composable ColumnScope.() -> Unit,
 ) {
+    var isExpanded by rememberSaveable { mutableStateOf(false) }
+
     Row(
         modifier = modifier
             .height(if (isExpanded) expandedHeight else collapsedHeight)
             .padding(end = 8.dp)
-            .clickable(onClick = onClick),
+            .clickable { isExpanded = !isExpanded },
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
@@ -121,6 +130,12 @@ fun AlbumRow(
             }
         }
     }
+
+    if (isExpanded) {
+        CompositionLocalProvider(
+            LocalAbsoluteTonalElevation provides LocalAbsoluteTonalElevation.current + 2.dp,
+        ) { Surface { Column { expandedContent() } } }
+    }
 }
 
 
@@ -132,10 +147,9 @@ fun AlbumRow(
     showArtist: Boolean = false,
     collapsedHeight: Dp = 54.dp,
     expandedHeight: Dp = 108.dp,
-    isExpanded: Boolean,
-    onClick: () -> Unit,
     onEnqueueClick: () -> Unit,
     onPlayClick: () -> Unit,
+    expandedContent: @Composable ColumnScope.() -> Unit,
 ) {
     AlbumRow(
         modifier = modifier,
@@ -144,11 +158,10 @@ fun AlbumRow(
         showArtist = showArtist,
         collapsedHeight = collapsedHeight,
         expandedHeight = expandedHeight,
-        isExpanded = isExpanded,
-        onClick = onClick,
         onEnqueueClick = onEnqueueClick,
         onPlayClick = onPlayClick,
         years = album.yearRange?.toYearRangeString(),
         duration = album.duration?.formatDuration(),
+        expandedContent = expandedContent,
     )
 }

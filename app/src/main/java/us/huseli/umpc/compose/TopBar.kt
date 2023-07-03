@@ -17,6 +17,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import us.huseli.umpc.BuildConfig
 import us.huseli.umpc.ContentScreen
 import us.huseli.umpc.R
 
@@ -47,13 +48,15 @@ fun TopBar(
         containerColor = MaterialTheme.colorScheme.surface,
         tonalElevation = 2.dp,
     ) {
-        ContentScreenItem(
-            activeScreen = activeScreen,
-            contentScreen = ContentScreen.DEBUG,
-            icon = Icons.Sharp.BugReport,
-            description = stringResource(R.string.debug),
-            onClick = onContentScreenClick,
-        )
+        if (BuildConfig.DEBUG) {
+            ContentScreenItem(
+                activeScreen = activeScreen,
+                contentScreen = ContentScreen.DEBUG,
+                icon = Icons.Sharp.BugReport,
+                description = stringResource(R.string.debug),
+                onClick = onContentScreenClick,
+            )
+        }
         ContentScreenItem(
             activeScreen = activeScreen,
             contentScreen = ContentScreen.SETTTINGS,

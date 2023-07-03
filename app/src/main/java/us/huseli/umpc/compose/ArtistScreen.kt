@@ -78,12 +78,12 @@ fun ArtistScreen(
         }
 
         albums.forEach { album ->
-            AlbumSection(
+            AlbumRow(
                 album = album,
                 showArtist = album.artist != viewModel.artist,
                 thumbnail = albumArtMap[album.name]?.thumbnail,
-                onAlbumEnqueueClick = { viewModel.enqueueAlbum(album) },
-                onAlbumPlayClick = { viewModel.playAlbum(album) },
+                onEnqueueClick = { viewModel.enqueueAlbum(album) },
+                onPlayClick = { viewModel.playAlbum(album) },
             ) {
                 album.songs.forEach { song ->
                     Divider()

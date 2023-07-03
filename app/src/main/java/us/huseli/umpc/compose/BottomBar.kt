@@ -20,17 +20,17 @@ import androidx.compose.material3.LocalContentColor
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import us.huseli.umpc.PlayerState
 import us.huseli.umpc.R
+import us.huseli.umpc.data.MPDAlbumArt
 
 @Composable
 fun BottomBar(
     modifier: Modifier = Modifier,
-    albumArt: ImageBitmap?,
+    albumArt: MPDAlbumArt?,
     title: String?,
     artist: String?,
     album: String?,
@@ -63,7 +63,7 @@ fun BottomBar(
 
             Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 AlbumArt(
-                    imageBitmap = albumArt,
+                    imageBitmap = albumArt?.thumbnail,
                     modifier = Modifier.padding(end = 8.dp),
                 )
 

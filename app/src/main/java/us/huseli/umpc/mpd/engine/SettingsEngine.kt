@@ -1,9 +1,8 @@
-package us.huseli.umpc
+package us.huseli.umpc.mpd.engine
 
 import android.content.Context
 import android.content.SharedPreferences
 import androidx.preference.PreferenceManager
-import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import us.huseli.umpc.Constants.PREF_HOSTNAME
 import us.huseli.umpc.Constants.PREF_OUTPUTS_ENABLED
@@ -11,13 +10,8 @@ import us.huseli.umpc.Constants.PREF_PASSWORD
 import us.huseli.umpc.Constants.PREF_PORT
 import us.huseli.umpc.Constants.PREF_STREAMING_URL
 import us.huseli.umpc.data.MPDCredentials
-import javax.inject.Inject
-import javax.inject.Singleton
 
-@Singleton
-class SettingsRepository @Inject constructor(
-    @ApplicationContext context: Context,
-) : SharedPreferences.OnSharedPreferenceChangeListener {
+class SettingsEngine(context: Context) : SharedPreferences.OnSharedPreferenceChangeListener {
     private val preferences = PreferenceManager.getDefaultSharedPreferences(context)
     private val enabledOutputs = MutableStateFlow<Set<Int>>(emptySet()).apply {
         preferences.getStringSet(PREF_OUTPUTS_ENABLED, emptySet())?.let { outputs ->

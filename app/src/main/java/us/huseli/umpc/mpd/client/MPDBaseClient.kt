@@ -1,6 +1,5 @@
-package us.huseli.umpc.mpd
+package us.huseli.umpc.mpd.client
 
-import android.util.Log
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -11,6 +10,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import us.huseli.umpc.data.MPDCredentials
 import us.huseli.umpc.data.MPDResponse
+import us.huseli.umpc.mpd.command.MPDBaseCommand
+import us.huseli.umpc.mpd.command.MPDCommand
 import java.io.BufferedReader
 import java.io.Closeable
 import java.io.IOException
@@ -43,9 +44,6 @@ abstract class MPDBaseClient(
     abstract suspend fun initialize()
 
     protected open suspend fun connect() {
-        Log.i(javaClass.simpleName, "CONNECT, credentials=$credentials, socket = ${socket.value}")
-        withContext(Dispatchers.IO) { socket.value.close() }
-
         try {
             withContext(Dispatchers.IO) {
                 val socket = Socket(credentials.hostname, credentials.port)
@@ -58,6 +56,7 @@ abstract class MPDBaseClient(
                 }
 
                 mpdVersion = responseLine.substring(7)
+                this@MPDBaseClient.socket.value.close()
                 this@MPDBaseClient.socket.value = socket
 
                 if (credentials.password != null) {
@@ -67,7 +66,10 @@ abstract class MPDBaseClient(
                         throw Exception("Error on password command: ${response.error}")
                     }
                 }
-                setTagTypes()
+
+                MPDCommand("tagtypes").execute(socket).extractTagTypes().also {
+                    MPDCommand("tagtypes disable", it.minus(wantedTagTypes)).execute(socket)
+                }
             }
         } catch (e: UnknownHostException) {
             throw e
@@ -76,18 +78,8 @@ abstract class MPDBaseClient(
         }
     }
 
-    private suspend fun setTagTypes() {
-        val availableTypes =
-            MPDCommand("tagtypes").execute(socket.value).responseList
-                .filter { it.first == "tagtype" }
-                .map { it.second }
-
-        MPDCommand("tagtypes disable", availableTypes.minus(wantedTagTypes)).execute(socket.value)
-    }
-
     fun enqueue(command: MPDBaseCommand) {
         if (!commandQueue.value.contains(command)) {
-            Log.i(javaClass.simpleName, "ENQUEUE $command, queue=${commandQueue.value}, socket=${socket.value}")
             commandQueue.value = commandQueue.value.toMutableList().apply { add(command) }
         }
     }
@@ -109,7 +101,6 @@ abstract class MPDBaseClient(
     }
 
     private suspend fun runCommand(command: MPDBaseCommand) {
-        Log.i(javaClass.simpleName, "RUN $command, queue=${commandQueue.value}")
         val response = command.execute(socket.value)
         if (response.status == MPDResponse.Status.EMPTY) {
             connect()
@@ -120,7 +111,6 @@ abstract class MPDBaseClient(
     }
 
     override fun close() {
-        Log.i(javaClass.simpleName, "CLOSE, socket = ${socket.value}")
         worker?.cancel()
         socket.value.close()
     }

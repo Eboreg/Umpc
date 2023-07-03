@@ -4,7 +4,6 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.font.FontWeight
 
-@Suppress("unused")
 object MPDSearch {
     fun escape(string: String) = string
         .replace("\"", "\\\"")

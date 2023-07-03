@@ -11,12 +11,12 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import us.huseli.umpc.data.MPDSong
-import us.huseli.umpc.viewmodels.MPDViewModel
+import us.huseli.umpc.viewmodels.CoverViewModel
 
 @Composable
 fun CoverScreen(
     modifier: Modifier = Modifier,
-    viewModel: MPDViewModel = hiltViewModel(),
+    viewModel: CoverViewModel = hiltViewModel(),
     onGotoAlbumClick: (MPDSong) -> Unit,
     onGotoArtistClick: (MPDSong) -> Unit,
 ) {
@@ -37,7 +37,7 @@ fun CoverScreen(
 
         FadingImageBox(
             modifier = Modifier.fillMaxWidth(),
-            image = { AlbumArt(imageBitmap = currentSongAlbumArt, modifier = Modifier.fillMaxWidth()) }
+            image = { AlbumArt(imageBitmap = currentSongAlbumArt?.fullImage, modifier = Modifier.fillMaxWidth()) }
         ) {
             currentSong?.let { song ->
                 AutoScrollingTextLine(

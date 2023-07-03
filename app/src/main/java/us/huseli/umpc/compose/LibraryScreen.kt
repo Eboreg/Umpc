@@ -47,13 +47,13 @@ import us.huseli.umpc.LibraryGrouping
 import us.huseli.umpc.R
 import us.huseli.umpc.data.MPDAlbumWithSongs
 import us.huseli.umpc.data.MPDSong
-import us.huseli.umpc.viewmodels.MPDViewModel
+import us.huseli.umpc.viewmodels.LibraryViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LibraryScreen(
     modifier: Modifier = Modifier,
-    viewModel: MPDViewModel = hiltViewModel(),
+    viewModel: LibraryViewModel = hiltViewModel(),
     listState: LazyListState = rememberLazyListState(),
     onGotoAlbumClick: (MPDSong) -> Unit,
     onGotoArtistClick: (MPDSong) -> Unit,
@@ -154,11 +154,11 @@ fun LibraryScreen(
 
                             Divider()
 
-                            AlbumSection(
+                            AlbumRow(
                                 album = album,
                                 thumbnail = thumbnail,
-                                onAlbumEnqueueClick = { viewModel.enqueueAlbum(album) },
-                                onAlbumPlayClick = { viewModel.playAlbum(album) },
+                                onEnqueueClick = { viewModel.enqueueAlbum(album) },
+                                onPlayClick = { viewModel.playAlbum(album) },
                             ) {
                                 album.songs.forEach { song ->
                                     Divider()
@@ -190,12 +190,12 @@ fun LibraryScreen(
                         viewModel.getThumbnail(albumWithSongs) { thumbnail = it.thumbnail }
                     }
 
-                    AlbumSection(
+                    AlbumRow(
                         album = albumWithSongs,
                         showArtist = true,
                         thumbnail = thumbnail,
-                        onAlbumEnqueueClick = { viewModel.enqueueAlbum(album) },
-                        onAlbumPlayClick = { viewModel.playAlbum(album) },
+                        onEnqueueClick = { viewModel.enqueueAlbum(album) },
+                        onPlayClick = { viewModel.playAlbum(album) },
                     ) {
                         albumWithSongs.songs.forEach { song ->
                             Divider()

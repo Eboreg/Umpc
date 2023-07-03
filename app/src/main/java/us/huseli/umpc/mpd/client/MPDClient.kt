@@ -1,4 +1,4 @@
-package us.huseli.umpc.mpd
+package us.huseli.umpc.mpd.client
 
 import kotlinx.coroutines.CoroutineScope
 import us.huseli.umpc.data.MPDCredentials

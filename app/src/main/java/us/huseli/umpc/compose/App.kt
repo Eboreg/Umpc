@@ -21,6 +21,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import us.huseli.umpc.AlbumDestination
 import us.huseli.umpc.ArtistDestination
+import us.huseli.umpc.BuildConfig
 import us.huseli.umpc.ContentScreen
 import us.huseli.umpc.CoverDestination
 import us.huseli.umpc.DebugDestination
@@ -98,7 +99,9 @@ fun App(
                 activeScreen = activeScreen,
                 onContentScreenClick = {
                     when (it) {
-                        ContentScreen.DEBUG -> navController.navigate(DebugDestination.route)
+                        ContentScreen.DEBUG -> navController.navigate(
+                            if (BuildConfig.DEBUG) DebugDestination.route else QueueDestination.route
+                        )
                         ContentScreen.QUEUE -> navController.navigate(QueueDestination.route)
                         ContentScreen.LIBRARY -> navController.navigate(LibraryDestination.route)
                         ContentScreen.COVER -> navController.navigate(CoverDestination.route)
@@ -118,7 +121,6 @@ fun App(
             composable(route = CoverDestination.route) {
                 activeScreen = ContentScreen.COVER
                 CoverScreen(
-                    viewModel = viewModel,
                     onGotoAlbumClick = onGotoAlbumClick,
                     onGotoArtistClick = onGotoArtistClick,
                 )
@@ -127,7 +129,6 @@ fun App(
             composable(route = QueueDestination.route) {
                 activeScreen = ContentScreen.QUEUE
                 QueueScreen(
-                    viewModel = viewModel,
                     listState = queueListState,
                     onGotoAlbumClick = onGotoAlbumClick,
                     onGotoArtistClick = onGotoArtistClick,
@@ -137,7 +138,6 @@ fun App(
             composable(route = LibraryDestination.route) {
                 activeScreen = ContentScreen.LIBRARY
                 LibraryScreen(
-                    viewModel = viewModel,
                     listState = libraryListState,
                     onGotoAlbumClick = onGotoAlbumClick,
                     onGotoArtistClick = onGotoArtistClick,
@@ -157,7 +157,6 @@ fun App(
             composable(route = SearchDestination.route) {
                 activeScreen = ContentScreen.SEARCH
                 SearchScreen(
-                    viewModel = viewModel,
                     listState = searchListState,
                     onGotoAlbumClick = onGotoAlbumClick,
                     onGotoArtistClick = onGotoArtistClick,

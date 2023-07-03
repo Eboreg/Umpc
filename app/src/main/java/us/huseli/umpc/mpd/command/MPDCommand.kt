@@ -1,4 +1,4 @@
-package us.huseli.umpc.mpd
+package us.huseli.umpc.mpd.command
 
 import android.util.Log
 import androidx.annotation.WorkerThread

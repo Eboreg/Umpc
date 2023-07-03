@@ -49,13 +49,15 @@ data class MPDResponse(
         return responseMaps
     }
 
-    fun extractSongs(): List<MPDSong> = if (isSuccess) split().mapNotNull { it.toMPDSong() } else emptyList()
-
-    fun extractOutputs(): List<MPDOutput> = if (isSuccess) split().mapNotNull { it.toMPDOutput() } else emptyList()
+    fun extractAlbums(): List<MPDAlbum> =
+        if (isSuccess) splitGrouped().flatMap { it.toMPDAlbums() } else emptyList()
 
     fun extractChanged(): List<String> =
         if (isSuccess) responseList.filter { it.first == "changed" }.map { it.second } else emptyList()
 
-    fun extractAlbums(): List<MPDAlbum> =
-        if (isSuccess) splitGrouped().flatMap { it.toMPDAlbums() } else emptyList()
+    fun extractOutputs(): List<MPDOutput> = if (isSuccess) split().mapNotNull { it.toMPDOutput() } else emptyList()
+
+    fun extractSongs(): List<MPDSong> = if (isSuccess) split().mapNotNull { it.toMPDSong() } else emptyList()
+
+    fun extractTagTypes(): List<String> = responseList.filter { it.first == "tagtype" }.map { it.second }
 }

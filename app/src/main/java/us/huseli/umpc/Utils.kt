@@ -6,8 +6,6 @@ import java.io.File
 import java.time.Instant
 import kotlin.time.Duration.Companion.seconds
 
-fun String.toInstant(): Instant? = Instant.parse(this)
-
 fun Double.formatDuration(): String = this.seconds.toComponents { hours, minutes, seconds, _ ->
     if (hours > 0) String.format("%d:%02d:%02d", hours, minutes, seconds)
     else String.format("%d:%02d", minutes, seconds)

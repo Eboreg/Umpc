@@ -111,13 +111,6 @@ fun SongRow(
             modifier = Modifier.width(IntrinsicSize.Min).padding(end = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            IconButton(onClick = onEnqueueClick) {
-                Icon(Icons.Sharp.QueueMusic, stringResource(R.string.enqueue))
-            }
-            IconButton(onClick = onPlayPauseClick) {
-                if (isPlaying) Icon(Icons.Sharp.Pause, stringResource(R.string.pause))
-                else Icon(Icons.Sharp.PlayArrow, stringResource(R.string.play))
-            }
             Column(horizontalAlignment = Alignment.End) {
                 duration?.formatDuration()?.let {
                     Text(text = it, fontSize = 12.sp, textAlign = TextAlign.End)
@@ -125,6 +118,13 @@ fun SongRow(
                 year?.let {
                     Text(text = it.toString(), fontSize = 12.sp, textAlign = TextAlign.End)
                 }
+            }
+            IconButton(onClick = onEnqueueClick) {
+                Icon(Icons.Sharp.QueueMusic, stringResource(R.string.enqueue))
+            }
+            IconButton(onClick = onPlayPauseClick) {
+                if (isPlaying) Icon(Icons.Sharp.Pause, stringResource(R.string.pause))
+                else Icon(Icons.Sharp.PlayArrow, stringResource(R.string.play))
             }
         }
     }

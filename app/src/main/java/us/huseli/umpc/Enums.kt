@@ -1,24 +1,18 @@
 package us.huseli.umpc
 
-enum class ContentScreen(val value: String) {
-    DEBUG("debug"),
-    QUEUE("queue"),
-    LIBRARY("library"),
-    COVER("cover"),
-    SETTTINGS("settings"),
-    SEARCH("search"),
-    NONE("none"),
-}
+enum class ContentScreen { DEBUG, QUEUE, LIBRARY, COVER, SETTTINGS, SEARCH, NONE }
 
-enum class SingleState(val value: String) { OFF("0"), ON("1"), ONESHOT("oneshot") }
+enum class SingleState { OFF, ON, ONESHOT }
 
-enum class ConsumeState(val value: String) { OFF("0"), ON("1"), ONESHOT("oneshot") }
+enum class ConsumeState { OFF, ON, ONESHOT }
 
-enum class PlayerState(val value: String) { PLAY("play"), STOP("stop"), PAUSE("pause") }
+enum class PlayerState { PLAY, STOP, PAUSE }
 
 enum class LibraryGrouping { ARTIST, ALBUM }
 
 enum class ImageRequestType { FULL, THUMBNAIL, BOTH }
+
+enum class LibrarySearchType { ARTIST, ALBUM, NONE }
 
 fun String.toSingleState() = when (this) {
     "0" -> SingleState.OFF

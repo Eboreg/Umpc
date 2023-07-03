@@ -1,10 +1,11 @@
-package us.huseli.umpc.mpd
+package us.huseli.umpc.mpd.command
 
 import android.util.Log
 import androidx.annotation.WorkerThread
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import us.huseli.umpc.data.MPDResponse
+import us.huseli.umpc.mpd.MPDSearch
 import java.io.ByteArrayOutputStream
 import java.io.InputStream
 import java.io.PrintWriter

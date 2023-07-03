@@ -29,12 +29,12 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import us.huseli.umpc.PlayerState
 import us.huseli.umpc.R
 import us.huseli.umpc.data.MPDSong
-import us.huseli.umpc.viewmodels.MPDViewModel
+import us.huseli.umpc.viewmodels.SearchViewModel
 
 @Composable
 fun SearchScreen(
     modifier: Modifier = Modifier,
-    viewModel: MPDViewModel = hiltViewModel(),
+    viewModel: SearchViewModel = hiltViewModel(),
     listState: LazyListState = rememberLazyListState(),
     onGotoAlbumClick: (MPDSong) -> Unit,
     onGotoArtistClick: (MPDSong) -> Unit,
