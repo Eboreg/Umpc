@@ -7,6 +7,8 @@ import javax.inject.Inject
 @HiltViewModel
 class QueueViewModel @Inject constructor(repo: MPDRepository) : BaseViewModel(repo) {
     val currentSongId = repo.currentSongId
-    val currentSongIndex = repo.currentSongIndex
+    val currentSongPosition = repo.currentSongPosition
     val queue = repo.queue
+
+    fun moveSong(fromIdx: Int, toIdx: Int) = repo.engines.control.moveSongInQueue(fromIdx, toIdx)
 }

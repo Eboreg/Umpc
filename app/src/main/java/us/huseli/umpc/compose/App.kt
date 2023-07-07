@@ -1,5 +1,9 @@
 package us.huseli.umpc.compose
 
+import android.os.Looper
+import androidx.activity.OnBackPressedCallback
+import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.Scaffold
@@ -13,9 +17,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
+import androidx.navigation.NavOptions
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -23,40 +30,125 @@ import us.huseli.umpc.AlbumDestination
 import us.huseli.umpc.ArtistDestination
 import us.huseli.umpc.BuildConfig
 import us.huseli.umpc.ContentScreen
-import us.huseli.umpc.CoverDestination
 import us.huseli.umpc.DebugDestination
 import us.huseli.umpc.LibraryDestination
+import us.huseli.umpc.PlaylistDestination
+import us.huseli.umpc.PlaylistListDestination
 import us.huseli.umpc.QueueDestination
 import us.huseli.umpc.SearchDestination
 import us.huseli.umpc.SettingsDestination
-import us.huseli.umpc.data.MPDSong
+import us.huseli.umpc.data.MPDAlbum
+import us.huseli.umpc.data.MPDPlaylist
+import us.huseli.umpc.getActivity
+import us.huseli.umpc.isInLandscapeMode
 import us.huseli.umpc.viewmodels.MPDViewModel
-import us.huseli.umpc.viewmodels.SettingsViewModel
+import us.huseli.umpc.viewmodels.SearchViewModel
+
+@Composable
+fun ResponsiveScaffold(
+    activeScreen: ContentScreen,
+    onMenuItemClick: (ContentScreen) -> Unit,
+    snackbarHost: @Composable () -> Unit = {},
+    bottomBar: @Composable () -> Unit = {},
+    content: @Composable (PaddingValues) -> Unit
+) {
+    if (isInLandscapeMode()) {
+        VerticalMainMenu(
+            activeScreen = activeScreen,
+            onMenuItemClick = onMenuItemClick,
+        ) {
+            Scaffold(
+                snackbarHost = snackbarHost,
+                bottomBar = bottomBar,
+                content = content
+            )
+        }
+    } else {
+        Scaffold(
+            snackbarHost = snackbarHost,
+            bottomBar = bottomBar,
+            topBar = {
+                HorizontalMainMenu(
+                    activeScreen = activeScreen,
+                    onMenuItemClick = onMenuItemClick,
+                )
+            },
+            content = content
+        )
+    }
+}
 
 @Composable
 fun App(
     modifier: Modifier = Modifier,
     snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
     viewModel: MPDViewModel = hiltViewModel(),
-    settingsViewModel: SettingsViewModel = hiltViewModel(),
+    searchViewModel: SearchViewModel = hiltViewModel(),
     navController: NavHostController = rememberNavController(),
 ) {
+    val onBackPressedDispatcher = LocalOnBackPressedDispatcherOwner.current?.onBackPressedDispatcher
+    val lifecycleOwner = LocalLifecycleOwner.current
+    val context = LocalContext.current
+
     val error by viewModel.error.collectAsStateWithLifecycle()
     val message by viewModel.message.collectAsStateWithLifecycle()
     val currentSong by viewModel.currentSong.collectAsStateWithLifecycle()
-    val currentSongAlbumArt by viewModel.currentSongAlbumArt.collectAsStateWithLifecycle()
-    val currentSongElapsed by viewModel.currentSongElapsed.collectAsStateWithLifecycle()
-    val currentSongDuration by viewModel.currentSongDuration.collectAsStateWithLifecycle()
-    val playerState by viewModel.playerState.collectAsStateWithLifecycle()
-    val isStreaming by viewModel.isStreaming.collectAsStateWithLifecycle()
-    val streamingUrl by settingsViewModel.streamingUrl.collectAsStateWithLifecycle()
+
     val queueListState = rememberLazyListState()
     val libraryListState = rememberLazyListState()
     val searchListState = rememberLazyListState()
-    var activeScreen by rememberSaveable { mutableStateOf(ContentScreen.COVER) }
 
-    val onGotoAlbumClick: (MPDSong) -> Unit = { navController.navigate(AlbumDestination.route(it)) }
-    val onGotoArtistClick: (MPDSong) -> Unit = { navController.navigate(ArtistDestination.route(it)) }
+    var activeScreen by rememberSaveable { mutableStateOf(ContentScreen.NONE) }
+    var isCoverShown by rememberSaveable { mutableStateOf(false) }
+
+    val onGotoAlbumClick: (MPDAlbum) -> Unit = {
+        navController.navigate(AlbumDestination.route(it))
+        isCoverShown = false
+    }
+
+    val onGotoArtistClick: (String) -> Unit = {
+        navController.navigate(ArtistDestination.route(it))
+        isCoverShown = false
+    }
+
+    fun navigate(route: String, navOptions: NavOptions? = null) {
+        if (Looper.myLooper() != Looper.getMainLooper()) {
+            context.getActivity()?.runOnUiThread {
+                navController.navigate(route, navOptions)
+            }
+        } else {
+            navController.navigate(route, navOptions)
+        }
+    }
+
+    /**
+     * Q: What does the stuff below do?
+     *
+     * A: Glad you asked! `onBackPressedCallback` overrides the NavController's
+     * backpress logic so a backpress only closes the cover screen and nothing
+     * more. The 2nd LaunchedEffect makes sure `onBackPressedCallback` only
+     * takes effect when the cover screen is actually open, otherwise
+     * navigation works as usual.
+     */
+    val onBackPressedCallback = remember {
+        object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                isCoverShown = false
+            }
+        }
+    }
+
+    LaunchedEffect(lifecycleOwner, onBackPressedDispatcher) {
+        onBackPressedDispatcher?.let { dispatcher ->
+            navController.setLifecycleOwner(lifecycleOwner)
+            navController.setOnBackPressedDispatcher(dispatcher)
+            dispatcher.addCallback(lifecycleOwner, onBackPressedCallback)
+        }
+    }
+
+    LaunchedEffect(isCoverShown) {
+        onBackPressedCallback.isEnabled = isCoverShown
+    }
 
     LaunchedEffect(error) {
         error?.let {
@@ -72,45 +164,27 @@ fun App(
         }
     }
 
-    Scaffold(
+    ResponsiveScaffold(
+        activeScreen = activeScreen,
+        onMenuItemClick = {
+            when (it) {
+                ContentScreen.DEBUG -> navController.navigate(
+                    if (BuildConfig.DEBUG) DebugDestination.route else QueueDestination.route
+                )
+                ContentScreen.QUEUE -> navController.navigate(QueueDestination.route)
+                ContentScreen.LIBRARY -> navController.navigate(LibraryDestination.route)
+                ContentScreen.SETTINGS -> navController.navigate(SettingsDestination.route)
+                ContentScreen.SEARCH -> navController.navigate(SearchDestination.route)
+                ContentScreen.NONE -> {}
+                ContentScreen.PLAYLISTS -> navController.navigate(PlaylistListDestination.route)
+            }
+            isCoverShown = false
+        },
         snackbarHost = { SnackbarHost(snackbarHostState) },
         bottomBar = {
-            if (activeScreen != ContentScreen.COVER) {
-                currentSong?.let { song ->
-                    BottomBar(
-                        albumArt = currentSongAlbumArt,
-                        title = song.title,
-                        artist = song.artist,
-                        album = song.album,
-                        playerState = playerState,
-                        isStreaming = isStreaming,
-                        currentSongDuration = currentSongDuration,
-                        currentSongElapsed = currentSongElapsed,
-                        showStreamingIcon = streamingUrl != null,
-                        onPlayPauseClick = { viewModel.playOrPause() },
-                        onSurfaceClick = { navController.navigate(CoverDestination.route) },
-                        onStreamingChange = { viewModel.toggleStream(it) },
-                    )
-                }
+            if (!isCoverShown && currentSong != null) {
+                BottomBar(onSurfaceClick = { isCoverShown = true })
             }
-        },
-        topBar = {
-            TopBar(
-                activeScreen = activeScreen,
-                onContentScreenClick = {
-                    when (it) {
-                        ContentScreen.DEBUG -> navController.navigate(
-                            if (BuildConfig.DEBUG) DebugDestination.route else QueueDestination.route
-                        )
-                        ContentScreen.QUEUE -> navController.navigate(QueueDestination.route)
-                        ContentScreen.LIBRARY -> navController.navigate(LibraryDestination.route)
-                        ContentScreen.COVER -> navController.navigate(CoverDestination.route)
-                        ContentScreen.SETTTINGS -> navController.navigate(SettingsDestination.route)
-                        ContentScreen.SEARCH -> navController.navigate(SearchDestination.route)
-                        ContentScreen.NONE -> {}
-                    }
-                },
-            )
         },
     ) { innerPadding ->
         NavHost(
@@ -118,14 +192,6 @@ fun App(
             navController = navController,
             startDestination = QueueDestination.route,
         ) {
-            composable(route = CoverDestination.route) {
-                activeScreen = ContentScreen.COVER
-                CoverScreen(
-                    onGotoAlbumClick = onGotoAlbumClick,
-                    onGotoArtistClick = onGotoArtistClick,
-                )
-            }
-
             composable(route = QueueDestination.route) {
                 activeScreen = ContentScreen.QUEUE
                 QueueScreen(
@@ -150,13 +216,14 @@ fun App(
             }
 
             composable(route = SettingsDestination.route) {
-                activeScreen = ContentScreen.SETTTINGS
+                activeScreen = ContentScreen.SETTINGS
                 SettingsScreen()
             }
 
             composable(route = SearchDestination.route) {
                 activeScreen = ContentScreen.SEARCH
                 SearchScreen(
+                    viewModel = searchViewModel,
                     listState = searchListState,
                     onGotoAlbumClick = onGotoAlbumClick,
                     onGotoArtistClick = onGotoArtistClick,
@@ -167,7 +234,6 @@ fun App(
                 route = AlbumDestination.routeTemplate,
                 arguments = AlbumDestination.arguments,
             ) {
-                activeScreen = ContentScreen.NONE
                 AlbumScreen(onGotoArtistClick = onGotoArtistClick)
             }
 
@@ -175,9 +241,36 @@ fun App(
                 route = ArtistDestination.routeTemplate,
                 arguments = ArtistDestination.arguments
             ) {
-                activeScreen = ContentScreen.NONE
                 ArtistScreen(onGotoAlbumClick = onGotoAlbumClick)
             }
+
+            composable(route = PlaylistListDestination.route) {
+                activeScreen = ContentScreen.PLAYLISTS
+                PlaylistListScreen(onGotoPlaylistClick = { navController.navigate(PlaylistDestination.route(it)) })
+            }
+
+            composable(
+                route = PlaylistDestination.routeTemplate,
+                arguments = PlaylistDestination.arguments,
+            ) {
+                PlaylistScreen(
+                    onGotoAlbumClick = onGotoAlbumClick,
+                    onGotoArtistClick = onGotoArtistClick,
+                    onPlaylistDeleted = { navigate(PlaylistListDestination.route) },
+                    onPlaylistRenamed = { newName ->
+                        navigate(PlaylistDestination.route(MPDPlaylist(newName)))
+                    }
+                )
+            }
+        }
+
+        if (isCoverShown) {
+            CoverScreen(
+                modifier = modifier.padding(innerPadding),
+                onGotoAlbumClick = onGotoAlbumClick,
+                onGotoArtistClick = onGotoArtistClick,
+                onDismiss = { isCoverShown = false }
+            )
         }
     }
 }

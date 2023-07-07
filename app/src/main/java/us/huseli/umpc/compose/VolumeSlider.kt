@@ -1,17 +1,26 @@
 package us.huseli.umpc.compose
 
-import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.sharp.VolumeDown
 import androidx.compose.material.icons.sharp.VolumeMute
+import androidx.compose.material.icons.sharp.VolumeOff
 import androidx.compose.material.icons.sharp.VolumeUp
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -23,31 +32,46 @@ import us.huseli.umpc.R
 @Composable
 fun VolumeSlider(
     modifier: Modifier = Modifier,
-    value: Float,
-    onValueChange: (Float) -> Unit,
+    volume: Float,
+    backgroundAlpha: Float = 0.5f,
+    onVolumeChange: (Float) -> Unit,
 ) {
-    var volume by rememberSaveable(value) { mutableStateOf(value) }
+    var mutableVolume by rememberSaveable(volume) { mutableStateOf(volume) }
 
-    BoxWithConstraints(contentAlignment = Alignment.Center, modifier = modifier) {
-        val sliderWidth by remember(maxWidth) { mutableStateOf(maxWidth - 80.dp) }
-
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(
-                modifier = Modifier.width(40.dp),
-                imageVector = Icons.Sharp.VolumeMute,
-                contentDescription = stringResource(R.string.volume_down),
-            )
+    Box(contentAlignment = Alignment.Center, modifier = modifier.height(IntrinsicSize.Min)) {
+        Surface(
+            modifier = Modifier.fillMaxSize(),
+            color = MaterialTheme.colorScheme.background.copy(alpha = backgroundAlpha),
+            shape = MaterialTheme.shapes.extraLarge,
+            content = {}
+        )
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.height(40.dp)) {
+            IconButton(
+                modifier = Modifier.width(IntrinsicSize.Min).height(24.dp),
+                onClick = {
+                    mutableVolume = 0f
+                    onVolumeChange(mutableVolume)
+                }
+            ) {
+                Icon(
+                    if (mutableVolume == 0f) Icons.Sharp.VolumeOff
+                    else if (mutableVolume < 25f) Icons.Sharp.VolumeMute
+                    else if (mutableVolume < 75f) Icons.Sharp.VolumeDown
+                    else Icons.Sharp.VolumeUp,
+                    stringResource(R.string.mute_volume)
+                )
+            }
             Slider(
-                modifier = Modifier.width(sliderWidth),
-                value = volume,
+                modifier = Modifier.weight(1f),
+                value = mutableVolume,
                 valueRange = 0f..100f,
-                onValueChange = { volume = it },
-                onValueChangeFinished = { onValueChange(volume) },
+                onValueChange = { mutableVolume = it },
+                onValueChangeFinished = { onVolumeChange(mutableVolume) },
             )
-            Icon(
-                modifier = Modifier.width(40.dp),
-                imageVector = Icons.Sharp.VolumeUp,
-                contentDescription = stringResource(R.string.volume_up),
+            Text(
+                "${mutableVolume.toInt()}%",
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.padding(end = 5.dp)
             )
         }
     }

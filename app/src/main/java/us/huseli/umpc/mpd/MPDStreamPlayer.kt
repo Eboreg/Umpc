@@ -50,6 +50,11 @@ class MPDStreamPlayer @Inject constructor(@ApplicationContext private val contex
         exoPlayer = null
     }
 
+    suspend fun toggle() {
+        if (_isStreaming.value) stop()
+        else start()
+    }
+
     override fun onSharedPreferenceChanged(sharedPreferences: SharedPreferences?, key: String?) {
         if (key == PREF_STREAMING_URL) {
             url = preferences.getString(key, "")

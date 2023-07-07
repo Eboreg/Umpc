@@ -6,7 +6,6 @@ import javax.inject.Inject
 
 @HiltViewModel
 class CoverViewModel @Inject constructor(repo: MPDRepository) : BaseViewModel(repo) {
-    val queue = repo.queue
     val randomState = repo.randomState
     val repeatState = repo.repeatState
     val volume = repo.volume

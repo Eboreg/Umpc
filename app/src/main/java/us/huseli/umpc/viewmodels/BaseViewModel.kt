@@ -15,18 +15,16 @@ import us.huseli.umpc.mpd.MPDRepository
 
 abstract class BaseViewModel(protected val repo: MPDRepository) : ViewModel() {
     val currentSong = repo.currentSong
-    val currentSongAlbumArt = repo.currentSongAlbumArt
-    val currentSongDuration = repo.currentSongDuration
-    val currentSongElapsed = repo.currentSongElapsed
-    val currentSongFilename = currentSong.map { it?.filename }.distinctUntilChanged()
+    val currentSongFilename = repo.currentSong.map { it?.filename }.distinctUntilChanged()
     val playerState = repo.playerState
+    val playlists = repo.engines.playlist.playlists
 
-    fun enqueueAlbum(album: MPDAlbum?) {
-        if (album != null) {
-            repo.engines.control.enqueueAlbumLast(album) { response ->
-                if (response.isSuccess) repo.engines.message.addMessage("The album was enqueued.")
-                else repo.engines.message.addMessage("Could not enqeue album: ${response.error}")
-            }
+    fun addMessage(message: String) = repo.engines.message.addMessage(message)
+
+    fun enqueueAlbum(album: MPDAlbum) {
+        repo.engines.control.enqueueAlbumLast(album) { response ->
+            if (response.isSuccess) repo.engines.message.addMessage("The album was enqueued.")
+            else repo.engines.message.addMessage("Could not enqeue album: ${response.error}")
         }
     }
 
@@ -41,14 +39,10 @@ abstract class BaseViewModel(protected val repo: MPDRepository) : ViewModel() {
         }
     }
 
-    fun next() = repo.engines.control.next()
-
     fun playAlbum(album: MPDAlbum?) = album?.let { repo.engines.control.enqueueAlbumNextAndPlay(album) }
 
-    fun playOrPause() = repo.engines.control.playOrPause()
-
     fun playOrPauseSong(song: MPDSong) {
-        if (song.filename == currentSong.value?.filename) repo.engines.control.playOrPause()
+        if (song.filename == repo.currentSong.value?.filename) repo.engines.control.playOrPause()
         else if (song.id != null) repo.engines.control.playSongId(song.id)
         else repo.engines.control.enqueueSongNextAndPlay(song)
     }

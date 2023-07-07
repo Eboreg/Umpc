@@ -5,25 +5,20 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.sharp.FastForward
+import androidx.compose.material.icons.sharp.FastRewind
 import androidx.compose.material.icons.sharp.Pause
 import androidx.compose.material.icons.sharp.PlayArrow
-import androidx.compose.material.icons.sharp.Repeat
-import androidx.compose.material.icons.sharp.Shuffle
 import androidx.compose.material.icons.sharp.SkipNext
 import androidx.compose.material.icons.sharp.SkipPrevious
 import androidx.compose.material.icons.sharp.Stop
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.IconButtonDefaults
-import androidx.compose.material3.IconToggleButton
-import androidx.compose.material3.LocalContentColor
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.dp
 import us.huseli.umpc.PlayerState
 import us.huseli.umpc.R
 
@@ -31,50 +26,47 @@ import us.huseli.umpc.R
 fun PlayerControls(
     modifier: Modifier = Modifier,
     playerState: PlayerState?,
-    repeatState: Boolean,
-    randomState: Boolean,
-    buttonHeight: Dp = 40.dp,
     onPreviousClick: () -> Unit,
     onPlayPauseClick: () -> Unit,
     onStopClick: () -> Unit,
     onNextClick: () -> Unit,
-    onRepeatClick: () -> Unit,
-    onRandomClick: () -> Unit,
+    onReverseClick: () -> Unit,
+    onForwardClick: () -> Unit,
 ) {
     val isStopped = playerState == null || playerState == PlayerState.STOP
     val buttonModifier = Modifier.aspectRatio(1f, true).fillMaxHeight()
-    val iconToggleButtonColors = IconButtonDefaults.iconToggleButtonColors(
-        contentColor = LocalContentColor.current.copy(0.5f)
-    )
 
-    Row(modifier = modifier.height(buttonHeight), horizontalArrangement = Arrangement.SpaceEvenly) {
-        IconToggleButton(
-            modifier = buttonModifier,
-            checked = repeatState,
-            onCheckedChange = { onRepeatClick() },
-            colors = iconToggleButtonColors,
-        ) {
-            Icon(
-                modifier = Modifier.fillMaxSize(0.66f),
-                imageVector = Icons.Sharp.Repeat,
-                contentDescription = stringResource(R.string.repeat),
-            )
-        }
-
+    Row(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.SpaceEvenly,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
         IconButton(
-            modifier = buttonModifier,
+            modifier = buttonModifier.weight(0.6f),
             onClick = onPreviousClick,
             enabled = !isStopped
         ) {
             Icon(
-                modifier = Modifier.fillMaxSize(0.75f),
+                modifier = Modifier.fillMaxSize(),
                 imageVector = Icons.Sharp.SkipPrevious,
                 contentDescription = stringResource(R.string.previous),
             )
         }
 
         IconButton(
-            modifier = buttonModifier,
+            modifier = buttonModifier.weight(0.75f),
+            onClick = onReverseClick,
+            enabled = !isStopped
+        ) {
+            Icon(
+                modifier = Modifier.fillMaxSize(),
+                imageVector = Icons.Sharp.FastRewind,
+                contentDescription = stringResource(R.string.rewind),
+            )
+        }
+
+        IconButton(
+            modifier = buttonModifier.weight(1f),
             onClick = onPlayPauseClick
         ) {
             if (playerState == PlayerState.PLAY) {
@@ -93,7 +85,7 @@ fun PlayerControls(
         }
 
         IconButton(
-            modifier = buttonModifier,
+            modifier = buttonModifier.weight(1f),
             onClick = onStopClick,
             enabled = !isStopped
         ) {
@@ -105,27 +97,26 @@ fun PlayerControls(
         }
 
         IconButton(
-            modifier = buttonModifier,
+            modifier = buttonModifier.weight(0.75f),
+            onClick = onForwardClick,
+            enabled = !isStopped
+        ) {
+            Icon(
+                modifier = Modifier.fillMaxSize(),
+                imageVector = Icons.Sharp.FastForward,
+                contentDescription = stringResource(R.string.forward),
+            )
+        }
+
+        IconButton(
+            modifier = buttonModifier.weight(0.6f),
             onClick = onNextClick,
             enabled = !isStopped
         ) {
             Icon(
-                modifier = Modifier.fillMaxSize(0.75f),
+                modifier = Modifier.fillMaxSize(),
                 imageVector = Icons.Sharp.SkipNext,
                 contentDescription = stringResource(R.string.next),
-            )
-        }
-
-        IconToggleButton(
-            modifier = buttonModifier,
-            checked = randomState,
-            onCheckedChange = { onRandomClick() },
-            colors = iconToggleButtonColors,
-        ) {
-            Icon(
-                modifier = Modifier.fillMaxSize(0.66f),
-                imageVector = Icons.Sharp.Shuffle,
-                contentDescription = stringResource(R.string.shuffle),
             )
         }
     }

@@ -2,18 +2,14 @@ package us.huseli.umpc.data
 
 @Suppress("ArrayInDataClass")
 data class MPDResponse(
-    val status: Status,
+    val isSuccess: Boolean,
     val error: String? = null,
     val binaryResponse: ByteArray = byteArrayOf(),
     val responseMap: Map<String, String> = emptyMap(),
     val responseList: List<Pair<String, String>> = emptyList(),
 ) {
-    enum class Status { OK, EMPTY, ERROR }
-
-    val isSuccess: Boolean = status == Status.OK
-
     override fun toString() =
-        "${javaClass.simpleName}[status=$status, error=$error, responseMap=$responseMap, responseList=$responseList]"
+        "${javaClass.simpleName}[isSuccess=$isSuccess, error=$error, responseMap=$responseMap, responseList=$responseList]"
 
     private fun split(): List<Map<String, String>> {
         val responseMaps = mutableListOf<Map<String, String>>()
@@ -56,6 +52,8 @@ data class MPDResponse(
         if (isSuccess) responseList.filter { it.first == "changed" }.map { it.second } else emptyList()
 
     fun extractOutputs(): List<MPDOutput> = if (isSuccess) split().mapNotNull { it.toMPDOutput() } else emptyList()
+
+    fun extractPlaylists(): List<MPDPlaylist> = split().mapNotNull { it.toMPDPlaylist() }
 
     fun extractSongs(): List<MPDSong> = if (isSuccess) split().mapNotNull { it.toMPDSong() } else emptyList()
 

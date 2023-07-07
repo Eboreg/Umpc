@@ -2,6 +2,7 @@ package us.huseli.umpc.data
 
 import android.util.Log
 import us.huseli.umpc.ConsumeState
+import us.huseli.umpc.Logger
 import us.huseli.umpc.PlayerState
 import us.huseli.umpc.SingleState
 import us.huseli.umpc.toConsumeState
@@ -19,9 +20,9 @@ data class MPDStatus(
     val queueLength: Int?,
     val mixRampDb: Int?,
     val playerState: PlayerState?,
-    val currentSongIndex: Int?,
+    val currentSongPosition: Int?,
     val currentSongId: Int?,
-    val nextSongIndex: Int?,
+    val nextSongPosition: Int?,
     val nextSongId: Int?,
     // Below: only returned when state is not stop
     val currentSongElapsed: Double?,
@@ -46,9 +47,9 @@ fun Map<String, String>.toMPDStatus() = try {
         queueLength = this["playlistlength"]?.toInt(),
         mixRampDb = this["mixrampdb"]?.toInt(),
         playerState = this["state"]?.toPlayerState(),
-        currentSongIndex = this["song"]?.toInt(),
+        currentSongPosition = this["song"]?.toInt(),
         currentSongId = this["songid"]?.toInt(),
-        nextSongIndex = this["nextsong"]?.toInt(),
+        nextSongPosition = this["nextsong"]?.toInt(),
         nextSongId = this["nextsongid"]?.toInt(),
         currentSongElapsed = this["elapsed"]?.toDouble(),
         currentSongDuration = this["duration"]?.toDouble(),
@@ -59,6 +60,6 @@ fun Map<String, String>.toMPDStatus() = try {
         error = this["error"],
     )
 } catch (e: Exception) {
-    Log.e("MPDStatus", "fromMap: $e")
+    Logger.log("MPDStatus", "fromMap: $e", Log.ERROR)
     null
 }

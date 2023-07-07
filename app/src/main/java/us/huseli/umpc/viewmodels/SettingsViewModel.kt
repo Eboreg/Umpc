@@ -1,9 +1,12 @@
 package us.huseli.umpc.viewmodels
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 import us.huseli.umpc.mpd.MPDRepository
+import java.io.FileFilter
 import javax.inject.Inject
 
 @HiltViewModel
@@ -14,8 +17,12 @@ class SettingsViewModel @Inject constructor(private val repo: MPDRepository) : V
     val port = repo.engines.settings.port.asStateFlow()
     val streamingUrl = repo.engines.settings.streamingUrl.asStateFlow()
 
-    init {
-        repo.fetchOutputs()
+    fun addMessage(message: String) = repo.engines.message.addMessage(message)
+
+    fun clearAlbumArtCache(onFinish: (() -> Unit)? = null) = viewModelScope.launch {
+        repo.albumArtDirectory.listFiles(FileFilter { it.isFile })?.forEach { it.delete() }
+        repo.thumbnailDirectory.listFiles(FileFilter { it.isFile })?.forEach { it.delete() }
+        onFinish?.invoke()
     }
 
     fun setOutputEnabled(id: Int, isEnabled: Boolean) {
@@ -39,8 +46,5 @@ class SettingsViewModel @Inject constructor(private val repo: MPDRepository) : V
         repo.engines.settings.streamingUrl.value = value
     }
 
-    fun save() {
-        repo.engines.settings.save()
-        repo.engines.message.addMessage("Settings saved.")
-    }
+    fun save() = repo.engines.settings.save()
 }

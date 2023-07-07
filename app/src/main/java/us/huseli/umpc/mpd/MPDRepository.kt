@@ -1,6 +1,7 @@
 package us.huseli.umpc.mpd
 
 import android.content.Context
+import android.util.Log
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -12,24 +13,28 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import us.huseli.umpc.LoggerInterface
 import us.huseli.umpc.PlayerState
 import us.huseli.umpc.data.MPDAlbum
-import us.huseli.umpc.data.MPDAlbumArt
 import us.huseli.umpc.data.MPDAlbumWithSongs
+import us.huseli.umpc.data.MPDAudioFormat
 import us.huseli.umpc.data.MPDOutput
 import us.huseli.umpc.data.MPDSong
-import us.huseli.umpc.data.filterByAlbum
 import us.huseli.umpc.data.groupByAlbum
+import us.huseli.umpc.data.plus
 import us.huseli.umpc.data.sortedByYear
 import us.huseli.umpc.data.toMPDSong
 import us.huseli.umpc.data.toMPDStatus
 import us.huseli.umpc.mpd.client.MPDBinaryClient
 import us.huseli.umpc.mpd.client.MPDClient
+import us.huseli.umpc.mpd.client.MPDClientException
 import us.huseli.umpc.mpd.client.MPDIdleClient
 import us.huseli.umpc.mpd.engine.MPDControlEngine
 import us.huseli.umpc.mpd.engine.MPDImageEngine
+import us.huseli.umpc.mpd.engine.MPDPlaylistEngine
 import us.huseli.umpc.mpd.engine.MessageEngine
 import us.huseli.umpc.mpd.engine.SettingsEngine
+import java.io.File
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -38,30 +43,28 @@ class Engines(
     val image: MPDImageEngine,
     val control: MPDControlEngine,
     val message: MessageEngine,
+    val playlist: MPDPlaylistEngine,
 )
 
 @Singleton
 class MPDRepository @Inject constructor(
     private val ioScope: CoroutineScope,
     @ApplicationContext context: Context,
-) {
-    val engines: Engines
+) : LoggerInterface {
     private var statusJob: Job? = null
-
-    private val _client = MutableStateFlow<MPDClient?>(null)
-    private val _binaryClient = MutableStateFlow<MPDBinaryClient?>(null)
-    private val _idleClient = MutableStateFlow<MPDIdleClient?>(null)
+    private val onMPDChangeListeners = mutableListOf<OnMPDChangeListener>()
 
     // private val _consumeState = MutableStateFlow(ConsumeState.OFF)
     // private val _singleState = MutableStateFlow(SingleState.OFF)
     private val _currentSong = MutableStateFlow<MPDSong?>(null)
-    private val _currentSongAlbumArt = MutableStateFlow<MPDAlbumArt?>(null)
     private val _currentSongDuration = MutableStateFlow<Double?>(null)
     private val _currentSongElapsed = MutableStateFlow<Double?>(null)
     private val _currentSongId = MutableStateFlow<Int?>(null)
-    private val _currentSongIndex = MutableStateFlow<Int?>(null)
+    private val _currentSongPosition = MutableStateFlow<Int?>(null)
 
     private val _albums = MutableStateFlow<List<MPDAlbum>>(emptyList())
+    private val _albumsWithSongs = MutableStateFlow<List<MPDAlbumWithSongs>>(listOf())
+    private val _currentAudioFormat = MutableStateFlow<MPDAudioFormat?>(null)
     private val _currentBitrate = MutableStateFlow<Int?>(null)
     private val _outputs = MutableStateFlow<List<MPDOutput>>(emptyList())
     private val _playerState = MutableStateFlow(PlayerState.STOP)
@@ -71,18 +74,21 @@ class MPDRepository @Inject constructor(
     private val _songs = MutableStateFlow<List<MPDSong>>(emptyList())
     private val _volume = MutableStateFlow(100)
 
-    // val consumeState = _consumeState.asStateFlow()
-    // val currentBitrate = _currentBitrate.asStateFlow()
-    // val singleState = _singleState.asStateFlow()
-    val binaryClient = _binaryClient.asStateFlow()
-    val client = _client.asStateFlow()
+    val engines: Engines
+    var client = MPDClient()
+    var binaryClient = MPDBinaryClient()
+    private var idleClient = MPDIdleClient()
+
+    val albumArtDirectory = File(context.cacheDir, "albumArt").apply { mkdirs() }
+    val thumbnailDirectory = File(albumArtDirectory, "thumbnails").apply { mkdirs() }
 
     val currentSong = _currentSong.asStateFlow()
-    val currentSongAlbumArt = _currentSongAlbumArt.asStateFlow()
     val currentSongDuration = _currentSongDuration.asStateFlow()
     val currentSongElapsed = _currentSongElapsed.asStateFlow()
     val currentSongId = _currentSongId.asStateFlow()
-    val currentSongIndex = _currentSongIndex.asStateFlow()
+    val currentSongPosition = _currentSongPosition.asStateFlow()
+    val currentBitrate = _currentBitrate.asStateFlow()
+    val currentAudioFormat = _currentAudioFormat.asStateFlow()
 
     val albums = _albums.asStateFlow()
     val outputs = _outputs.asStateFlow()
@@ -96,37 +102,48 @@ class MPDRepository @Inject constructor(
     init {
         engines = Engines(
             settings = SettingsEngine(context),
-            image = MPDImageEngine(context, this, ioScope),
+            image = MPDImageEngine(this, ioScope),
             control = MPDControlEngine(this),
             message = MessageEngine(this),
+            playlist = MPDPlaylistEngine(this),
         )
 
         ioScope.launch {
             engines.settings.credentials.collect { credentials ->
-                _client.value?.close()
-                _binaryClient.value?.close()
-                _idleClient.value?.close()
+                // client.close()
+                // binaryClient.close()
+                // idleClient.close()
+
+                // client.setup(credentials)
+                client.setCredentials(credentials)
+                binaryClient.setCredentials(credentials)
+                idleClient.setCredentials(credentials)
 
                 try {
-                    _client.value = MPDClient(ioScope, credentials).apply { initialize() }
-                    _binaryClient.value = MPDBinaryClient(ioScope, credentials).apply { initialize() }
-                    _idleClient.value = MPDIdleClient(ioScope, credentials).apply { initialize() }
-                } catch (e: Exception) {
-                    engines.message.setError(e.toString())
-                }
+                    // client.connect()
+                    // binaryClient.connect()
+                    // idleClient.connect()
+                    client.start()
+                    binaryClient.start()
 
-                fetchStatus()
-                fetchQueue()
-                fetchAlbums()
-                fetchOutputs()
-                watch()
+                    loadStatus()
+                    loadQueue()
+                    loadAlbums()
+                    loadOutputs()
+                    // engines.playlist.loadPlaylistsWithSongs()
+                    engines.playlist.loadPlaylists()
+                    watch()
+                } catch (e: MPDClientException) {
+                    engines.message.setError(e.message)
+                    log(e.clientClass, e.message, Log.ERROR)
+                }
             }
         }
 
         ioScope.launch {
             // Fetch current song info as soon as it changes.
-            _currentSongIndex.filterNotNull().distinctUntilChanged().collect {
-                fetchCurrentSong()
+            _currentSongPosition.filterNotNull().distinctUntilChanged().collect {
+                loadCurrentSong()
             }
         }
 
@@ -138,7 +155,7 @@ class MPDRepository @Inject constructor(
                         statusJob = ioScope.launch {
                             while (isActive) {
                                 delay(10_000)
-                                fetchStatus()
+                                loadStatus()
                             }
                         }
                     }
@@ -150,56 +167,133 @@ class MPDRepository @Inject constructor(
         }
     }
 
-    fun fetchAlbumsWithSongsByAlbumArtist(artist: String, onFinish: (List<MPDAlbumWithSongs>) -> Unit) {
-        fetchSongsByAlbumArtist(artist) { songs ->
+    fun registerOnMPDChangeListener(listener: OnMPDChangeListener) {
+        onMPDChangeListeners.add(listener)
+    }
+
+    fun fetchAlbumWithSongsListByAlbumArtist(artist: String, onFinish: (List<MPDAlbumWithSongs>) -> Unit) {
+        /**
+         * In: 1 artist. Out: All albums where that artist is an _album artist_
+         * (i.e. not just featured on a couple of songs), and all their songs.
+         * Used in LibraryScreen, ARTIST grouping.
+         * Will update this._albumsWithSongs.
+         */
+        fetchSongListByAlbumArtist(artist) { songs ->
             onFinish(songs.groupByAlbum().sortedByYear())
         }
     }
 
-    fun fetchOutputs(onFinish: ((List<MPDOutput>) -> Unit)? = null) {
-        _client.value?.enqueue("outputs") { response ->
-            response.extractOutputs().also {
-                _outputs.value = it
-                onFinish?.invoke(it)
-            }
-        }
-    }
-
-    fun fetchSongs(artist: String, album: String, onFinish: ((List<MPDSong>) -> Unit)? = null) {
-        val command = find { and(equals("album", album), equals("albumartist", artist)) }
-
-        _client.value?.enqueue(command) { response ->
-            val songs = response.extractSongs()
-            onFinish?.invoke(songs)
-            addSongs(songs)
-        }
-    }
-
-    fun fetchSongsByArtist(artist: String, onFinish: (List<MPDSong>) -> Unit) {
+    fun fetchAlbumWithSongsListByArtist(artist: String, onFinish: (List<MPDAlbumWithSongs>) -> Unit) {
         /**
          * Searches both artist and album artist tags.
          * Because we cannot do OR queries, we have to resort to this
          * inefficient bullshit in order to search both artist & albumartist.
          */
-        _client.value?.enqueue(find { equals("artist", artist) }) { response ->
+        client.enqueue(mpdFind { equals("artist", artist) }) { response ->
             val songs = response.extractSongs().toMutableSet()
 
             addSongs(songs)
-            fetchSongsByAlbumArtist(artist) {
+            fetchSongListByAlbumArtist(artist) {
                 songs.addAll(it)
-                onFinish(songs.toList())
+                onFinish(songs.groupByAlbum())
             }
         }
     }
 
-    fun getAlbumWithSongsFlow(album: MPDAlbum): StateFlow<MPDAlbumWithSongs> =
-        MutableStateFlow(MPDAlbumWithSongs(album, _songs.value.filterByAlbum(album))).apply {
-            if (value.songs.isEmpty()) {
-                fetchSongs(album.artist, album.name) {
-                    value = value.copy(songs = it)
+    fun fetchAlbumWithSongsListsByArtist(
+        artist: String,
+        onFinish: (List<MPDAlbumWithSongs>, List<MPDAlbumWithSongs>) -> Unit,
+    ) {
+        /**
+         * Searches both artist and album artist tags.
+         * Because we cannot do OR queries, we have to resort to this
+         * inefficient bullshit in order to search both artist & albumartist.
+         *
+         * Songs lists returned by the "artist" filter will likely not be
+         * complete album, but rather single tracks from compilations etc.
+         * So, in addition, we need to fetch all songs from any such albums
+         * separately.
+         */
+        // Albums where the artist is _not_ the album artist:
+        var nonAlbumArtistAlbums = listOf<MPDAlbumWithSongs>()
+        // Albums where the artist _is_ the album artist:
+        var albumArtistAlbums = listOf<MPDAlbumWithSongs>()
+
+        client.enqueue(mpdFind { equals("artist", artist) }) { response ->
+            // We got songs where this artist is in the "artist" tag:
+            response.extractSongs().toMutableSet().also { songs ->
+                nonAlbumArtistAlbums = songs.filter { it.artist != it.album.artist }.groupByAlbum()
+                albumArtistAlbums = songs.filter { it.artist == it.album.artist }.groupByAlbum()
+            }
+            // The nonAlbumArtistAlbums are likely not complete (as they
+            // contain songs by other artists), so the songs for those will
+            // have to be fetched separately:
+            fetchAlbumWithSongsListsByAlbumList(nonAlbumArtistAlbums.map { it.album }) { aws ->
+                nonAlbumArtistAlbums = aws
+                fetchSongListByAlbumArtist(artist) { songs ->
+                    albumArtistAlbums = albumArtistAlbums.plus(songs.groupByAlbum())
+                    onFinish(albumArtistAlbums.sortedByYear(), nonAlbumArtistAlbums.sortedByYear())
                 }
             }
+        }
+    }
+
+    fun fetchSongListByAlbum(album: MPDAlbum, onFinish: (List<MPDSong>) -> Unit) {
+        /** In: 1 album. Out: All songs for this album. Updates _albumsWithSongs. */
+        client.enqueue(album.searchFilter.find()) { response ->
+            val songs = response.extractSongs()
+            onFinish(songs)
+            _albumsWithSongs.value = _albumsWithSongs.value.plus(MPDAlbumWithSongs(album, songs))
+        }
+    }
+
+    private fun fetchSongListByAlbumArtist(albumArtist: String, onFinish: (List<MPDSong>) -> Unit) {
+        /** Will also update this._albumsWithSongs. */
+        client.enqueue(mpdFind { equals("albumartist", albumArtist) }) { response ->
+            response.extractSongs().also {
+                onFinish(it)
+                // addSongs(it)
+                _albumsWithSongs.value = _albumsWithSongs.value.plus(it.groupByAlbum())
+            }
+        }
+    }
+
+    fun fetchSongListByArtist(artist: String, onFinish: (List<MPDSong>) -> Unit) {
+        client.enqueue(mpdFind { equals("artist", artist) }) { response ->
+            // We got songs where this artist is in the "artist" tag:
+            val artistSongs = response.extractSongs().toMutableSet()
+            // Albums where the artist is _not_ the album artist:
+            val artistAlbums = artistSongs.filter { it.artist != it.album.artist }.groupByAlbum()
+            // Albums where the artist _is_ the album artist:
+            val albumArtistAlbums = artistSongs.filter { it.artist == it.album.artist }.groupByAlbum()
+            // The artistAlbums are likely not complete (as they contain songs
+            // by other artists), so the songs for those will have to be
+            // fetched separately:
+            fetchAlbumWithSongsListsByAlbumList(artistAlbums.map { it.album }) {
+
+            }
+
+            // addSongs(artistSongs)
+            fetchSongListByAlbumArtist(artist) {
+                artistSongs.addAll(it)
+                onFinish(artistSongs.toList())
+            }
+        }
+    }
+
+    fun getAlbumWithSongsFlowByAlbum(album: MPDAlbum): StateFlow<MPDAlbumWithSongs> {
+        /**
+         * Used in LibraryScreen, ALBUM grouping.
+         * Will update this._albumsWithSongs (via fetchSongsByAlbumArtist()).
+         */
+        val aws = _albumsWithSongs.value.find { it.album == album }
+
+        return MutableStateFlow(aws ?: MPDAlbumWithSongs(album, emptyList())).apply {
+            if (aws == null) fetchSongListByAlbum(album) {
+                value = MPDAlbumWithSongs(album, it)
+            }
         }.asStateFlow()
+    }
 
     fun search(term: String, onFinish: (List<MPDSong>) -> Unit) {
         /**
@@ -209,12 +303,12 @@ class MPDRepository @Inject constructor(
          * filtering must be applied.
          */
         if (term.isNotEmpty()) {
-            _client.value?.enqueue(search { contains("any", term) }) { response ->
+            client.enqueue(mpdSearch { contains("any", term) }) { response ->
                 onFinish(
                     response.extractSongs().filter {
-                        it.album.contains(term, true) ||
+                        it.album.name.contains(term, true) ||
                         it.artist.contains(term, true) ||
-                        it.albumArtist.contains(term, true) ||
+                        it.album.artist.contains(term, true) ||
                         it.title.contains(term, true)
                     }
                 )
@@ -224,8 +318,6 @@ class MPDRepository @Inject constructor(
 
     // fun setConsumeState(state: ConsumeState) = client.value?.enqueue("consume ${state.value}")
     // fun setSingleState(state: SingleState) = client.value?.enqueue("single ${state.value}")
-
-    /** PRIVATE METHODS ******************************************************/
 
     private fun addSongs(songs: Collection<MPDSong>) {
         if (songs.isNotEmpty()) {
@@ -239,16 +331,38 @@ class MPDRepository @Inject constructor(
         }
     }
 
-    private fun fetchAlbums() {
-        _client.value?.enqueue("list albumsort group albumartistsort") { response ->
+    private fun fetchAlbumWithSongsListsByAlbumList(
+        albums: List<MPDAlbum>,
+        onFinish: (List<MPDAlbumWithSongs>) -> Unit,
+    ) {
+        /** Gets songs for albums in batch. Updates _albumsWithSongs. */
+        val albumsWithSongs = mutableListOf<MPDAlbumWithSongs>()
+        var i = 0
+
+        if (albums.isEmpty()) onFinish(albumsWithSongs)
+
+        albums.forEach { album ->
+            client.enqueue(album.searchFilter.find()) { response ->
+                val albumWithSongs = response.extractSongs().groupByAlbum()[0]
+
+                albumsWithSongs.add(albumWithSongs)
+                _albumsWithSongs.value = _albumsWithSongs.value.plus(albumWithSongs)
+                if (++i == albums.size) onFinish(albumsWithSongs)
+            }
+        }
+    }
+
+    /** Caches every album artist and their albums, no songs. */
+    private fun loadAlbums() {
+        client.enqueue("list albumsort group albumartistsort") { response ->
             response.extractAlbums().also { albums ->
                 _albums.value = albums.sortedBy { it.name.lowercase() }
             }
         }
     }
 
-    private fun fetchCurrentSong() {
-        _client.value?.enqueue("currentsong") { response ->
+    private fun loadCurrentSong() {
+        client.enqueue("currentsong") { response ->
             _currentSong.value = response.responseMap.toMPDSong()?.also { song ->
                 song.duration?.let { _currentSongDuration.value = it }
                 addSongs(listOf(song))
@@ -256,8 +370,17 @@ class MPDRepository @Inject constructor(
         }
     }
 
-    private fun fetchQueue() {
-        _client.value?.enqueue("playlistinfo") { response ->
+    private fun loadOutputs(onFinish: ((List<MPDOutput>) -> Unit)? = null) {
+        client.enqueue("outputs") { response ->
+            response.extractOutputs().also {
+                _outputs.value = it
+                onFinish?.invoke(it)
+            }
+        }
+    }
+
+    private fun loadQueue() {
+        client.enqueue("playlistinfo") { response ->
             response.extractSongs().also { songs ->
                 _queue.value = songs
                 addSongs(songs)
@@ -265,17 +388,8 @@ class MPDRepository @Inject constructor(
         }
     }
 
-    private fun fetchSongsByAlbumArtist(albumArtist: String, onFinish: (List<MPDSong>) -> Unit) {
-        _client.value?.enqueue(find { equals("albumartist", albumArtist) }) { response ->
-            response.extractSongs().also {
-                onFinish(it)
-                addSongs(it)
-            }
-        }
-    }
-
-    private fun fetchStatus() {
-        _client.value?.enqueue("status") { response ->
+    private fun loadStatus() {
+        client.enqueue("status") { response ->
             response.responseMap.toMPDStatus()?.also { status ->
                 status.volume?.let { _volume.value = it }
                 status.repeat?.let { _repeatState.value = it }
@@ -289,25 +403,24 @@ class MPDRepository @Inject constructor(
                 _currentSongDuration.value = status.currentSongDuration
                 _currentSongId.value = status.currentSongId
                 _currentBitrate.value = status.bitrate
-                _currentSongIndex.value = status.currentSongIndex
+                _currentSongPosition.value = status.currentSongPosition
+                _currentAudioFormat.value = status.audioFormat
             }
         }
     }
 
     // https://mpd.readthedocs.io/en/latest/protocol.html#querying-mpd-s-status
     private fun watch() {
-        ioScope.launch {
-            _idleClient.filterNotNull().collect { client ->
-                client.start { response ->
-                    val changed = response.extractChanged()
+        idleClient.start { response ->
+            val subsystems = response.extractChanged()
 
-                    if (changed.contains("playlist")) fetchQueue()
-                    if (changed.contains("output")) fetchOutputs()
-                    if (changed.contains("player") || changed.contains("mixer") || changed.contains("options")) {
-                        fetchStatus()
-                    }
-                }
+            if (subsystems.contains("playlist")) loadQueue()
+            if (subsystems.contains("output")) loadOutputs()
+            if (subsystems.contains("player") || subsystems.contains("mixer") || subsystems.contains("options")) {
+                loadStatus()
             }
+
+            onMPDChangeListeners.forEach { listener -> listener.onMPDChanged(subsystems) }
         }
     }
 }

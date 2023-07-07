@@ -4,7 +4,9 @@ import androidx.navigation.NavType
 import androidx.navigation.navArgument
 import us.huseli.umpc.Constants.NAV_ARG_ALBUM
 import us.huseli.umpc.Constants.NAV_ARG_ARTIST
-import us.huseli.umpc.data.MPDSong
+import us.huseli.umpc.Constants.NAV_ARG_PLAYLIST
+import us.huseli.umpc.data.MPDAlbum
+import us.huseli.umpc.data.MPDPlaylist
 
 open class Destination(val route: String)
 
@@ -16,7 +18,7 @@ object AlbumDestination {
         navArgument(NAV_ARG_ALBUM) { type = NavType.StringType },
     )
 
-    fun route(song: MPDSong) = "$baseRoute/${song.albumArtist}/${song.album}"
+    fun route(album: MPDAlbum) = "$baseRoute/${album.artist}/${album.name}"
 }
 
 object ArtistDestination {
@@ -26,12 +28,22 @@ object ArtistDestination {
         navArgument(NAV_ARG_ARTIST) { type = NavType.StringType },
     )
 
-    fun route(song: MPDSong) = "$baseRoute/${song.artist}"
+    fun route(name: String) = "$baseRoute/$name"
+}
+
+object PlaylistDestination {
+    private const val baseRoute = "playlist"
+    const val routeTemplate = "$baseRoute/{$NAV_ARG_PLAYLIST}"
+    val arguments = listOf(
+        navArgument(NAV_ARG_PLAYLIST) { type = NavType.StringType },
+    )
+
+    fun route(playlist: MPDPlaylist) = "$baseRoute/${playlist.name}"
 }
 
 object QueueDestination : Destination("queue")
 object LibraryDestination : Destination("library")
-object CoverDestination : Destination("cover")
 object DebugDestination : Destination("debug")
 object SettingsDestination : Destination("settings")
 object SearchDestination : Destination("search")
+object PlaylistListDestination : Destination("playlists")

@@ -6,10 +6,13 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -35,75 +38,96 @@ fun SettingsScreen(
     val password by viewModel.password.collectAsStateWithLifecycle()
     val port by viewModel.port.collectAsStateWithLifecycle()
     val streamingUrl by viewModel.streamingUrl.collectAsStateWithLifecycle()
+    val cacheClearedMessage = stringResource(R.string.all_locally_stored_album_art_was_cleared)
+    val settingsSavedMessage = stringResource(R.string.settings_saved)
 
-    Column(modifier = modifier.padding(horizontal = 10.dp)) {
-        Text(
-            text = stringResource(R.string.server_settings),
-            style = MaterialTheme.typography.headlineMedium,
-        )
-        Row {
-            OutlinedTextField(
-                modifier = Modifier.weight(0.5f),
-                value = hostname,
-                onValueChange = { viewModel.setHostname(it) },
-                singleLine = true,
-                label = { Text(stringResource(R.string.hostname)) },
-            )
-            OutlinedTextField(
-                modifier = Modifier.weight(0.2f),
-                value = port.toString(),
-                onValueChange = {
-                    try {
-                        viewModel.setPort(it.toInt())
-                    } catch (e: NumberFormatException) {
-                        viewModel.setPort(port)
-                    }
-                },
-                singleLine = true,
-                label = { Text(stringResource(R.string.port)) },
-                keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number),
-            )
-        }
-        OutlinedTextField(
-            modifier = Modifier.fillMaxWidth(),
-            value = password,
-            onValueChange = { viewModel.setPassword(it) },
-            singleLine = true,
-            label = { Text(stringResource(R.string.password)) },
-            visualTransformation = PasswordVisualTransformation(),
-            keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Password),
-        )
-        OutlinedTextField(
-            modifier = Modifier.fillMaxWidth(),
-            value = streamingUrl ?: "",
-            onValueChange = { viewModel.setStreamingUrl(it) },
-            singleLine = true,
-            label = { Text(stringResource(R.string.streaming_url)) },
-            keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Uri),
-        )
-
-        Spacer(modifier = Modifier.height(20.dp))
-
-        if (outputs.isNotEmpty()) {
-            Text(
-                text = stringResource(R.string.outputs),
-                style = MaterialTheme.typography.headlineMedium,
-            )
-            outputs.forEach { output ->
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Checkbox(
-                        modifier = Modifier.padding(start = 0.dp),
-                        checked = output.isEnabled,
-                        onCheckedChange = { viewModel.setOutputEnabled(output.id, it) }
+    Column(modifier = modifier.verticalScroll(rememberScrollState())) {
+        SimpleResponsiveBlock(
+            modifier = Modifier.padding(horizontal = 10.dp),
+            verticalDistance = 20.dp,
+            horizontalDistance = 20.dp,
+            content1 = {
+                Text(
+                    text = stringResource(R.string.server_settings),
+                    style = MaterialTheme.typography.headlineMedium,
+                )
+                Row {
+                    OutlinedTextField(
+                        modifier = Modifier.weight(0.5f),
+                        value = hostname,
+                        onValueChange = { viewModel.setHostname(it) },
+                        singleLine = true,
+                        label = { Text(stringResource(R.string.hostname)) },
                     )
-                    Text(output.name)
+                    OutlinedTextField(
+                        modifier = Modifier.weight(0.2f),
+                        value = port.toString(),
+                        onValueChange = {
+                            try {
+                                viewModel.setPort(it.toInt())
+                            } catch (e: NumberFormatException) {
+                                viewModel.setPort(port)
+                            }
+                        },
+                        singleLine = true,
+                        label = { Text(stringResource(R.string.port)) },
+                        keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number),
+                    )
+                }
+                OutlinedTextField(
+                    modifier = Modifier.fillMaxWidth(),
+                    value = password,
+                    onValueChange = { viewModel.setPassword(it) },
+                    singleLine = true,
+                    label = { Text(stringResource(R.string.password)) },
+                    visualTransformation = PasswordVisualTransformation(),
+                    keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Password),
+                )
+                OutlinedTextField(
+                    modifier = Modifier.fillMaxWidth(),
+                    value = streamingUrl ?: "",
+                    onValueChange = { viewModel.setStreamingUrl(it) },
+                    singleLine = true,
+                    label = { Text(stringResource(R.string.streaming_url)) },
+                    keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Uri),
+                )
+            },
+            content2 = {
+                if (outputs.isNotEmpty()) {
+                    Text(
+                        text = stringResource(R.string.outputs),
+                        style = MaterialTheme.typography.headlineMedium,
+                    )
+                    outputs.forEach { output ->
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Checkbox(
+                                modifier = Modifier.padding(start = 0.dp),
+                                checked = output.isEnabled,
+                                onCheckedChange = { viewModel.setOutputEnabled(output.id, it) }
+                            )
+                            Text(output.name)
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(20.dp))
+                }
+
+                OutlinedButton(
+                    onClick = { viewModel.clearAlbumArtCache { viewModel.addMessage(cacheClearedMessage) } },
+                    shape = MaterialTheme.shapes.extraSmall
+                ) {
+                    Text(stringResource(R.string.clear_album_art_cache))
+                }
+
+                Button(
+                    onClick = {
+                        viewModel.save()
+                        viewModel.addMessage(settingsSavedMessage)
+                    },
+                    shape = MaterialTheme.shapes.extraSmall
+                ) {
+                    Text(stringResource(R.string.save))
                 }
             }
-            Spacer(modifier = Modifier.height(20.dp))
-        }
-
-        Button(onClick = { viewModel.save() }, shape = MaterialTheme.shapes.extraSmall) {
-            Text(stringResource(R.string.save))
-        }
+        )
     }
 }

@@ -11,7 +11,9 @@ import us.huseli.umpc.Constants.NAV_ARG_ALBUM
 import us.huseli.umpc.Constants.NAV_ARG_ARTIST
 import us.huseli.umpc.ImageRequestType
 import us.huseli.umpc.data.AlbumArtKey
+import us.huseli.umpc.data.MPDAlbum
 import us.huseli.umpc.data.MPDAlbumWithSongs
+import us.huseli.umpc.data.MPDResponse
 import us.huseli.umpc.mpd.MPDRepository
 import javax.inject.Inject
 
@@ -22,20 +24,27 @@ class AlbumViewModel @Inject constructor(
 ) : BaseViewModel(repo) {
     private val albumArg: String = savedStateHandle.get<String>(NAV_ARG_ALBUM)!!
     private val artistArg: String = savedStateHandle.get<String>(NAV_ARG_ARTIST)!!
-    private val _album = MutableStateFlow<MPDAlbumWithSongs?>(null)
+    private val _albumWithSongs = MutableStateFlow<MPDAlbumWithSongs?>(null)
     private val _albumArt = MutableStateFlow<ImageBitmap?>(null)
 
-    val album = _album.asStateFlow()
+    val album = MPDAlbum(artistArg, albumArg)
+    val albumWithSongs = _albumWithSongs.asStateFlow()
     val albumArt = _albumArt.asStateFlow()
 
     init {
-        repo.fetchSongs(artistArg, albumArg) {
-            _album.value = MPDAlbumWithSongs(artistArg, albumArg, it)
+        repo.fetchSongListByAlbum(album) {
+            _albumWithSongs.value = MPDAlbumWithSongs(album, it)
         }
         viewModelScope.launch {
             repo.engines.image.getAlbumArt(AlbumArtKey(artistArg, albumArg), ImageRequestType.FULL) {
                 _albumArt.value = it.fullImage
             }
         }
+    }
+
+    fun addToPlaylist(playlistName: String, onFinish: (MPDResponse) -> Unit) {
+        // repo.client.enqueue("searchaddpl \"$playlistName\" \"${album.searchFilter}\"", onFinish)
+        repo.client.enqueue("searchaddpl", listOf(playlistName, album.searchFilter.toString()), onFinish)
+        // repo.client.enqueue("searchaddpl", listOf(playlistName, filter { album.searchFilter }), onFinish)
     }
 }

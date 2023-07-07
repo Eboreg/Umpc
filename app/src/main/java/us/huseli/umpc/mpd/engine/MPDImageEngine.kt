@@ -1,6 +1,5 @@
 package us.huseli.umpc.mpd.engine
 
-import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import androidx.compose.ui.graphics.asImageBitmap
@@ -14,6 +13,7 @@ import kotlinx.coroutines.launch
 import us.huseli.umpc.Constants
 import us.huseli.umpc.ImageRequestType
 import us.huseli.umpc.data.AlbumArtKey
+import us.huseli.umpc.data.MPDAlbum
 import us.huseli.umpc.data.MPDAlbumArt
 import us.huseli.umpc.data.filterByAlbum
 import us.huseli.umpc.mpd.MPDRepository
@@ -22,26 +22,18 @@ import java.io.File
 import kotlin.math.max
 import kotlin.math.roundToInt
 
-class MPDImageEngine(
-    context: Context,
-    private val repo: MPDRepository,
-    private val ioScope: CoroutineScope,
-) {
-    private val albumArtDir = File(context.cacheDir, "albumArt").apply { mkdirs() }
-    private val thumbnailDir = File(albumArtDir, "thumbnails").apply { mkdirs() }
+class MPDImageEngine(private val repo: MPDRepository, private val ioScope: CoroutineScope) {
     private val _fetchedAlbumArtKeys = mutableListOf<AlbumArtKey>()
-    private val _currentSongAlbumArt = MutableStateFlow<MPDAlbumArt?>(null)
+    private val _currentAlbumArtKey = repo.currentSong.map { it?.albumArtKey }
 
-    private val _currentAlbumArtKey = repo.currentSong.map { song ->
-        song?.let { AlbumArtKey(it.albumArtist, it.album, it.filename) }
-    }
+    val currentSongAlbumArt = MutableStateFlow<MPDAlbumArt?>(null)
 
     init {
         ioScope.launch {
             _currentAlbumArtKey.filterNotNull().distinctUntilChanged().collect { key ->
-                _currentSongAlbumArt.value = null
-                getAlbumArt(key, ImageRequestType.FULL) {
-                    _currentSongAlbumArt.value = it
+                currentSongAlbumArt.value = null
+                getAlbumArt(key, ImageRequestType.BOTH) {
+                    currentSongAlbumArt.value = it
                 }
             }
         }
@@ -52,11 +44,11 @@ class MPDImageEngine(
         requestType: ImageRequestType,
         callback: (MPDAlbumArt) -> Unit
     ) {
-        val fullImage: Bitmap? = File(albumArtDir, key.imageFilename).toBitmap()
+        val fullImage: Bitmap? = File(repo.albumArtDirectory, key.imageFilename).toBitmap()
         var thumbnail: Bitmap? = null
 
         if (requestType == ImageRequestType.THUMBNAIL || requestType == ImageRequestType.BOTH)
-            thumbnail = File(thumbnailDir, key.imageFilename).toBitmap()
+            thumbnail = File(repo.thumbnailDirectory, key.imageFilename).toBitmap()
 
         if (fullImage != null && requestType == ImageRequestType.FULL)
             callback(MPDAlbumArt(key, fullImage = fullImage.asImageBitmap()))
@@ -73,7 +65,7 @@ class MPDImageEngine(
                     }
                 } else {
                     // Otherwise, fetch songs.
-                    repo.fetchSongs(key.albumArtist, key.album) { songs ->
+                    repo.fetchSongListByAlbum(MPDAlbum(key.albumArtist, key.album)) { songs ->
                         songs.firstOrNull()?.let { song ->
                             ioScope.launch {
                                 getAlbumArt(key.copy(filename = song.filename), requestType, callback)
@@ -83,7 +75,7 @@ class MPDImageEngine(
                 }
             } else {
                 // We have a song filename, now we can fetch albumart:
-                repo.binaryClient.value?.enqueue("albumart", listOf(key.filename)) { response ->
+                repo.binaryClient.enqueue("albumart", key.filename) { response ->
                     _fetchedAlbumArtKeys.add(key)
                     if (response.isSuccess) {
                         ioScope.launch {
@@ -100,7 +92,7 @@ class MPDImageEngine(
         val factor = Constants.THUMBNAIL_SIZE.toFloat() / max(fullImage.width, fullImage.height)
         val width = (fullImage.width * factor).roundToInt()
         val height = (fullImage.height * factor).roundToInt()
-        val file = File(thumbnailDir, imageFilename)
+        val file = File(repo.thumbnailDirectory, imageFilename)
         val thumbnail = fullImage.scale(width, height)
 
         file.outputStream().use { outputStream ->
@@ -115,7 +107,7 @@ class MPDImageEngine(
         callback: (MPDAlbumArt) -> Unit,
     ) {
         BitmapFactory.decodeByteArray(data, 0, data.size)?.also { fullImage ->
-            val fullImageFile = File(albumArtDir, key.imageFilename)
+            val fullImageFile = File(repo.albumArtDirectory, key.imageFilename)
             val factor = Constants.ALBUM_ART_MAXSIZE.toFloat() / max(fullImage.width, fullImage.height)
             val thumbnail = createThumbnail(fullImage, key.imageFilename)
 

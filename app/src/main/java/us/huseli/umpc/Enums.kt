@@ -1,6 +1,6 @@
 package us.huseli.umpc
 
-enum class ContentScreen { DEBUG, QUEUE, LIBRARY, COVER, SETTTINGS, SEARCH, NONE }
+enum class ContentScreen { DEBUG, QUEUE, LIBRARY, SETTINGS, SEARCH, PLAYLISTS, NONE }
 
 enum class SingleState { OFF, ON, ONESHOT }
 

@@ -11,6 +11,9 @@ import androidx.compose.ui.Modifier
 import kotlinx.coroutines.delay
 import us.huseli.umpc.PlayerState
 
+fun getProgress(elapsed: Double, duration: Double) =
+    duration.takeIf { it > 0 }?.let { (elapsed / it).toFloat() } ?: 0f
+
 @Composable
 fun SongProgressIndicator(
     modifier: Modifier = Modifier,
@@ -19,11 +22,11 @@ fun SongProgressIndicator(
     playerState: PlayerState?,
 ) {
     var mutableElapsed by remember(elapsed) { mutableStateOf(elapsed) }
-    var progress by remember { mutableStateOf(0f) }
+    var progress by remember { mutableStateOf(getProgress(elapsed, duration)) }
 
     LaunchedEffect(playerState, elapsed, duration) {
         while (playerState == PlayerState.PLAY) {
-            progress = duration.takeIf { it > 0 }?.let { (mutableElapsed / it).toFloat() } ?: 0f
+            progress = getProgress(mutableElapsed, duration)
             delay(500)
             mutableElapsed += 0.1
         }

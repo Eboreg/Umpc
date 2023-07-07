@@ -21,7 +21,7 @@ class MessageEngine(private val repo: MPDRepository) {
 
     fun clearError() {
         _error.value = null
-        repo.client.value?.enqueue("clearerror")
+        repo.client.enqueue("clearerror")
     }
 
     fun clearMessage() {

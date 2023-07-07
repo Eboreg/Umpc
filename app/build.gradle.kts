@@ -1,5 +1,12 @@
 @file:Suppress("UnstableApiUsage")
 
+import java.io.FileInputStream
+import java.util.Properties
+
+val keystoreProperties = Properties()
+
+keystoreProperties.load(FileInputStream(rootProject.file("keystore.properties")))
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -13,6 +20,15 @@ kotlin {
 }
 
 android {
+    signingConfigs {
+        create("release") {
+            storeFile = file(keystoreProperties["storeFile"] as String)
+            storePassword = keystoreProperties["storePassword"] as String
+            keyAlias = keystoreProperties["keyAlias"] as String
+            keyPassword = keystoreProperties["keyPassword"] as String
+        }
+    }
+
     namespace = "us.huseli.umpc"
     compileSdk = 33
 
@@ -35,6 +51,7 @@ android {
         }
         release {
             // isMinifyEnabled = false
+            signingConfig = signingConfigs.getByName("release")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -67,16 +84,17 @@ android {
 }
 
 dependencies {
-    implementation("androidx.activity:activity-compose:1.7.2")
     implementation("androidx.core:core-ktx:1.10.1")
-    implementation("androidx.navigation:navigation-compose:2.6.0")
     implementation("androidx.preference:preference-ktx:1.2.0")
 
     // Compose:
     implementation("androidx.compose.ui:ui:1.4.3")
     implementation("androidx.compose.ui:ui-graphics:1.4.3")
+    implementation("androidx.activity:activity-compose:1.7.2")
+    implementation("androidx.navigation:navigation-compose:2.6.0")
 
     // Material:
+    implementation("androidx.compose.material:material:1.4.3")
     implementation("androidx.compose.material3:material3:1.1.1")
     implementation("androidx.compose.material:material-icons-extended:1.4.3")
 
@@ -90,9 +108,9 @@ dependencies {
     implementation("androidx.hilt:hilt-navigation-compose:1.0.0")
     kapt("com.google.dagger:hilt-compiler:2.46.1")
 
-    // https://mvnrepository.com/artifact/commons-io/commons-io
-    implementation("commons-io:commons-io:2.13.0")
-
     // Exoplayer:
-    implementation("androidx.media3:media3-exoplayer:1.0.2")
+    implementation("androidx.media3:media3-exoplayer:1.1.0")
+
+    // Reorder:
+    implementation("org.burnoutcrew.composereorderable:reorderable:0.9.6")
 }

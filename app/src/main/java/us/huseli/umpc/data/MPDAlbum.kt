@@ -1,6 +1,11 @@
 package us.huseli.umpc.data
 
+import us.huseli.umpc.mpd.MPDFilter
+import us.huseli.umpc.mpd.mpdFilter
+
 open class MPDAlbum(val artist: String, val name: String) {
+    val searchFilter: MPDFilter = mpdFilter { equals("album", name).and(equals("albumartist", artist)) }
+
     override fun equals(other: Any?) =
         other is MPDAlbum && other.artist == artist && other.name == name
 
@@ -8,23 +13,13 @@ open class MPDAlbum(val artist: String, val name: String) {
     override fun toString() = "${javaClass.simpleName}[artist: $artist, name: $name]"
 }
 
-class MPDAlbumWithSongs(artist: String, name: String, val songs: List<MPDSong>) : MPDAlbum(artist, name) {
-    constructor(mpdAlbum: MPDAlbum, songs: List<MPDSong>) : this(mpdAlbum.artist, mpdAlbum.name, songs)
-
+data class MPDAlbumWithSongs(val album: MPDAlbum, val songs: List<MPDSong>) {
     val albumArtKey: AlbumArtKey
-        get() = songs.firstOrNull()?.albumArtKey ?: AlbumArtKey(artist, name)
+        get() = songs.firstOrNull()?.albumArtKey ?: AlbumArtKey(album.artist, album.name)
 
     val duration: Double? = songs.mapNotNull { it.duration }.takeIf { it.isNotEmpty() }?.sum()
     val yearRange: IntRange? =
         songs.mapNotNull { it.year }.takeIf { it.isNotEmpty() }?.let { IntRange(it.min(), it.max()) }
-
-    fun copy(artist: String = this.artist, name: String = this.name, songs: List<MPDSong> = this.songs) =
-        MPDAlbumWithSongs(artist, name, songs)
-
-    override fun equals(other: Any?) =
-        other is MPDAlbumWithSongs && super.equals(other) && other.songs == songs
-
-    override fun hashCode(): Int = 31 * super.hashCode() + songs.hashCode()
 }
 
 fun Map<String, List<String>>.toMPDAlbums(): List<MPDAlbum> = try {
@@ -47,3 +42,8 @@ fun Iterable<MPDAlbum>.groupByArtist(): List<MPDArtistWithAlbums> =
         .sortedBy { it.name.lowercase() }
 
 fun Iterable<MPDAlbumWithSongs>.sortedByYear(): List<MPDAlbumWithSongs> = this.sortedBy { it.yearRange?.first }
+
+fun Iterable<MPDAlbumWithSongs>.plus(other: Iterable<MPDAlbumWithSongs>) =
+    this.associate { it.album to it.songs }
+        .plus(other.associate { it.album to it.songs })
+        .map { MPDAlbumWithSongs(it.key, it.value) }

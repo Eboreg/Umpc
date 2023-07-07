@@ -1,56 +1,50 @@
 package us.huseli.umpc.mpd.command
 
 import android.util.Log
-import androidx.annotation.WorkerThread
+import us.huseli.umpc.LoggerInterface
 import us.huseli.umpc.data.MPDResponse
 
-@WorkerThread
 open class MPDCommand(
     command: String,
     args: Collection<String> = emptyList(),
     onFinish: ((MPDResponse) -> Unit)? = null,
-) : MPDBaseCommand(command, args, onFinish) {
+) : MPDBaseCommand(command, args, onFinish), LoggerInterface {
+    constructor(command: String, arg: String, onFinish: ((MPDResponse) -> Unit)? = null) :
+        this(command, listOf(arg), onFinish)
+
     override suspend fun getResponse(): MPDResponse {
         var line: String?
         val responseMap = mutableMapOf<String, String>()
         val responseList = mutableListOf<Pair<String, String>>()
-        var status = MPDResponse.Status.EMPTY
+        var isSuccess = true
         var isFinished = false
         var error: String? = null
 
-        Log.i(javaClass.simpleName, "START $this")
-
+        log("START $this")
         writeLine(getCommand(command, args))
 
         do {
             line = readLine()
             if (line != null) {
                 if (line == "OK") {
-                    status = MPDResponse.Status.OK
                     isFinished = true
                 } else if (line.startsWith("ACK ")) {
                     isFinished = true
-                    status = MPDResponse.Status.ERROR
+                    isSuccess = false
                     error = line.substring(4)
-                } else if (RESPONSE_REGEX.matches(line)) {
+                } else if (responseRegex.matches(line)) {
                     parseResponseLine(line)?.let {
                         responseMap.plusAssign(it)
                         responseList.add(it)
                     }
                 }
             } else {
-                status = MPDResponse.Status.EMPTY
-                error = "Empty response"
-                isFinished = true
+                throw MPDCommandEmptyResponseException()
             }
         } while (!isFinished)
 
-        val response = MPDResponse(status, error, responseMap = responseMap, responseList = responseList)
-        Log.println(
-            if (response.isSuccess) Log.INFO else Log.ERROR,
-            javaClass.simpleName,
-            "FINISH $this, returning $response"
-        )
+        val response = MPDResponse(isSuccess, error, responseMap = responseMap, responseList = responseList)
+        log("FINISH $this, returning $response", level = if (response.isSuccess) Log.INFO else Log.ERROR)
         return response
     }
 }
