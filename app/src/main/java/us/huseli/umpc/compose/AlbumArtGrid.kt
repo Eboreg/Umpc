@@ -36,7 +36,10 @@ fun AlbumArtGrid(modifier: Modifier = Modifier, albumArtList: List<MPDAlbumArt>)
                     // Row(modifier = Modifier.height(screenWidth / sublist.size)) {
                     Row(modifier = Modifier.heightIn(min = 0.dp)) {
                         sublist.forEach { albumArt ->
-                            Logger.log("AlbumArtGrid", "albumArtList.size=${slicedAlbumArtList.size}, sublist.size = ${sublist.size}, index=$index, itemsPerRow=$itemsPerRow, screenWidth=$screenWidth, screenWidth / sublist.size = ${screenWidth / sublist.size}")
+                            Logger.log(
+                                "AlbumArtGrid",
+                                "albumArtList.size=${slicedAlbumArtList.size}, sublist.size = ${sublist.size}, index=$index, itemsPerRow=$itemsPerRow, screenWidth=$screenWidth, screenWidth / sublist.size = ${screenWidth / sublist.size}"
+                            )
                             Image(
                                 bitmap = albumArt.fullImage,
                                 contentDescription = null,

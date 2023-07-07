@@ -48,5 +48,6 @@ fun Context.getActivity(): ComponentActivity? = when (this) {
     else -> null
 }
 
+@Suppress("BooleanMethodIsAlwaysInverted")
 @Composable
 fun isInLandscapeMode() = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE

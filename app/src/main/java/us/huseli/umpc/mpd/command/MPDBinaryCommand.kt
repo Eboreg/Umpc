@@ -1,7 +1,7 @@
 package us.huseli.umpc.mpd.command
 
 import android.util.Log
-import us.huseli.umpc.data.MPDResponse
+import us.huseli.umpc.mpd.response.MPDResponse
 
 class MPDBinaryCommand(
     command: String,
@@ -10,7 +10,11 @@ class MPDBinaryCommand(
 ) : MPDBaseCommand(command, args, onFinish) {
     override suspend fun getResponse(): MPDResponse {
         log("START $this")
-        val response = getBinaryResponse()
+        val response = try {
+            getBinaryResponse()
+        } catch (e: Exception) {
+            MPDResponse(status = MPDResponse.Status.ERROR_NET, exception = e)
+        }
         log("FINISH $this, returning $response", if (response.isSuccess) Log.INFO else Log.ERROR)
         return response
     }
@@ -29,15 +33,11 @@ class MPDBinaryCommand(
             line = readLine()
 
             if (line != null) {
-                if (firstRun && line.startsWith("OK")) {
-                    return MPDResponse(isSuccess = false, error = "No binary data returned")
-                }
-                if (line.startsWith("ACK ")) {
-                    return MPDResponse(isSuccess = false, error = line.substring(4))
-                }
-            } else {
-                throw MPDCommandEmptyResponseException()
-            }
+                if (firstRun && line.startsWith("OK"))
+                    return MPDResponse(status = MPDResponse.Status.ERROR_OTHER, error = "No binary data returned")
+                if (line.startsWith("ACK "))
+                    return MPDResponse(status = MPDResponse.Status.ERROR_MPD, error = line.substring(4))
+            } else return MPDResponse(status = MPDResponse.Status.EMPTY_RESPONSE)
 
             // Inner loop handles individual server responses:
             while (line != null && !line.startsWith("OK")) {
@@ -54,7 +54,7 @@ class MPDBinaryCommand(
                         val chunk = readBinary(chunkSize)
 
                         if (dataToRead - chunkSize < 0) {
-                            return MPDResponse(isSuccess = false, error = "Got too much data")
+                            return MPDResponse(status = MPDResponse.Status.ERROR_OTHER, error = "Got too much data")
                         } else {
                             System.arraycopy(chunk, 0, binaryData, binarySize - dataToRead, chunkSize)
                             dataToRead -= chunkSize
@@ -66,7 +66,7 @@ class MPDBinaryCommand(
         }
 
         return MPDResponse(
-            isSuccess = true,
+            status = MPDResponse.Status.OK,
             binaryResponse = binaryData,
             responseMap = responseMap
         )

@@ -1,15 +1,28 @@
-package us.huseli.umpc.data
+package us.huseli.umpc.mpd.response
 
-@Suppress("ArrayInDataClass")
-data class MPDResponse(
-    val isSuccess: Boolean,
-    val error: String? = null,
+import us.huseli.umpc.data.MPDAlbum
+import us.huseli.umpc.data.MPDOutput
+import us.huseli.umpc.data.MPDPlaylist
+import us.huseli.umpc.data.MPDSong
+import us.huseli.umpc.data.toMPDAlbums
+import us.huseli.umpc.data.toMPDOutput
+import us.huseli.umpc.data.toMPDPlaylist
+import us.huseli.umpc.data.toMPDSong
+
+open class MPDResponse(
+    val status: Status,
+    val exception: Throwable? = null,
+    val error: String? = exception?.toString(),
     val binaryResponse: ByteArray = byteArrayOf(),
     val responseMap: Map<String, String> = emptyMap(),
     val responseList: List<Pair<String, String>> = emptyList(),
 ) {
+    enum class Status { PENDING, OK, ERROR_MPD, ERROR_NET, ERROR_OTHER, EMPTY_RESPONSE }
+
+    val isSuccess = status == Status.OK
+
     override fun toString() =
-        "${javaClass.simpleName}[isSuccess=$isSuccess, error=$error, responseMap=$responseMap, responseList=$responseList]"
+        "${javaClass.simpleName}[status=$status, error=$error, responseMap=$responseMap, responseList=$responseList]"
 
     private fun split(): List<Map<String, String>> {
         val responseMaps = mutableListOf<Map<String, String>>()

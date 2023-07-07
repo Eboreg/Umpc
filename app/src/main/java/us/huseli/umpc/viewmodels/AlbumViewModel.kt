@@ -13,7 +13,7 @@ import us.huseli.umpc.ImageRequestType
 import us.huseli.umpc.data.AlbumArtKey
 import us.huseli.umpc.data.MPDAlbum
 import us.huseli.umpc.data.MPDAlbumWithSongs
-import us.huseli.umpc.data.MPDResponse
+import us.huseli.umpc.mpd.response.MPDResponse
 import us.huseli.umpc.mpd.MPDRepository
 import javax.inject.Inject
 

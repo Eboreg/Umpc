@@ -1,9 +1,9 @@
 package us.huseli.umpc.mpd.client
 
 import us.huseli.umpc.Constants
-import us.huseli.umpc.data.MPDResponse
 import us.huseli.umpc.mpd.command.MPDBinaryCommand
 import us.huseli.umpc.mpd.command.MPDCommand
+import us.huseli.umpc.mpd.response.MPDResponse
 
 class MPDBinaryClient : MPDClient() {
     override suspend fun connect(failSilently: Boolean): Boolean {

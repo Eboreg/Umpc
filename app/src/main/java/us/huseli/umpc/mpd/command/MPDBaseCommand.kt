@@ -5,8 +5,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import us.huseli.umpc.Constants.READ_BUFFER_SIZE
 import us.huseli.umpc.LoggerInterface
-import us.huseli.umpc.data.MPDResponse
 import us.huseli.umpc.mpd.MPDFilterContext
+import us.huseli.umpc.mpd.response.MPDResponse
 import java.io.ByteArrayOutputStream
 import java.io.InputStream
 import java.io.PrintWriter
@@ -14,22 +14,11 @@ import java.net.Socket
 import kotlin.math.max
 import kotlin.math.min
 
-open class MPDCommandException(
-    override val message: String,
-    override val cause: Throwable? = null,
-) : Exception(message, cause) {
-    constructor(cause: Throwable) : this(cause.toString(), cause)
-}
-
-class MPDCommandEmptyResponseException : MPDCommandException("Empty response")
-
 abstract class MPDBaseCommand(
     val command: String,
     val args: Collection<String> = emptyList(),
     val onFinish: ((MPDResponse) -> Unit)? = null,
 ) : LoggerInterface {
-    var retries = 0
-
     private val readBuffer = ByteArray(READ_BUFFER_SIZE)
     private val lineBuffer = ByteArrayOutputStream()
 
@@ -42,17 +31,10 @@ abstract class MPDBaseCommand(
     protected abstract suspend fun getResponse(): MPDResponse
 
     suspend fun execute(socket: Socket): MPDResponse {
-        retries++
         return withContext(Dispatchers.IO) {
-            try {
-                inputStream = socket.getInputStream()
-                writer = PrintWriter(socket.getOutputStream())
-                getResponse()
-            } catch (e: MPDCommandException) {
-                throw e
-            } catch (e: Exception) {
-                throw MPDCommandException(e)
-            }
+            inputStream = socket.getInputStream()
+            writer = PrintWriter(socket.getOutputStream())
+            getResponse()
         }
     }
 
@@ -104,18 +86,9 @@ abstract class MPDBaseCommand(
                 continue
             }
             if (readBuffer[localReadPos] == '\n'.code.toByte()) {
-                try {
-                    lineBuffer.write(readBuffer, readBufferReadPos, localReadPos - readBufferReadPos)
-                    readBufferReadPos = localReadPos + 1
-                    break
-                } catch (e: Exception) {
-                    log(
-                        "MPDBaseCommand",
-                        "readBufferReadPos=$readBufferReadPos, localReadPos=$localReadPos, readBufferWritePos=$readBufferWritePos, readBuffer.size=${readBuffer.size}",
-                        Log.ERROR
-                    )
-                    throw e
-                }
+                lineBuffer.write(readBuffer, readBufferReadPos, localReadPos - readBufferReadPos)
+                readBufferReadPos = localReadPos + 1
+                break
             }
             localReadPos++
         }
@@ -137,8 +110,7 @@ abstract class MPDBaseCommand(
         }
     }
 
-    @Suppress("RedundantSuspendModifier")
-    protected suspend fun writeLine(line: String) {
+    protected fun writeLine(line: String) {
         writer.println(line)
         writer.flush()
     }

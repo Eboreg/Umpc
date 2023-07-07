@@ -9,10 +9,9 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import us.huseli.umpc.data.MPDCredentials
-import us.huseli.umpc.data.MPDResponse
 import us.huseli.umpc.mpd.command.MPDBaseCommand
 import us.huseli.umpc.mpd.command.MPDCommand
-import us.huseli.umpc.mpd.command.MPDCommandException
+import us.huseli.umpc.mpd.response.MPDResponse
 import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.net.Socket
@@ -134,11 +133,6 @@ open class MPDClient {
             val response = command.execute(socket)
             state.value = State.READY
             command.onFinish?.invoke(response)
-        } catch (e: MPDCommandException) {
-            if (command.retries < 3) {
-                connect()
-                enqueue(command)
-            } else throw MPDClientException(this, "Command $command failed with 3 retries", e)
         } catch (_: NullPointerException) {
             state.value = State.READY
         }

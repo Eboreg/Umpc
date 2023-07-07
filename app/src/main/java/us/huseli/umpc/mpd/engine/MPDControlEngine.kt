@@ -3,7 +3,7 @@ package us.huseli.umpc.mpd.engine
 import androidx.annotation.IntRange
 import us.huseli.umpc.PlayerState
 import us.huseli.umpc.data.MPDAlbum
-import us.huseli.umpc.data.MPDResponse
+import us.huseli.umpc.mpd.response.MPDResponse
 import us.huseli.umpc.data.MPDSong
 import us.huseli.umpc.mpd.MPDRepository
 

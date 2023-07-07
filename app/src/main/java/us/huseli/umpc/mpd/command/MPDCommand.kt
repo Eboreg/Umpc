@@ -2,7 +2,7 @@ package us.huseli.umpc.mpd.command
 
 import android.util.Log
 import us.huseli.umpc.LoggerInterface
-import us.huseli.umpc.data.MPDResponse
+import us.huseli.umpc.mpd.response.MPDResponse
 
 open class MPDCommand(
     command: String,
@@ -16,21 +16,30 @@ open class MPDCommand(
         var line: String?
         val responseMap = mutableMapOf<String, String>()
         val responseList = mutableListOf<Pair<String, String>>()
-        var isSuccess = true
+        var status = MPDResponse.Status.PENDING
         var isFinished = false
         var error: String? = null
 
         log("START $this")
-        writeLine(getCommand(command, args))
+        try {
+            writeLine(getCommand(command, args))
+        } catch (e: Exception) {
+            return MPDResponse(status = MPDResponse.Status.ERROR_NET, exception = e)
+        }
 
         do {
-            line = readLine()
+            try {
+                line = readLine()
+            } catch (e: Exception) {
+                return MPDResponse(status = MPDResponse.Status.ERROR_NET, exception = e)
+            }
             if (line != null) {
                 if (line == "OK") {
+                    status = MPDResponse.Status.OK
                     isFinished = true
                 } else if (line.startsWith("ACK ")) {
                     isFinished = true
-                    isSuccess = false
+                    status = MPDResponse.Status.ERROR_MPD
                     error = line.substring(4)
                 } else if (responseRegex.matches(line)) {
                     parseResponseLine(line)?.let {
@@ -39,11 +48,12 @@ open class MPDCommand(
                     }
                 }
             } else {
-                throw MPDCommandEmptyResponseException()
+                status = MPDResponse.Status.EMPTY_RESPONSE
             }
         } while (!isFinished)
 
-        val response = MPDResponse(isSuccess, error, responseMap = responseMap, responseList = responseList)
+        val response =
+            MPDResponse(status = status, error = error, responseMap = responseMap, responseList = responseList)
         log("FINISH $this, returning $response", level = if (response.isSuccess) Log.INFO else Log.ERROR)
         return response
     }

@@ -6,7 +6,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
 import us.huseli.umpc.Constants.NAV_ARG_PLAYLIST
-import us.huseli.umpc.data.MPDResponse
+import us.huseli.umpc.mpd.response.MPDResponse
 import us.huseli.umpc.data.MPDSong
 import us.huseli.umpc.mpd.MPDRepository
 import javax.inject.Inject
