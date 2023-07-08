@@ -61,13 +61,19 @@ fun AlbumScreenMetaButtons(
 @Composable
 fun AlbumScreenMeta(
     album: MPDAlbum,
+    yearRange: IntRange? = null,
     onGotoArtistClick: (String) -> Unit,
     onEnqueueClick: (MPDAlbum) -> Unit,
     onPlayClick: (MPDAlbum) -> Unit,
     onAddToPlaylistClick: (MPDAlbum) -> Unit,
 ) {
+    val name =
+        if (yearRange != null && yearRange.first != yearRange.last) "${album.name} (${yearRange.first} - ${yearRange.last})"
+        else if (yearRange != null) "${album.name} (${yearRange.first})"
+        else album.name
+
     Text(
-        text = album.name,
+        text = name,
         style = MaterialTheme.typography.titleLarge,
         textAlign = TextAlign.Center
     )
@@ -131,6 +137,7 @@ fun AlbumScreen(
                 ) {
                     AlbumScreenMeta(
                         album = viewModel.album,
+                        yearRange = albumWithSongs?.yearRange,
                         onGotoArtistClick = { onGotoArtistClick(it) },
                         onEnqueueClick = { viewModel.enqueueAlbum(it) },
                         onPlayClick = { viewModel.playAlbum(it) },
@@ -146,6 +153,7 @@ fun AlbumScreen(
                 bottomContent = {
                     AlbumScreenMeta(
                         album = viewModel.album,
+                        yearRange = albumWithSongs?.yearRange,
                         onGotoArtistClick = { onGotoArtistClick(it) },
                         onEnqueueClick = { viewModel.enqueueAlbum(it) },
                         onPlayClick = { viewModel.playAlbum(it) },
@@ -161,6 +169,7 @@ fun AlbumScreen(
                 song = song,
                 isCurrentSong = currentSongFilename == song.filename,
                 playerState = playerState,
+                showYear = albumWithSongs?.yearRange?.first != albumWithSongs?.yearRange?.last,
                 onEnqueueClick = { viewModel.enqueueSong(song) },
                 onPlayPauseClick = { viewModel.playOrPauseSong(song) },
                 onGotoArtistClick = { onGotoArtistClick(song.artist) },

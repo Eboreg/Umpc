@@ -108,7 +108,14 @@ fun ArtistScreen(
                 modifier = Modifier.padding(10.dp),
             )
             albumArtistAlbums.forEach { album ->
-                ArtistAlbumRow(album, viewModel, currentSongFilename, playerState, albumArtMap, onGotoAlbumClick)
+                ArtistAlbumRow(
+                    album = album,
+                    viewModel = viewModel,
+                    currentSongFilename = currentSongFilename,
+                    playerState = playerState,
+                    albumArtMap = albumArtMap,
+                    onGotoAlbumClick = onGotoAlbumClick,
+                )
             }
         }
 
@@ -119,7 +126,15 @@ fun ArtistScreen(
                 modifier = Modifier.padding(10.dp),
             )
             nonAlbumArtistAlbums.forEach { album ->
-                ArtistAlbumRow(album, viewModel, currentSongFilename, playerState, albumArtMap, onGotoAlbumClick)
+                ArtistAlbumRow(
+                    album = album,
+                    viewModel = viewModel,
+                    currentSongFilename = currentSongFilename,
+                    playerState = playerState,
+                    albumArtMap = albumArtMap,
+                    onGotoAlbumClick = onGotoAlbumClick,
+                    isNonAlbumArtistAlbum = true,
+                )
             }
         }
     }
@@ -133,6 +148,7 @@ fun ArtistAlbumRow(
     currentSongFilename: String?,
     playerState: PlayerState?,
     albumArtMap: Map<String, MPDAlbumArt>,
+    isNonAlbumArtistAlbum: Boolean = false,
     onGotoAlbumClick: (MPDAlbum) -> Unit,
 ) {
     AlbumRow(
@@ -149,8 +165,10 @@ fun ArtistAlbumRow(
                 song = song,
                 isCurrentSong = currentSongFilename == song.filename,
                 playerState = playerState,
+                showArtist = isNonAlbumArtistAlbum || song.artist != viewModel.artist,
                 onEnqueueClick = { viewModel.enqueueSong(song) },
                 onPlayPauseClick = { viewModel.playOrPauseSong(song) },
+                color = if (isNonAlbumArtistAlbum && song.artist != viewModel.artist) MaterialTheme.colorScheme.outline else MaterialTheme.colorScheme.onSurface,
             )
         }
     }

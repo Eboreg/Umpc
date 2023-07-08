@@ -92,6 +92,7 @@ dependencies {
     implementation("androidx.compose.ui:ui-graphics:1.4.3")
     implementation("androidx.activity:activity-compose:1.7.2")
     implementation("androidx.navigation:navigation-compose:2.6.0")
+    // implementation("androidx.compose.foundation:foundation-layout-android:1.6.0-alpha01")
 
     // Material:
     implementation("androidx.compose.material:material:1.4.3")
