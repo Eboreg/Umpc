@@ -93,6 +93,7 @@ fun SongRow(
     albumArt: ImageBitmap? = null,
     highlight: String? = null,
     showEnqueueButton: Boolean = true,
+    albumArtModifier: Modifier = Modifier,
     trailingContent: @Composable (RowScope.() -> Unit) = {},
 ) {
     var isMenuVisible by rememberSaveable { mutableStateOf(false) }
@@ -113,9 +114,14 @@ fun SongRow(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    if (showAlbumArt)
-                        AlbumArt(imageBitmap = albumArt, altIcon = Icons.Sharp.MusicNote, forceSquare = true)
-
+                    if (showAlbumArt) {
+                        AlbumArt(
+                            imageBitmap = albumArt,
+                            altIcon = Icons.Sharp.MusicNote,
+                            forceSquare = true,
+                            modifier = albumArtModifier
+                        )
+                    }
                     Column(
                         modifier = Modifier.padding(start = 8.dp).padding(vertical = 8.dp).weight(1f),
                     ) {

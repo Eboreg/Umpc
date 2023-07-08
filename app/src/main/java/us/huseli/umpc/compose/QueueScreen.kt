@@ -1,20 +1,17 @@
 package us.huseli.umpc.compose
 
 import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.sharp.DragIndicator
 import androidx.compose.material.icons.sharp.KeyboardDoubleArrowDown
 import androidx.compose.material.icons.sharp.KeyboardDoubleArrowUp
 import androidx.compose.material.icons.sharp.MusicNote
 import androidx.compose.material3.Divider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ShapeDefaults
 import androidx.compose.material3.Text
@@ -96,36 +93,37 @@ fun QueueScreen(
             }
         }
     ) {
-        LazyColumn(modifier = Modifier.reorderable(reorderableState), state = listState) {
-            items(localQueue, key = { it.id!! }) { song ->
-                ReorderableItem(reorderableState, key = song.id) { isDragging ->
-                    val albumArt by viewModel.getAlbumArtState(song)
-                    val rowModifier =
-                        if (isDragging) Modifier
-                            .border(1.dp, MaterialTheme.colorScheme.outline, ShapeDefaults.ExtraSmall)
-                        else Modifier
+        ListWithScrollbar(
+            modifier = Modifier.fillMaxWidth(),
+            listSize = localQueue.size,
+            listState = listState,
+        ) {
+            LazyColumn(modifier = Modifier.reorderable(reorderableState), state = listState) {
+                items(localQueue, key = { it.id!! }) { song ->
+                    ReorderableItem(reorderableState, key = song.id) { isDragging ->
+                        val albumArt by viewModel.getAlbumArtState(song)
+                        val rowModifier =
+                            if (isDragging) Modifier
+                                .border(1.dp, MaterialTheme.colorScheme.outline, ShapeDefaults.ExtraSmall)
+                            else Modifier
 
-                    Divider()
-                    SongRow(
-                        modifier = rowModifier,
-                        title = song.title,
-                        isCurrentSong = song.id == currentSongId,
-                        playerState = playerState,
-                        onPlayPauseClick = { viewModel.playOrPauseSong(song) },
-                        onEnqueueClick = { viewModel.enqueueSong(song) },
-                        onGotoAlbumClick = { onGotoAlbumClick(song.album) },
-                        onGotoArtistClick = { onGotoArtistClick(song.artist) },
-                        artist = song.artist,
-                        album = song.album.name,
-                        duration = song.duration,
-                        year = song.year,
-                        albumArt = albumArt,
-                        showEnqueueButton = false,
-                    ) {
-                        IconButton(
-                            modifier = Modifier.detectReorder(reorderableState).width(24.dp),
-                            onClick = {},
-                            content = { Icon(Icons.Sharp.DragIndicator, null) },
+                        Divider()
+                        SongRow(
+                            modifier = rowModifier,
+                            title = song.title,
+                            isCurrentSong = song.id == currentSongId,
+                            playerState = playerState,
+                            onPlayPauseClick = { viewModel.playOrPauseSong(song) },
+                            onEnqueueClick = { viewModel.enqueueSong(song) },
+                            onGotoAlbumClick = { onGotoAlbumClick(song.album) },
+                            onGotoArtistClick = { onGotoArtistClick(song.artist) },
+                            artist = song.artist,
+                            album = song.album.name,
+                            duration = song.duration,
+                            year = song.year,
+                            albumArt = albumArt,
+                            showEnqueueButton = false,
+                            albumArtModifier = Modifier.detectReorder(reorderableState),
                         )
                     }
                 }
