@@ -82,8 +82,8 @@ fun SearchScreen(
                     val albumArt by viewModel.getAlbumArtState(song)
 
                     Divider()
-                    SongRow(
-                        title = song.title,
+                    LargeSongRow(
+                        song = song,
                         isCurrentSong = song.filename == currentSongFilename,
                         playerState = playerState,
                         onPlayPauseClick = { viewModel.playOrPauseSong(song) },
@@ -92,8 +92,6 @@ fun SearchScreen(
                         onGotoArtistClick = { onGotoArtistClick(song.artist) },
                         artist = song.artist,
                         album = song.album.name,
-                        duration = song.duration,
-                        year = song.year,
                         albumArt = albumArt,
                         highlight = searchTerm.text,
                     )

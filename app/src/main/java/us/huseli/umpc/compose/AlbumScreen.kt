@@ -157,10 +157,9 @@ fun AlbumScreen(
 
         albumWithSongs?.songs?.forEach { song ->
             Divider()
-            AlbumSongRow(
+            SmallSongRow(
                 song = song,
-                album = albumWithSongs,
-                currentSongFilename = currentSongFilename,
+                isCurrentSong = currentSongFilename == song.filename,
                 playerState = playerState,
                 onEnqueueClick = { viewModel.enqueueSong(song) },
                 onPlayPauseClick = { viewModel.playOrPauseSong(song) },

@@ -59,7 +59,11 @@ fun CoverScreenSongInfoTexts(
     onGotoArtistClick: (String) -> Unit,
 ) {
     song?.let {
-        Column(modifier = Modifier.padding(10.dp).fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+        Column(
+            modifier = Modifier.padding(10.dp).fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
             Text(
                 text = song.title,
                 style = MaterialTheme.typography.headlineMedium,

@@ -145,10 +145,9 @@ fun ArtistAlbumRow(
     ) {
         album.songs.forEach { song ->
             Divider()
-            AlbumSongRow(
+            SmallSongRow(
                 song = song,
-                album = album,
-                currentSongFilename = currentSongFilename,
+                isCurrentSong = currentSongFilename == song.filename,
                 playerState = playerState,
                 onEnqueueClick = { viewModel.enqueueSong(song) },
                 onPlayPauseClick = { viewModel.playOrPauseSong(song) },

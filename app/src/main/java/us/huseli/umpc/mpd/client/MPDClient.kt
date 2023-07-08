@@ -140,8 +140,13 @@ open class MPDClient(private val ioScope: CoroutineScope) : LoggerInterface {
         try {
             state.value = State.RUNNING
             val response = command.execute(socket)
-            state.value = State.READY
-            command.onFinish?.invoke(response)
+            if (response.status == MPDResponse.Status.EMPTY_RESPONSE) {
+                connect(failSilently = true)
+                enqueue(command)
+            } else {
+                state.value = State.READY
+                command.onFinish?.invoke(response)
+            }
         } catch (_: NullPointerException) {
             state.value = State.READY
         }

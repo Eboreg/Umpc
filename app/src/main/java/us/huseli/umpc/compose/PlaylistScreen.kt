@@ -230,9 +230,9 @@ fun PlaylistSongRow(
     onGotoArtistClick: () -> Unit,
     albumArt: ImageBitmap?,
 ) {
-    SongRow(
+    LargeSongRow(
         modifier = modifier,
-        title = song.title,
+        song = song,
         isCurrentSong = currentSongFilename == song.filename,
         playerState = playerState,
         onPlayPauseClick = onPlayPauseClick,
@@ -241,7 +241,6 @@ fun PlaylistSongRow(
         onGotoArtistClick = onGotoArtistClick,
         artist = song.artist,
         album = song.album.name,
-        duration = song.duration,
         albumArt = albumArt,
     )
 }
