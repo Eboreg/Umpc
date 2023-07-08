@@ -40,12 +40,147 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import us.huseli.umpc.LibraryGrouping
+import us.huseli.umpc.PlayerState
 import us.huseli.umpc.R
 import us.huseli.umpc.data.MPDAlbum
 import us.huseli.umpc.data.MPDAlbumWithSongs
+import us.huseli.umpc.data.MPDArtistWithAlbums
 import us.huseli.umpc.viewmodels.LibraryViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun LibraryScreenSubMenu(
+    grouping: LibraryGrouping,
+    isSearchActive: Boolean,
+    setGrouping: (LibraryGrouping) -> Unit,
+    activateLibrarySearch: (LibraryGrouping) -> Unit,
+    deactivateLibrarySearch: () -> Unit,
+) {
+    FilterChip(
+        shape = ShapeDefaults.ExtraSmall,
+        selected = grouping == LibraryGrouping.ARTIST,
+        onClick = { setGrouping(LibraryGrouping.ARTIST) },
+        label = { Text(stringResource(R.string.group_by_artist)) },
+        leadingIcon = {
+            if (grouping == LibraryGrouping.ARTIST) Icon(Icons.Sharp.Done, null)
+        }
+    )
+    FilterChip(
+        shape = ShapeDefaults.ExtraSmall,
+        selected = grouping == LibraryGrouping.ALBUM,
+        onClick = { setGrouping(LibraryGrouping.ALBUM) },
+        label = { Text(stringResource(R.string.group_by_album)) },
+        leadingIcon = {
+            if (grouping == LibraryGrouping.ALBUM) Icon(Icons.Sharp.Done, null)
+        }
+    )
+    IconToggleButton(
+        checked = isSearchActive,
+        onCheckedChange = {
+            if (it) activateLibrarySearch(grouping)
+            else deactivateLibrarySearch()
+        },
+        content = { Icon(Icons.Sharp.Search, stringResource(R.string.search)) },
+    )
+}
+
+@Composable
+fun LibraryScreenArtistRow(
+    viewModel: LibraryViewModel,
+    artist: MPDArtistWithAlbums,
+    currentSongFilename: String?,
+    playerState: PlayerState?,
+    onGotoAlbumClick: (MPDAlbum) -> Unit,
+    onGotoArtistClick: (String) -> Unit,
+) {
+    Divider()
+    ArtistRow(
+        artist = artist,
+        padding = PaddingValues(start = 10.dp),
+        onGotoArtistClick = { onGotoArtistClick(artist.name) }
+    ) {
+        val albums = remember { mutableStateListOf<MPDAlbumWithSongs>() }
+
+        LaunchedEffect(artist) {
+            viewModel.getAlbumsWithSongsByAlbumArtist(artist.name) {
+                albums.addAll(it)
+            }
+        }
+
+        albums.forEach { album ->
+            var thumbnail by remember { mutableStateOf<ImageBitmap?>(null) }
+
+            LaunchedEffect(album) {
+                viewModel.getThumbnail(album) { thumbnail = it.thumbnail }
+            }
+            Divider()
+            AlbumRow(
+                album = album,
+                thumbnail = thumbnail,
+                onEnqueueClick = { viewModel.enqueueAlbum(album.album) },
+                onPlayClick = { viewModel.playAlbum(album.album) },
+                onGotoAlbumClick = { onGotoAlbumClick(album.album) },
+            ) {
+                album.songs.forEach { song ->
+                    Divider()
+                    AlbumSongRow(
+                        song = song,
+                        album = album,
+                        currentSongFilename = currentSongFilename,
+                        playerState = playerState,
+                        onEnqueueClick = { viewModel.enqueueSong(song) },
+                        onPlayPauseClick = { viewModel.playOrPauseSong(song) },
+                        onGotoArtistClick = { onGotoArtistClick(artist.name) },
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun LibraryScreenAlbumRow(
+    viewModel: LibraryViewModel,
+    album: MPDAlbum,
+    currentSongFilename: String?,
+    playerState: PlayerState?,
+    onGotoAlbumClick: (MPDAlbum) -> Unit,
+    onGotoArtistClick: (String) -> Unit,
+) {
+    var thumbnail by remember { mutableStateOf<ImageBitmap?>(null) }
+    var albumWithSongs by remember { mutableStateOf(MPDAlbumWithSongs(album, emptyList())) }
+
+    LaunchedEffect(album) {
+        viewModel.getAlbumWithSongsByAlbum(album) { albumWithSongs = it }
+    }
+
+    LaunchedEffect(albumWithSongs) {
+        viewModel.getThumbnail(albumWithSongs) { thumbnail = it.thumbnail }
+    }
+
+    AlbumRow(
+        album = albumWithSongs,
+        thumbnail = thumbnail,
+        showArtist = true,
+        onEnqueueClick = { viewModel.enqueueAlbum(album) },
+        onPlayClick = { viewModel.playAlbum(album) },
+        onGotoAlbumClick = { onGotoAlbumClick(album) },
+    ) {
+        albumWithSongs.songs.forEach { song ->
+            Divider()
+            AlbumSongRow(
+                song = song,
+                album = albumWithSongs,
+                currentSongFilename = currentSongFilename,
+                playerState = playerState,
+                onEnqueueClick = { viewModel.enqueueSong(song) },
+                onPlayPauseClick = { viewModel.playOrPauseSong(song) },
+                onGotoArtistClick = { onGotoArtistClick(album.artist) },
+            )
+        }
+    }
+}
+
 @Composable
 fun LibraryScreen(
     modifier: Modifier = Modifier,
@@ -64,31 +199,12 @@ fun LibraryScreen(
     SubMenuScreen(
         modifier = modifier,
         menu = {
-            FilterChip(
-                shape = ShapeDefaults.ExtraSmall,
-                selected = grouping == LibraryGrouping.ARTIST,
-                onClick = { grouping = LibraryGrouping.ARTIST },
-                label = { Text(stringResource(R.string.group_by_artist)) },
-                leadingIcon = {
-                    if (grouping == LibraryGrouping.ARTIST) Icon(Icons.Sharp.Done, null)
-                }
-            )
-            FilterChip(
-                shape = ShapeDefaults.ExtraSmall,
-                selected = grouping == LibraryGrouping.ALBUM,
-                onClick = { grouping = LibraryGrouping.ALBUM },
-                label = { Text(stringResource(R.string.group_by_album)) },
-                leadingIcon = {
-                    if (grouping == LibraryGrouping.ALBUM) Icon(Icons.Sharp.Done, null)
-                }
-            )
-            IconToggleButton(
-                checked = isSearchActive,
-                onCheckedChange = {
-                    if (it) viewModel.activateLibrarySearch(grouping)
-                    else viewModel.deactivateLibrarySearch()
-                },
-                content = { Icon(Icons.Sharp.Search, stringResource(R.string.search)) },
+            LibraryScreenSubMenu(
+                grouping = grouping,
+                isSearchActive = isSearchActive,
+                setGrouping = { grouping = it },
+                activateLibrarySearch = { viewModel.activateLibrarySearch(it) },
+                deactivateLibrarySearch = { viewModel.deactivateLibrarySearch() },
             )
         }
     ) {
@@ -122,240 +238,47 @@ fun LibraryScreen(
 
         if (grouping == LibraryGrouping.ARTIST) {
             val artists by viewModel.artists.collectAsStateWithLifecycle()
-            LazyColumn(state = listState) {
-                items(artists, key = { it.name }) { artist ->
-                    Divider()
-                    ArtistRow(
-                        artist = artist,
-                        padding = PaddingValues(start = 10.dp),
-                        onGotoArtistClick = { onGotoArtistClick(artist.name) }
-                    ) {
-                        val albums = remember { mutableStateListOf<MPDAlbumWithSongs>() }
 
-                        LaunchedEffect(artist) {
-                            viewModel.getAlbumsWithSongsByAlbumArtist(artist.name) {
-                                albums.addAll(it)
-                            }
-                        }
-
-                        albums.forEach { album ->
-                            var thumbnail by remember { mutableStateOf<ImageBitmap?>(null) }
-
-                            LaunchedEffect(album) {
-                                viewModel.getThumbnail(album) { thumbnail = it.thumbnail }
-                            }
-                            Divider()
-                            AlbumRow(
-                                album = album,
-                                thumbnail = thumbnail,
-                                onEnqueueClick = { viewModel.enqueueAlbum(album.album) },
-                                onPlayClick = { viewModel.playAlbum(album.album) },
-                                onGotoAlbumClick = { onGotoAlbumClick(album.album) },
-                            ) {
-                                album.songs.forEach { song ->
-                                    Divider()
-                                    AlbumSongRow(
-                                        song = song,
-                                        album = album,
-                                        currentSongFilename = currentSongFilename,
-                                        playerState = playerState,
-                                        onEnqueueClick = { viewModel.enqueueSong(song) },
-                                        onPlayPauseClick = { viewModel.playOrPauseSong(song) },
-                                        onGotoArtistClick = { onGotoArtistClick(artist.name) },
-                                    )
-                                }
-                            }
-                        }
+            ListWithScrollbar(
+                modifier = Modifier.fillMaxWidth(),
+                listSize = artists.size,
+                listState = listState
+            ) {
+                LazyColumn(state = listState, modifier = Modifier.fillMaxWidth()) {
+                    items(artists, key = { it.name }) { artist ->
+                        LibraryScreenArtistRow(
+                            viewModel = viewModel,
+                            artist = artist,
+                            currentSongFilename = currentSongFilename,
+                            playerState = playerState,
+                            onGotoAlbumClick = onGotoAlbumClick,
+                            onGotoArtistClick = onGotoArtistClick,
+                        )
                     }
                 }
             }
         } else {
             val albums by viewModel.albums.collectAsStateWithLifecycle()
 
-            LazyColumn(state = listState) {
-                items(albums, key = { it.hashCode() }) { album ->
-                    val albumWithSongs by viewModel.getAlbumWithSongsByAlbum(album).collectAsStateWithLifecycle()
-                    var thumbnail by remember { mutableStateOf<ImageBitmap?>(null) }
-
-                    LaunchedEffect(albumWithSongs) {
-                        viewModel.getThumbnail(albumWithSongs) { thumbnail = it.thumbnail }
-                    }
-
-                    AlbumRow(
-                        album = albumWithSongs,
-                        thumbnail = thumbnail,
-                        showArtist = true,
-                        onEnqueueClick = { viewModel.enqueueAlbum(album) },
-                        onPlayClick = { viewModel.playAlbum(album) },
-                        onGotoAlbumClick = { onGotoAlbumClick(album) },
-                    ) {
-                        albumWithSongs.songs.forEach { song ->
-                            Divider()
-                            AlbumSongRow(
-                                song = song,
-                                album = albumWithSongs,
-                                currentSongFilename = currentSongFilename,
-                                playerState = playerState,
-                                onEnqueueClick = { viewModel.enqueueSong(song) },
-                                onPlayPauseClick = { viewModel.playOrPauseSong(song) },
-                                onGotoArtistClick = { onGotoArtistClick(album.artist) },
-                            )
-                        }
+            ListWithScrollbar(
+                modifier = Modifier.fillMaxWidth(),
+                listSize = albums.size,
+                listState = listState,
+            ) {
+                LazyColumn(state = listState) {
+                    items(albums, key = { it.hashCode() }) { album ->
+                        Divider()
+                        LibraryScreenAlbumRow(
+                            viewModel = viewModel,
+                            album = album,
+                            currentSongFilename = currentSongFilename,
+                            playerState = playerState,
+                            onGotoAlbumClick = onGotoAlbumClick,
+                            onGotoArtistClick = onGotoArtistClick,
+                        )
                     }
                 }
             }
         }
     }
-
-    /*
-    Column(modifier = modifier) {
-        Surface(tonalElevation = 2.dp, modifier = Modifier.fillMaxWidth()) {
-            Column(modifier = Modifier.padding(10.dp)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    FilterChip(
-                        shape = ShapeDefaults.ExtraSmall,
-                        selected = grouping == LibraryGrouping.ARTIST,
-                        onClick = { grouping = LibraryGrouping.ARTIST },
-                        label = { Text(stringResource(R.string.group_by_artist)) },
-                        leadingIcon = {
-                            if (grouping == LibraryGrouping.ARTIST) Icon(Icons.Sharp.Done, null)
-                        }
-                    )
-                    FilterChip(
-                        shape = ShapeDefaults.ExtraSmall,
-                        selected = grouping == LibraryGrouping.ALBUM,
-                        onClick = { grouping = LibraryGrouping.ALBUM },
-                        label = { Text(stringResource(R.string.group_by_album)) },
-                        leadingIcon = {
-                            if (grouping == LibraryGrouping.ALBUM) Icon(Icons.Sharp.Done, null)
-                        }
-                    )
-                    IconToggleButton(
-                        checked = isSearchActive,
-                        onCheckedChange = {
-                            if (it) viewModel.activateLibrarySearch(grouping)
-                            else viewModel.deactivateLibrarySearch()
-                        },
-                        content = { Icon(Icons.Sharp.Search, stringResource(R.string.search)) },
-                    )
-                }
-                if (isSearchActive) {
-                    OutlinedTextField(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .focusRequester(searchFocusRequester)
-                            .onPlaced { searchFocusRequester.requestFocus() },
-                        value = searchTerm,
-                        onValueChange = { viewModel.setLibrarySearchTerm(it) },
-                        trailingIcon = {
-                            IconButton(
-                                onClick = { viewModel.searchLibrary(grouping) },
-                                content = { Icon(Icons.Sharp.Search, null) },
-                            )
-                        },
-                        keyboardOptions = KeyboardOptions.Default.copy(
-                            imeAction = ImeAction.Search,
-                            capitalization = KeyboardCapitalization.None,
-                        ),
-                        keyboardActions = KeyboardActions(
-                            onSearch = {
-                                viewModel.searchLibrary(grouping)
-                                searchFocusRequester.freeFocus()
-                            }
-                        ),
-                        singleLine = true,
-                    )
-                }
-            }
-        }
-
-        if (grouping == LibraryGrouping.ARTIST) {
-            val artists by viewModel.artists.collectAsStateWithLifecycle()
-            LazyColumn(state = listState) {
-                items(artists, key = { it.name }) { artist ->
-                    Divider()
-                    ArtistRow(
-                        artist = artist,
-                        onGotoArtistClick = { onGotoArtistClick(artist.name) }
-                    ) {
-                        val albums = remember { mutableStateListOf<MPDAlbumWithSongs>() }
-
-                        LaunchedEffect(artist) {
-                            viewModel.getAlbumsWithSongsByAlbumArtist(artist.name) {
-                                albums.addAll(it)
-                            }
-                        }
-
-                        albums.forEach { album ->
-                            var thumbnail by remember { mutableStateOf<ImageBitmap?>(null) }
-
-                            LaunchedEffect(album) {
-                                viewModel.getThumbnail(album) { thumbnail = it.thumbnail }
-                            }
-                            Divider()
-                            AlbumRow(
-                                album = album,
-                                thumbnail = thumbnail,
-                                onEnqueueClick = { viewModel.enqueueAlbum(album.album) },
-                                onPlayClick = { viewModel.playAlbum(album.album) },
-                                onGotoAlbumClick = { onGotoAlbumClick(album.album) },
-                            ) {
-                                album.songs.forEach { song ->
-                                    Divider()
-                                    AlbumSongRow(
-                                        song = song,
-                                        album = album,
-                                        currentSongFilename = currentSongFilename,
-                                        playerState = playerState,
-                                        onEnqueueClick = { viewModel.enqueueSong(song) },
-                                        onPlayPauseClick = { viewModel.playOrPauseSong(song) },
-                                        onGotoArtistClick = { onGotoArtistClick(artist.name) },
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        } else {
-            val albums by viewModel.albums.collectAsStateWithLifecycle()
-
-            LazyColumn(state = listState) {
-                items(albums, key = { it.hashCode() }) { album ->
-                    val albumWithSongs by viewModel.getAlbumWithSongsByAlbum(album).collectAsStateWithLifecycle()
-                    var thumbnail by remember { mutableStateOf<ImageBitmap?>(null) }
-
-                    LaunchedEffect(albumWithSongs) {
-                        viewModel.getThumbnail(albumWithSongs) { thumbnail = it.thumbnail }
-                    }
-
-                    AlbumRow(
-                        album = albumWithSongs,
-                        showArtist = true,
-                        thumbnail = thumbnail,
-                        onEnqueueClick = { viewModel.enqueueAlbum(album) },
-                        onPlayClick = { viewModel.playAlbum(album) },
-                        onGotoAlbumClick = { onGotoAlbumClick(album) },
-                    ) {
-                        albumWithSongs.songs.forEach { song ->
-                            Divider()
-                            AlbumSongRow(
-                                song = song,
-                                album = albumWithSongs,
-                                currentSongFilename = currentSongFilename,
-                                playerState = playerState,
-                                onEnqueueClick = { viewModel.enqueueSong(song) },
-                                onPlayPauseClick = { viewModel.playOrPauseSong(song) },
-                                onGotoArtistClick = { onGotoArtistClick(album.artist) },
-                            )
-                        }
-                    }
-                }
-            }
-        }
-    }
-     */
 }

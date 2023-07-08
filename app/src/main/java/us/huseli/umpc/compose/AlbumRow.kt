@@ -33,22 +33,19 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import us.huseli.umpc.R
-import us.huseli.umpc.data.MPDAlbum
 import us.huseli.umpc.data.MPDAlbumWithSongs
 import us.huseli.umpc.formatDuration
-import us.huseli.umpc.isInLandscapeMode
 import us.huseli.umpc.toYearRangeString
 
 @Composable
 fun AlbumRow(
     modifier: Modifier = Modifier,
-    album: MPDAlbum,
+    album: MPDAlbumWithSongs,
     thumbnail: ImageBitmap? = null,
     showArtist: Boolean = false,
-    duration: String? = null,
-    years: String? = null,
     onEnqueueClick: () -> Unit,
     onPlayClick: () -> Unit,
     onGotoAlbumClick: () -> Unit,
@@ -76,13 +73,17 @@ fun AlbumRow(
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = album.album.name,
+                        overflow = TextOverflow.Ellipsis,
+                        maxLines = 1,
+                    )
                     if (showArtist) {
-                        AutoScrollingTextLine(album.name)
-                        AutoScrollingTextLine(album.artist, style = MaterialTheme.typography.bodySmall)
-                    } else {
                         Text(
-                            text = album.name,
-                            style = if (album.name.length >= 60 && !isInLandscapeMode()) MaterialTheme.typography.bodyMedium else MaterialTheme.typography.bodyLarge
+                            text = album.album.artist,
+                            overflow = TextOverflow.Ellipsis,
+                            maxLines = 1,
+                            style = MaterialTheme.typography.bodySmall,
                         )
                     }
                 }
@@ -91,17 +92,17 @@ fun AlbumRow(
                     verticalArrangement = Arrangement.Top,
                     horizontalAlignment = Alignment.End,
                 ) {
-                    if (duration != null) {
+                    album.duration?.let { duration ->
                         Text(
-                            text = duration,
+                            text = duration.formatDuration(),
                             style = MaterialTheme.typography.labelSmall,
                             softWrap = false,
                             maxLines = 1,
                         )
                     }
-                    if (years != null) {
+                    album.yearRange?.let { yearRange ->
                         Text(
-                            text = years,
+                            text = yearRange.toYearRangeString(),
                             style = MaterialTheme.typography.labelSmall,
                             softWrap = false,
                             maxLines = 1,
@@ -139,30 +140,4 @@ fun AlbumRow(
             Surface { Column { expandedContent() } }
         }
     }
-}
-
-
-@Composable
-fun AlbumRow(
-    modifier: Modifier = Modifier,
-    album: MPDAlbumWithSongs,
-    thumbnail: ImageBitmap? = null,
-    showArtist: Boolean = false,
-    onEnqueueClick: () -> Unit,
-    onPlayClick: () -> Unit,
-    onGotoAlbumClick: () -> Unit,
-    expandedContent: @Composable (ColumnScope.() -> Unit),
-) {
-    AlbumRow(
-        modifier = modifier,
-        album = album.album,
-        thumbnail = thumbnail,
-        showArtist = showArtist,
-        duration = album.duration?.formatDuration(),
-        years = album.yearRange?.toYearRangeString(),
-        onEnqueueClick = onEnqueueClick,
-        onPlayClick = onPlayClick,
-        onGotoAlbumClick = onGotoAlbumClick,
-        expandedContent = expandedContent,
-    )
 }

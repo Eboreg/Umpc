@@ -7,7 +7,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterNotNull
@@ -75,9 +74,9 @@ class MPDRepository @Inject constructor(
     private val _volume = MutableStateFlow(100)
 
     val engines: Engines
-    var client = MPDClient()
-    var binaryClient = MPDBinaryClient()
-    private var idleClient = MPDIdleClient()
+    var client = MPDClient(ioScope)
+    var binaryClient = MPDBinaryClient(ioScope)
+    private var idleClient = MPDIdleClient(ioScope)
 
     val albumArtDirectory = File(context.cacheDir, "albumArt").apply { mkdirs() }
     val thumbnailDirectory = File(albumArtDirectory, "thumbnails").apply { mkdirs() }
@@ -281,18 +280,13 @@ class MPDRepository @Inject constructor(
         }
     }
 
-    fun getAlbumWithSongsFlowByAlbum(album: MPDAlbum): StateFlow<MPDAlbumWithSongs> {
-        /**
-         * Used in LibraryScreen, ALBUM grouping.
-         * Will update this._albumsWithSongs (via fetchSongsByAlbumArtist()).
-         */
+    fun getAlbumWithSongsByAlbum(album: MPDAlbum, onFinish: (MPDAlbumWithSongs) -> Unit) {
         val aws = _albumsWithSongs.value.find { it.album == album }
 
-        return MutableStateFlow(aws ?: MPDAlbumWithSongs(album, emptyList())).apply {
-            if (aws == null) fetchSongListByAlbum(album) {
-                value = MPDAlbumWithSongs(album, it)
-            }
-        }.asStateFlow()
+        if (aws != null) onFinish(aws)
+        else fetchSongListByAlbum(album) {
+            onFinish(MPDAlbumWithSongs(album, it))
+        }
     }
 
     fun search(term: String, onFinish: (List<MPDSong>) -> Unit) {

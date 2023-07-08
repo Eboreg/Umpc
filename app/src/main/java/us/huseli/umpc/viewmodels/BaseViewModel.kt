@@ -39,6 +39,9 @@ abstract class BaseViewModel(protected val repo: MPDRepository) : ViewModel() {
         }
     }
 
+    fun getPlaylistSongCount(playlistName: String, onFinish: (Int) -> Unit) =
+        repo.engines.playlist.fetchPlaylistSongs(playlistName) { onFinish(it.size) }
+
     fun playAlbum(album: MPDAlbum?) = album?.let { repo.engines.control.enqueueAlbumNextAndPlay(album) }
 
     fun playOrPauseSong(song: MPDSong) {

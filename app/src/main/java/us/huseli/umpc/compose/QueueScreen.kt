@@ -2,6 +2,7 @@ package us.huseli.umpc.compose
 
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
@@ -122,7 +123,7 @@ fun QueueScreen(
                         showEnqueueButton = false,
                     ) {
                         IconButton(
-                            modifier = Modifier.detectReorder(reorderableState),
+                            modifier = Modifier.detectReorder(reorderableState).width(24.dp),
                             onClick = {},
                             content = { Icon(Icons.Sharp.DragIndicator, null) },
                         )
@@ -131,77 +132,4 @@ fun QueueScreen(
             }
         }
     }
-
-    /*
-    Column(modifier = modifier) {
-        Surface(tonalElevation = 2.dp, modifier = Modifier.fillMaxWidth()) {
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(10.dp),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                OutlinedButton(
-                    onClick = scrollToTop,
-                    shape = ShapeDefaults.ExtraSmall,
-                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 0.dp),
-                ) {
-                    Icon(Icons.Sharp.KeyboardDoubleArrowUp, null, modifier = Modifier.size(20.dp))
-                    Text(stringResource(R.string.top), modifier = Modifier.padding(start = 8.dp))
-                }
-                OutlinedButton(
-                    onClick = scrollToCurrent,
-                    shape = ShapeDefaults.ExtraSmall,
-                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 0.dp),
-                ) {
-                    Icon(Icons.Sharp.MusicNote, null, modifier = Modifier.size(20.dp))
-                    Text(stringResource(R.string.now_playing), modifier = Modifier.padding(start = 8.dp))
-                }
-                OutlinedButton(
-                    onClick = scrollToBottom,
-                    shape = ShapeDefaults.ExtraSmall,
-                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 0.dp),
-                ) {
-                    Icon(Icons.Sharp.KeyboardDoubleArrowDown, null, modifier = Modifier.size(20.dp))
-                    Text(stringResource(R.string.bottom), modifier = Modifier.padding(start = 8.dp))
-                }
-            }
-        }
-
-        LazyColumn(modifier = Modifier.reorderable(reorderableState), state = listState) {
-            items(localQueue, key = { it.id!! }) { song ->
-                ReorderableItem(reorderableState, key = song.id) { isDragging ->
-                    val albumArt by viewModel.getAlbumArtState(song)
-                    val rowModifier =
-                        if (isDragging) Modifier
-                            .border(1.dp, MaterialTheme.colorScheme.outline, ShapeDefaults.ExtraSmall)
-                        else Modifier
-
-                    Divider()
-                    SongRow(
-                        modifier = rowModifier,
-                        title = song.title,
-                        artist = song.artist,
-                        album = song.album.name,
-                        duration = song.duration,
-                        year = song.year,
-                        albumArt = albumArt,
-                        playerState = playerState,
-                        isCurrentSong = song.id == currentSongId,
-                        showEnqueueButton = false,
-                        onPlayPauseClick = { viewModel.playOrPauseSong(song) },
-                        onEnqueueClick = { viewModel.enqueueSong(song) },
-                        onGotoAlbumClick = { onGotoAlbumClick(song.album) },
-                        onGotoArtistClick = { onGotoArtistClick(song.artist) },
-                        trailingContent = {
-                            IconButton(
-                                modifier = Modifier.detectReorder(reorderableState),
-                                onClick = {},
-                                content = { Icon(Icons.Sharp.DragIndicator, null) },
-                            )
-                        },
-                    )
-                }
-            }
-        }
-    }
-     */
 }

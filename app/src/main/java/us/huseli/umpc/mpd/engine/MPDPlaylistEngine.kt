@@ -4,10 +4,10 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import us.huseli.umpc.data.MPDPlaylist
 import us.huseli.umpc.data.MPDPlaylistWithSongs
-import us.huseli.umpc.mpd.response.MPDResponse
 import us.huseli.umpc.data.MPDSong
 import us.huseli.umpc.mpd.MPDRepository
 import us.huseli.umpc.mpd.OnMPDChangeListener
+import us.huseli.umpc.mpd.response.MPDResponse
 
 class MPDPlaylistEngine(private val repo: MPDRepository) : OnMPDChangeListener {
     private val _playlistsWithSongs = MutableStateFlow<List<MPDPlaylistWithSongs>>(emptyList())

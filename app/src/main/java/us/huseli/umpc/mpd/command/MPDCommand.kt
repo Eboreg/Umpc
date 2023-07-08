@@ -24,14 +24,18 @@ open class MPDCommand(
         try {
             writeLine(getCommand(command, args))
         } catch (e: Exception) {
-            return MPDResponse(status = MPDResponse.Status.ERROR_NET, exception = e)
+            val response = MPDResponse(status = MPDResponse.Status.ERROR_NET, exception = e)
+            log("FINISH $this, returning $response", level = Log.ERROR)
+            return response
         }
 
         do {
             try {
                 line = readLine()
             } catch (e: Exception) {
-                return MPDResponse(status = MPDResponse.Status.ERROR_NET, exception = e)
+                val response = MPDResponse(status = MPDResponse.Status.ERROR_NET, exception = e)
+                log("FINISH $this, returning $response", level = Log.ERROR)
+                return response
             }
             if (line != null) {
                 if (line == "OK") {
@@ -49,6 +53,7 @@ open class MPDCommand(
                 }
             } else {
                 status = MPDResponse.Status.EMPTY_RESPONSE
+                isFinished = true
             }
         } while (!isFinished)
 

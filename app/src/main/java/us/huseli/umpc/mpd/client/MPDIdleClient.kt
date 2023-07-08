@@ -1,12 +1,13 @@
 package us.huseli.umpc.mpd.client
 
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import us.huseli.umpc.mpd.command.MPDCommand
 import us.huseli.umpc.mpd.response.MPDResponse
 
-class MPDIdleClient : MPDClient() {
+class MPDIdleClient(ioScope: CoroutineScope) : MPDClient(ioScope) {
     fun start(onFinish: (MPDResponse) -> Unit) {
         val command = MPDCommand("idle")
 

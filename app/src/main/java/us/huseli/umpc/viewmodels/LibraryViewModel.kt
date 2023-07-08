@@ -3,7 +3,6 @@ package us.huseli.umpc.viewmodels
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
@@ -59,8 +58,8 @@ class LibraryViewModel @Inject constructor(repo: MPDRepository) : BaseViewModel(
         _activeLibrarySearchType.value = LibrarySearchType.NONE
     }
 
-    fun getAlbumWithSongsByAlbum(album: MPDAlbum): StateFlow<MPDAlbumWithSongs> =
-        repo.getAlbumWithSongsFlowByAlbum(album)
+    fun getAlbumWithSongsByAlbum(album: MPDAlbum, callback: (MPDAlbumWithSongs) -> Unit) =
+        repo.getAlbumWithSongsByAlbum(album, callback)
 
     fun getAlbumsWithSongsByAlbumArtist(artist: String, onFinish: (List<MPDAlbumWithSongs>) -> Unit) =
         repo.fetchAlbumWithSongsListByAlbumArtist(artist, onFinish)

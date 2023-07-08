@@ -13,14 +13,19 @@ import androidx.compose.material3.Divider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import us.huseli.umpc.R
 import us.huseli.umpc.data.MPDPlaylist
-import us.huseli.umpc.formatDateTime
 import us.huseli.umpc.viewmodels.MPDViewModel
 
 @Composable
@@ -34,8 +39,15 @@ fun PlaylistListScreen(
 
     Column(modifier = modifier.fillMaxWidth().verticalScroll(scrollState)) {
         playlists.forEach { playlist ->
+            var soungCount by rememberSaveable { mutableStateOf<Int?>(null) }
+
+            LaunchedEffect(playlist) {
+                viewModel.getPlaylistSongCount(playlist.name) { soungCount = it }
+            }
+
             PlaylistRow(
                 playlist = playlist,
+                songCount = soungCount,
                 onClick = { onGotoPlaylistClick(playlist) },
             )
         }
@@ -46,6 +58,7 @@ fun PlaylistListScreen(
 fun PlaylistRow(
     modifier: Modifier = Modifier,
     playlist: MPDPlaylist,
+    songCount: Int?,
     onClick: () -> Unit,
 ) {
     Row(
@@ -57,8 +70,13 @@ fun PlaylistRow(
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(playlist.name)
-        Column(horizontalAlignment = Alignment.End) {
-            Text(playlist.lastModified?.formatDateTime() ?: "-", style = MaterialTheme.typography.bodySmall)
+        if (songCount != null) {
+            Column(horizontalAlignment = Alignment.End) {
+                Text(
+                    text = pluralStringResource(R.plurals.x_songs, songCount, songCount),
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
         }
     }
     Divider()

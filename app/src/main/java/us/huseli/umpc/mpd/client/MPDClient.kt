@@ -7,7 +7,10 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import us.huseli.umpc.LoggerInterface
 import us.huseli.umpc.data.MPDCredentials
 import us.huseli.umpc.mpd.command.MPDBaseCommand
 import us.huseli.umpc.mpd.command.MPDCommand
@@ -24,9 +27,10 @@ class MPDClientException(
     val clientClass: String = client.javaClass.simpleName
 }
 
-open class MPDClient {
+open class MPDClient(private val ioScope: CoroutineScope) : LoggerInterface {
     enum class State { STARTED, PREPARED, READY, RUNNING, ERROR }
 
+    private val commandQueueMutex = Mutex()
     private val commandQueue = mutableListOf<MPDBaseCommand>()
     private var credentials: MPDCredentials? = null
     private val wantedTagTypes = listOf(
@@ -122,8 +126,13 @@ open class MPDClient {
     }
 
     protected fun enqueue(command: MPDBaseCommand) {
-        if (!commandQueue.contains(command)) {
-            commandQueue.add(command)
+        ioScope.launch {
+            commandQueueMutex.withLock {
+                if (!commandQueue.contains(command)) {
+                    log("ENQUEUE $command, commandQueue=$commandQueue")
+                    commandQueue.add(command)
+                }
+            }
         }
     }
 
