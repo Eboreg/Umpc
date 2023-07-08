@@ -108,7 +108,7 @@ fun AlbumScreen(
     val albumWithSongs by viewModel.albumWithSongs.collectAsStateWithLifecycle()
     val currentSongFilename by viewModel.currentSongFilename.collectAsStateWithLifecycle(null)
     val playerState by viewModel.playerState.collectAsStateWithLifecycle()
-    val playlists by viewModel.playlists.collectAsStateWithLifecycle()
+    val playlists by viewModel.storedPlaylists.collectAsStateWithLifecycle()
     var isAddToPlaylistDialogOpen by rememberSaveable { mutableStateOf(false) }
 
     if (isAddToPlaylistDialogOpen) {

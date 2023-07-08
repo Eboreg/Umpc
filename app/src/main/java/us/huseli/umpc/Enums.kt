@@ -14,6 +14,8 @@ enum class ImageRequestType { FULL, THUMBNAIL, BOTH }
 
 enum class LibrarySearchType { ARTIST, ALBUM, NONE }
 
+enum class PlaylistType { STORED, DYNAMIC }
+
 fun String.toSingleState() = when (this) {
     "0" -> SingleState.OFF
     "1" -> SingleState.ON

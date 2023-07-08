@@ -17,7 +17,7 @@ abstract class BaseViewModel(protected val repo: MPDRepository) : ViewModel() {
     val currentSong = repo.currentSong
     val currentSongFilename = repo.currentSong.map { it?.filename }.distinctUntilChanged()
     val playerState = repo.playerState
-    val playlists = repo.engines.playlist.playlists
+    val storedPlaylists = repo.engines.playlist.storedPlaylists
 
     fun addMessage(message: String) = repo.engines.message.addMessage(message)
 
@@ -38,9 +38,6 @@ abstract class BaseViewModel(protected val repo: MPDRepository) : ViewModel() {
             repo.engines.image.getAlbumArt(song.albumArtKey, ImageRequestType.FULL) { state.value = it.fullImage }
         }
     }
-
-    fun getPlaylistSongCount(playlistName: String, onFinish: (Int) -> Unit) =
-        repo.engines.playlist.fetchPlaylistSongs(playlistName) { onFinish(it.size) }
 
     fun playAlbum(album: MPDAlbum?) = album?.let { repo.engines.control.enqueueAlbumNextAndPlay(album) }
 

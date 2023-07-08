@@ -26,23 +26,24 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import us.huseli.umpc.R
 import us.huseli.umpc.data.MPDPlaylist
-import us.huseli.umpc.viewmodels.MPDViewModel
+import us.huseli.umpc.viewmodels.PlaylistListViewModel
 
 @Composable
 fun PlaylistListScreen(
     modifier: Modifier = Modifier,
-    viewModel: MPDViewModel = hiltViewModel(),
+    viewModel: PlaylistListViewModel = hiltViewModel(),
     onGotoPlaylistClick: (MPDPlaylist) -> Unit,
     scrollState: ScrollState = rememberScrollState(),
 ) {
-    val playlists by viewModel.playlists.collectAsStateWithLifecycle()
+    val storedPlaylists by viewModel.storedPlaylists.collectAsStateWithLifecycle()
+    val displayType by viewModel.displayType.collectAsStateWithLifecycle()
 
     Column(modifier = modifier.fillMaxWidth().verticalScroll(scrollState)) {
-        playlists.forEach { playlist ->
+        storedPlaylists.forEach { playlist ->
             var soungCount by rememberSaveable { mutableStateOf<Int?>(null) }
 
             LaunchedEffect(playlist) {
-                viewModel.getPlaylistSongCount(playlist.name) { soungCount = it }
+                viewModel.getStoredPlaylistSongCount(playlist.name) { soungCount = it }
             }
 
             PlaylistRow(

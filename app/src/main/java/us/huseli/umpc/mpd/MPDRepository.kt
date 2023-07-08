@@ -130,7 +130,7 @@ class MPDRepository @Inject constructor(
                     loadAlbums()
                     loadOutputs()
                     // engines.playlist.loadPlaylistsWithSongs()
-                    engines.playlist.loadPlaylists()
+                    engines.playlist.loadStoredPlaylists()
                     watch()
                 } catch (e: MPDClientException) {
                     engines.message.setError(e.message)

@@ -42,7 +42,7 @@ import us.huseli.umpc.compose.screens.CoverScreen
 import us.huseli.umpc.compose.screens.DebugScreen
 import us.huseli.umpc.compose.screens.LibraryScreen
 import us.huseli.umpc.compose.screens.PlaylistListScreen
-import us.huseli.umpc.compose.screens.PlaylistScreen
+import us.huseli.umpc.compose.screens.StoredPlaylistScreen
 import us.huseli.umpc.compose.screens.QueueScreen
 import us.huseli.umpc.compose.screens.SearchScreen
 import us.huseli.umpc.compose.screens.SettingsScreen
@@ -261,7 +261,7 @@ fun App(
                 route = PlaylistDetailsDestination.routeTemplate,
                 arguments = PlaylistDetailsDestination.arguments,
             ) {
-                PlaylistScreen(
+                StoredPlaylistScreen(
                     onGotoAlbumClick = onGotoAlbumClick,
                     onGotoArtistClick = onGotoArtistClick,
                     onPlaylistDeleted = { navigate(PlaylistListDestination.route) },

@@ -43,10 +43,10 @@ import us.huseli.umpc.data.MPDPlaylist
 import us.huseli.umpc.data.MPDSong
 import us.huseli.umpc.formatDateTime
 import us.huseli.umpc.isInLandscapeMode
-import us.huseli.umpc.viewmodels.PlaylistViewModel
+import us.huseli.umpc.viewmodels.StoredPlaylistViewModel
 
 @Composable
-fun RenamePlaylistDialog(
+fun RenameStoredPlaylistDialog(
     modifier: Modifier = Modifier,
     name: String,
     onConfirm: (String) -> Unit,
@@ -79,7 +79,7 @@ fun RenamePlaylistDialog(
 }
 
 @Composable
-fun DeletePlaylistDialog(
+fun DeleteStoredPlaylistDialog(
     modifier: Modifier = Modifier,
     name: String,
     onConfirm: () -> Unit,
@@ -103,7 +103,7 @@ fun DeletePlaylistDialog(
 }
 
 @Composable
-fun PlaylistScreenMetaInfo(playlist: MPDPlaylist, songs: List<MPDSong>) {
+fun StoredPlaylistScreenMetaInfo(playlist: MPDPlaylist, songs: List<MPDSong>) {
     Text(
         pluralStringResource(R.plurals.x_songs, songs.size, songs.size),
         style = MaterialTheme.typography.bodySmall
@@ -117,9 +117,36 @@ fun PlaylistScreenMetaInfo(playlist: MPDPlaylist, songs: List<MPDSong>) {
 }
 
 @Composable
-fun PlaylistScreen(
+fun StoredPlaylistSongRow(
     modifier: Modifier = Modifier,
-    viewModel: PlaylistViewModel = hiltViewModel(),
+    song: MPDSong,
+    currentSongFilename: String?,
+    playerState: PlayerState?,
+    onPlayPauseClick: () -> Unit,
+    onEnqueueClick: () -> Unit,
+    onGotoAlbumClick: () -> Unit,
+    onGotoArtistClick: () -> Unit,
+    albumArt: ImageBitmap?,
+) {
+    LargeSongRow(
+        modifier = modifier,
+        song = song,
+        isCurrentSong = currentSongFilename == song.filename,
+        playerState = playerState,
+        onPlayPauseClick = onPlayPauseClick,
+        onEnqueueClick = onEnqueueClick,
+        onGotoAlbumClick = onGotoAlbumClick,
+        onGotoArtistClick = onGotoArtistClick,
+        artist = song.artist,
+        album = song.album.name,
+        albumArt = albumArt,
+    )
+}
+
+@Composable
+fun StoredPlaylistScreen(
+    modifier: Modifier = Modifier,
+    viewModel: StoredPlaylistViewModel = hiltViewModel(),
     listState: LazyListState = rememberLazyListState(),
     onGotoAlbumClick: (MPDAlbum) -> Unit,
     onGotoArtistClick: (String) -> Unit,
@@ -135,7 +162,7 @@ fun PlaylistScreen(
 
     if (isRenameDialogOpen) {
         playlist?.let {
-            RenamePlaylistDialog(
+            RenameStoredPlaylistDialog(
                 name = it.name,
                 onConfirm = { newName ->
                     viewModel.rename(newName) { isSuccess ->
@@ -151,7 +178,7 @@ fun PlaylistScreen(
         playlist?.let {
             val successMessage = stringResource(R.string.the_playlist_was_deleted)
 
-            DeletePlaylistDialog(
+            DeleteStoredPlaylistDialog(
                 name = it.name,
                 onConfirm = {
                     viewModel.deletePlaylist { response ->
@@ -178,12 +205,12 @@ fun PlaylistScreen(
                 if (isInLandscapeMode()) {
                     Text(it.name, style = MaterialTheme.typography.headlineMedium)
                     Column {
-                        PlaylistScreenMetaInfo(it, songs)
+                        StoredPlaylistScreenMetaInfo(it, songs)
                     }
                 } else {
                     Column {
                         Text(it.name, style = MaterialTheme.typography.headlineMedium)
-                        PlaylistScreenMetaInfo(it, songs)
+                        StoredPlaylistScreenMetaInfo(it, songs)
                     }
                 }
                 Row {
@@ -204,7 +231,7 @@ fun PlaylistScreen(
                 val albumArt by viewModel.getAlbumArtState(song)
 
                 Divider()
-                PlaylistSongRow(
+                StoredPlaylistSongRow(
                     song = song,
                     currentSongFilename = currentSongFilename,
                     playerState = playerState,
@@ -217,31 +244,4 @@ fun PlaylistScreen(
             }
         }
     }
-}
-
-@Composable
-fun PlaylistSongRow(
-    modifier: Modifier = Modifier,
-    song: MPDSong,
-    currentSongFilename: String?,
-    playerState: PlayerState?,
-    onPlayPauseClick: () -> Unit,
-    onEnqueueClick: () -> Unit,
-    onGotoAlbumClick: () -> Unit,
-    onGotoArtistClick: () -> Unit,
-    albumArt: ImageBitmap?,
-) {
-    LargeSongRow(
-        modifier = modifier,
-        song = song,
-        isCurrentSong = currentSongFilename == song.filename,
-        playerState = playerState,
-        onPlayPauseClick = onPlayPauseClick,
-        onEnqueueClick = onEnqueueClick,
-        onGotoAlbumClick = onGotoAlbumClick,
-        onGotoArtistClick = onGotoArtistClick,
-        artist = song.artist,
-        album = song.album.name,
-        albumArt = albumArt,
-    )
 }
