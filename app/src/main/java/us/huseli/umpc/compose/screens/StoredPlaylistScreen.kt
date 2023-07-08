@@ -37,6 +37,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import us.huseli.umpc.PlayerState
 import us.huseli.umpc.R
+import us.huseli.umpc.compose.DeletePlaylistDialog
 import us.huseli.umpc.compose.LargeSongRow
 import us.huseli.umpc.data.MPDAlbum
 import us.huseli.umpc.data.MPDPlaylist
@@ -74,30 +75,6 @@ fun RenameStoredPlaylistDialog(
                 singleLine = true,
                 label = { Text(stringResource(R.string.new_name)) },
             )
-        }
-    )
-}
-
-@Composable
-fun DeleteStoredPlaylistDialog(
-    modifier: Modifier = Modifier,
-    name: String,
-    onConfirm: () -> Unit,
-    onCancel: () -> Unit,
-) {
-    AlertDialog(
-        modifier = modifier,
-        shape = ShapeDefaults.ExtraSmall,
-        title = { Text(stringResource(R.string.delete_playlist)) },
-        onDismissRequest = onCancel,
-        confirmButton = {
-            TextButton(onClick = onConfirm) { Text(stringResource(R.string.ok)) }
-        },
-        dismissButton = {
-            TextButton(onClick = onCancel) { Text(stringResource(R.string.cancel)) }
-        },
-        text = {
-            Text(stringResource(R.string.delete_playlist_x, name))
         }
     )
 }
@@ -176,9 +153,9 @@ fun StoredPlaylistScreen(
 
     if (isDeleteDialogOpen) {
         playlist?.let {
-            val successMessage = stringResource(R.string.the_playlist_was_deleted)
+            val successMessage = stringResource(R.string.playlist_was_deleted)
 
-            DeleteStoredPlaylistDialog(
+            DeletePlaylistDialog(
                 name = it.name,
                 onConfirm = {
                     viewModel.deletePlaylist { response ->

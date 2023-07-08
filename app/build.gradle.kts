@@ -114,4 +114,7 @@ dependencies {
 
     // Reorder:
     implementation("org.burnoutcrew.composereorderable:reorderable:0.9.6")
+
+    // Gson:
+    implementation("com.google.code.gson:gson:2.10.1")
 }

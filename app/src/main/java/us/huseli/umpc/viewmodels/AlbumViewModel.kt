@@ -13,8 +13,8 @@ import us.huseli.umpc.ImageRequestType
 import us.huseli.umpc.data.AlbumArtKey
 import us.huseli.umpc.data.MPDAlbum
 import us.huseli.umpc.data.MPDAlbumWithSongs
-import us.huseli.umpc.mpd.response.MPDResponse
 import us.huseli.umpc.mpd.MPDRepository
+import us.huseli.umpc.mpd.response.MPDResponse
 import javax.inject.Inject
 
 @HiltViewModel
@@ -43,8 +43,8 @@ class AlbumViewModel @Inject constructor(
     }
 
     fun addToPlaylist(playlistName: String, onFinish: (MPDResponse) -> Unit) {
+        repo.engines.playlist.addAlbumToStoredPlaylist(album, playlistName, onFinish)
         // repo.client.enqueue("searchaddpl \"$playlistName\" \"${album.searchFilter}\"", onFinish)
-        repo.client.enqueue("searchaddpl", listOf(playlistName, album.searchFilter.toString()), onFinish)
         // repo.client.enqueue("searchaddpl", listOf(playlistName, filter { album.searchFilter }), onFinish)
     }
 }

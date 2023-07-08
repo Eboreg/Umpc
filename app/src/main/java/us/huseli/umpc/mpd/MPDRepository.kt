@@ -104,24 +104,16 @@ class MPDRepository @Inject constructor(
             image = MPDImageEngine(this, ioScope),
             control = MPDControlEngine(this),
             message = MessageEngine(this),
-            playlist = MPDPlaylistEngine(this),
+            playlist = MPDPlaylistEngine(this, context),
         )
 
         ioScope.launch {
             engines.settings.credentials.collect { credentials ->
-                // client.close()
-                // binaryClient.close()
-                // idleClient.close()
-
-                // client.setup(credentials)
                 client.setCredentials(credentials)
                 binaryClient.setCredentials(credentials)
                 idleClient.setCredentials(credentials)
 
                 try {
-                    // client.connect()
-                    // binaryClient.connect()
-                    // idleClient.connect()
                     client.start()
                     binaryClient.start()
 
@@ -129,7 +121,6 @@ class MPDRepository @Inject constructor(
                     loadQueue()
                     loadAlbums()
                     loadOutputs()
-                    // engines.playlist.loadPlaylistsWithSongs()
                     engines.playlist.loadStoredPlaylists()
                     watch()
                 } catch (e: MPDClientException) {

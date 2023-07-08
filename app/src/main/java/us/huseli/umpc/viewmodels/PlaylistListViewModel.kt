@@ -4,6 +4,8 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import us.huseli.umpc.PlaylistType
+import us.huseli.umpc.data.DynamicPlaylist
+import us.huseli.umpc.data.DynamicPlaylistFilter
 import us.huseli.umpc.mpd.MPDRepository
 import javax.inject.Inject
 
@@ -12,6 +14,12 @@ class PlaylistListViewModel @Inject constructor(repo: MPDRepository) : BaseViewM
     private val _displayType = MutableStateFlow(PlaylistType.STORED)
 
     val displayType = _displayType.asStateFlow()
+    val dynamicPlaylists = repo.engines.playlist.dynamicPlaylists
+
+    fun createDynamicPlaylist(name: String, filter: DynamicPlaylistFilter, shuffle: Boolean) =
+        repo.engines.playlist.createDynamicPlaylist(name, filter, shuffle)
+
+    fun deleteDynamicPlaylist(playlist: DynamicPlaylist) = repo.engines.playlist.deleteDynamicPlaylist(playlist)
 
     fun getStoredPlaylistSongCount(playlistName: String, onFinish: (Int) -> Unit) =
         repo.engines.playlist.fetchStoredPlaylistSongs(playlistName) { onFinish(it.size) }
@@ -19,4 +27,11 @@ class PlaylistListViewModel @Inject constructor(repo: MPDRepository) : BaseViewM
     fun setDisplayType(value: PlaylistType) {
         _displayType.value = value
     }
+
+    fun updateDynamicPlaylist(
+        playlist: DynamicPlaylist,
+        name: String,
+        filter: DynamicPlaylistFilter,
+        shuffle: Boolean,
+    ) = repo.engines.playlist.updateDynamicPlaylist(playlist, name, filter, shuffle)
 }

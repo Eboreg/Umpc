@@ -42,10 +42,10 @@ import us.huseli.umpc.compose.screens.CoverScreen
 import us.huseli.umpc.compose.screens.DebugScreen
 import us.huseli.umpc.compose.screens.LibraryScreen
 import us.huseli.umpc.compose.screens.PlaylistListScreen
-import us.huseli.umpc.compose.screens.StoredPlaylistScreen
 import us.huseli.umpc.compose.screens.QueueScreen
 import us.huseli.umpc.compose.screens.SearchScreen
 import us.huseli.umpc.compose.screens.SettingsScreen
+import us.huseli.umpc.compose.screens.StoredPlaylistScreen
 import us.huseli.umpc.data.MPDAlbum
 import us.huseli.umpc.data.MPDPlaylist
 import us.huseli.umpc.getActivity
@@ -254,7 +254,7 @@ fun App(
 
             composable(route = PlaylistListDestination.route) {
                 activeScreen = ContentScreen.PLAYLISTS
-                PlaylistListScreen(onGotoPlaylistClick = { navigate(PlaylistDetailsDestination.route(it)) })
+                PlaylistListScreen(onGotoStoredPlaylistClick = { navigate(PlaylistDetailsDestination.route(it)) })
             }
 
             composable(
