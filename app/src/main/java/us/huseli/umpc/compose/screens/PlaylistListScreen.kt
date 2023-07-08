@@ -1,4 +1,4 @@
-package us.huseli.umpc.compose
+package us.huseli.umpc.compose.screens
 
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.clickable

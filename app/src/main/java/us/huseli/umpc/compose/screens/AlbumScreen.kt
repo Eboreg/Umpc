@@ -1,4 +1,4 @@
-package us.huseli.umpc.compose
+package us.huseli.umpc.compose.screens
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -30,6 +30,11 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import us.huseli.umpc.R
+import us.huseli.umpc.compose.AddAlbumToPlaylistDialog
+import us.huseli.umpc.compose.AlbumArt
+import us.huseli.umpc.compose.SmallSongRow
+import us.huseli.umpc.compose.utils.FadingImageBox
+import us.huseli.umpc.compose.utils.SmallOutlinedButton
 import us.huseli.umpc.data.MPDAlbum
 import us.huseli.umpc.isInLandscapeMode
 import us.huseli.umpc.viewmodels.AlbumViewModel

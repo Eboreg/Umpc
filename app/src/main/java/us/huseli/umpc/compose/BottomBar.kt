@@ -30,6 +30,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import us.huseli.umpc.PlayerState
 import us.huseli.umpc.R
+import us.huseli.umpc.compose.utils.AutoScrollingTextLine
 import us.huseli.umpc.isInLandscapeMode
 import us.huseli.umpc.viewmodels.CurrentSongViewModel
 

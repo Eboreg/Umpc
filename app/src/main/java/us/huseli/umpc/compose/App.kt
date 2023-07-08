@@ -37,6 +37,16 @@ import us.huseli.umpc.PlaylistListDestination
 import us.huseli.umpc.QueueDestination
 import us.huseli.umpc.SearchDestination
 import us.huseli.umpc.SettingsDestination
+import us.huseli.umpc.compose.screens.AlbumScreen
+import us.huseli.umpc.compose.screens.ArtistScreen
+import us.huseli.umpc.compose.screens.CoverScreen
+import us.huseli.umpc.compose.screens.DebugScreen
+import us.huseli.umpc.compose.screens.LibraryScreen
+import us.huseli.umpc.compose.screens.PlaylistListScreen
+import us.huseli.umpc.compose.screens.PlaylistScreen
+import us.huseli.umpc.compose.screens.QueueScreen
+import us.huseli.umpc.compose.screens.SearchScreen
+import us.huseli.umpc.compose.screens.SettingsScreen
 import us.huseli.umpc.data.MPDAlbum
 import us.huseli.umpc.data.MPDPlaylist
 import us.huseli.umpc.getActivity

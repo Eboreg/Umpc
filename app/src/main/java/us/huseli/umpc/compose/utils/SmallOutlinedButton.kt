@@ -1,4 +1,4 @@
-package us.huseli.umpc.compose
+package us.huseli.umpc.compose.utils
 
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.RowScope

@@ -36,6 +36,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import us.huseli.umpc.R
+import us.huseli.umpc.compose.utils.SmallOutlinedButton
 import us.huseli.umpc.data.MPDAlbumWithSongs
 import us.huseli.umpc.formatDuration
 import us.huseli.umpc.toYearRangeString

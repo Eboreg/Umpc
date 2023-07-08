@@ -1,4 +1,4 @@
-package us.huseli.umpc.compose
+package us.huseli.umpc.compose.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border

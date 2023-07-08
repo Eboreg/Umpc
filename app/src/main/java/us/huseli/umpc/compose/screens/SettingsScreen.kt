@@ -1,4 +1,4 @@
-package us.huseli.umpc.compose
+package us.huseli.umpc.compose.screens
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -26,6 +26,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import us.huseli.umpc.R
+import us.huseli.umpc.compose.utils.SimpleResponsiveBlock
 import us.huseli.umpc.viewmodels.SettingsViewModel
 
 @Composable

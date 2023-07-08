@@ -30,6 +30,7 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import us.huseli.umpc.R
+import us.huseli.umpc.compose.utils.AutoScrollingTextLine
 import us.huseli.umpc.data.MPDArtistWithAlbums
 import us.huseli.umpc.isInLandscapeMode
 

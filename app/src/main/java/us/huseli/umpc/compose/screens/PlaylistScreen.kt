@@ -1,4 +1,4 @@
-package us.huseli.umpc.compose
+package us.huseli.umpc.compose.screens
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -37,6 +37,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import us.huseli.umpc.PlayerState
 import us.huseli.umpc.R
+import us.huseli.umpc.compose.LargeSongRow
 import us.huseli.umpc.data.MPDAlbum
 import us.huseli.umpc.data.MPDPlaylist
 import us.huseli.umpc.data.MPDSong
