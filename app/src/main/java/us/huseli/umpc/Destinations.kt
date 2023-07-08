@@ -11,38 +11,35 @@ import us.huseli.umpc.data.MPDPlaylist
 open class Destination(val route: String)
 
 object AlbumDestination {
-    private const val baseRoute = "album"
-    const val routeTemplate = "$baseRoute/{$NAV_ARG_ARTIST}/{$NAV_ARG_ALBUM}"
+    const val routeTemplate = "album/{$NAV_ARG_ARTIST}/{$NAV_ARG_ALBUM}"
     val arguments = listOf(
         navArgument(NAV_ARG_ARTIST) { type = NavType.StringType },
         navArgument(NAV_ARG_ALBUM) { type = NavType.StringType },
     )
 
-    fun route(album: MPDAlbum) = "$baseRoute/${album.artist}/${album.name}"
+    fun route(album: MPDAlbum) = "album/${album.artist}/${album.name}"
 }
 
 object ArtistDestination {
-    private const val baseRoute = "artist"
-    const val routeTemplate = "$baseRoute/{$NAV_ARG_ARTIST}"
+    const val routeTemplate = "artist/{$NAV_ARG_ARTIST}"
     val arguments = listOf(
         navArgument(NAV_ARG_ARTIST) { type = NavType.StringType },
     )
 
-    fun route(name: String) = "$baseRoute/$name"
+    fun route(name: String) = "artist/$name"
 }
 
-object PlaylistDestination {
-    private const val baseRoute = "playlist"
-    const val routeTemplate = "$baseRoute/{$NAV_ARG_PLAYLIST}"
+object PlaylistDetailsDestination {
+    const val routeTemplate = "playlist/{$NAV_ARG_PLAYLIST}"
     val arguments = listOf(
         navArgument(NAV_ARG_PLAYLIST) { type = NavType.StringType },
     )
 
-    fun route(playlist: MPDPlaylist) = "$baseRoute/${playlist.name}"
+    fun route(playlist: MPDPlaylist) = "playlist/${playlist.name}"
 }
 
-object QueueDestination : Destination("queue")
 object LibraryDestination : Destination("library")
+object QueueDestination : Destination("queue")
 object DebugDestination : Destination("debug")
 object SettingsDestination : Destination("settings")
 object SearchDestination : Destination("search")

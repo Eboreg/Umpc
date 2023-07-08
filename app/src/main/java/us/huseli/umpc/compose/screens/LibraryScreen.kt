@@ -3,9 +3,7 @@ package us.huseli.umpc.compose.screens
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -26,7 +24,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
@@ -45,8 +42,8 @@ import us.huseli.umpc.R
 import us.huseli.umpc.compose.AlbumRow
 import us.huseli.umpc.compose.ArtistRow
 import us.huseli.umpc.compose.SmallSongRow
-import us.huseli.umpc.compose.utils.SubMenuScreen
 import us.huseli.umpc.compose.utils.ListWithScrollbar
+import us.huseli.umpc.compose.utils.SubMenuScreen
 import us.huseli.umpc.data.MPDAlbum
 import us.huseli.umpc.data.MPDAlbumWithSongs
 import us.huseli.umpc.data.MPDArtistWithAlbums
@@ -188,11 +185,10 @@ fun LibraryScreenAlbumRow(
 fun LibraryScreen(
     modifier: Modifier = Modifier,
     viewModel: LibraryViewModel = hiltViewModel(),
-    listState: LazyListState = rememberLazyListState(),
     onGotoAlbumClick: (MPDAlbum) -> Unit,
     onGotoArtistClick: (String) -> Unit,
 ) {
-    var grouping by rememberSaveable { mutableStateOf(LibraryGrouping.ARTIST) }
+    val grouping by viewModel.grouping.collectAsStateWithLifecycle()
     val searchTerm by viewModel.librarySearchTerm.collectAsStateWithLifecycle()
     val searchFocusRequester = remember { FocusRequester() }
     val isSearchActive by viewModel.isLibrarySearchActive.collectAsStateWithLifecycle(false)
@@ -205,7 +201,7 @@ fun LibraryScreen(
             LibraryScreenSubMenu(
                 grouping = grouping,
                 isSearchActive = isSearchActive,
-                setGrouping = { grouping = it },
+                setGrouping = { viewModel.setGrouping(it) },
                 activateLibrarySearch = { viewModel.activateLibrarySearch(it) },
                 deactivateLibrarySearch = { viewModel.deactivateLibrarySearch() },
             )
@@ -245,9 +241,9 @@ fun LibraryScreen(
             ListWithScrollbar(
                 modifier = Modifier.fillMaxWidth(),
                 listSize = artists.size,
-                listState = listState
+                listState = viewModel.artistListState,
             ) {
-                LazyColumn(state = listState, modifier = Modifier.fillMaxWidth()) {
+                LazyColumn(state = viewModel.artistListState, modifier = Modifier.fillMaxWidth()) {
                     items(artists, key = { it.name }) { artist ->
                         LibraryScreenArtistRow(
                             viewModel = viewModel,
@@ -266,9 +262,9 @@ fun LibraryScreen(
             ListWithScrollbar(
                 modifier = Modifier.fillMaxWidth(),
                 listSize = albums.size,
-                listState = listState,
+                listState = viewModel.albumListState,
             ) {
-                LazyColumn(state = listState) {
+                LazyColumn(state = viewModel.albumListState) {
                     items(albums, key = { it.hashCode() }) { album ->
                         Divider()
                         LibraryScreenAlbumRow(

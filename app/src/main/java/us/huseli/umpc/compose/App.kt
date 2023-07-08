@@ -5,7 +5,6 @@ import androidx.activity.OnBackPressedCallback
 import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -32,7 +31,7 @@ import us.huseli.umpc.BuildConfig
 import us.huseli.umpc.ContentScreen
 import us.huseli.umpc.DebugDestination
 import us.huseli.umpc.LibraryDestination
-import us.huseli.umpc.PlaylistDestination
+import us.huseli.umpc.PlaylistDetailsDestination
 import us.huseli.umpc.PlaylistListDestination
 import us.huseli.umpc.QueueDestination
 import us.huseli.umpc.SearchDestination
@@ -51,7 +50,9 @@ import us.huseli.umpc.data.MPDAlbum
 import us.huseli.umpc.data.MPDPlaylist
 import us.huseli.umpc.getActivity
 import us.huseli.umpc.isInLandscapeMode
+import us.huseli.umpc.viewmodels.LibraryViewModel
 import us.huseli.umpc.viewmodels.MPDViewModel
+import us.huseli.umpc.viewmodels.QueueViewModel
 import us.huseli.umpc.viewmodels.SearchViewModel
 
 @Composable
@@ -92,9 +93,11 @@ fun ResponsiveScaffold(
 fun App(
     modifier: Modifier = Modifier,
     snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
+    navController: NavHostController = rememberNavController(),
     viewModel: MPDViewModel = hiltViewModel(),
     searchViewModel: SearchViewModel = hiltViewModel(),
-    navController: NavHostController = rememberNavController(),
+    libraryViewModel: LibraryViewModel = hiltViewModel(),
+    queueViewModel: QueueViewModel = hiltViewModel(),
 ) {
     val onBackPressedDispatcher = LocalOnBackPressedDispatcherOwner.current?.onBackPressedDispatcher
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -103,10 +106,6 @@ fun App(
     val error by viewModel.error.collectAsStateWithLifecycle()
     val message by viewModel.message.collectAsStateWithLifecycle()
     val currentSong by viewModel.currentSong.collectAsStateWithLifecycle()
-
-    val queueListState = rememberLazyListState()
-    val libraryListState = rememberLazyListState()
-    val searchListState = rememberLazyListState()
 
     var activeScreen by rememberSaveable { mutableStateOf(ContentScreen.NONE) }
     var isCoverShown by rememberSaveable { mutableStateOf(false) }
@@ -205,7 +204,7 @@ fun App(
             composable(route = QueueDestination.route) {
                 activeScreen = ContentScreen.QUEUE
                 QueueScreen(
-                    listState = queueListState,
+                    viewModel = queueViewModel,
                     onGotoAlbumClick = onGotoAlbumClick,
                     onGotoArtistClick = onGotoArtistClick,
                 )
@@ -214,7 +213,7 @@ fun App(
             composable(route = LibraryDestination.route) {
                 activeScreen = ContentScreen.LIBRARY
                 LibraryScreen(
-                    listState = libraryListState,
+                    viewModel = libraryViewModel,
                     onGotoAlbumClick = onGotoAlbumClick,
                     onGotoArtistClick = onGotoArtistClick,
                 )
@@ -234,7 +233,6 @@ fun App(
                 activeScreen = ContentScreen.SEARCH
                 SearchScreen(
                     viewModel = searchViewModel,
-                    listState = searchListState,
                     onGotoAlbumClick = onGotoAlbumClick,
                     onGotoArtistClick = onGotoArtistClick,
                 )
@@ -256,19 +254,19 @@ fun App(
 
             composable(route = PlaylistListDestination.route) {
                 activeScreen = ContentScreen.PLAYLISTS
-                PlaylistListScreen(onGotoPlaylistClick = { navController.navigate(PlaylistDestination.route(it)) })
+                PlaylistListScreen(onGotoPlaylistClick = { navigate(PlaylistDetailsDestination.route(it)) })
             }
 
             composable(
-                route = PlaylistDestination.routeTemplate,
-                arguments = PlaylistDestination.arguments,
+                route = PlaylistDetailsDestination.routeTemplate,
+                arguments = PlaylistDetailsDestination.arguments,
             ) {
                 PlaylistScreen(
                     onGotoAlbumClick = onGotoAlbumClick,
                     onGotoArtistClick = onGotoArtistClick,
                     onPlaylistDeleted = { navigate(PlaylistListDestination.route) },
                     onPlaylistRenamed = { newName ->
-                        navigate(PlaylistDestination.route(MPDPlaylist(newName)))
+                        navigate(PlaylistDetailsDestination.route(MPDPlaylist(newName)))
                     }
                 )
             }

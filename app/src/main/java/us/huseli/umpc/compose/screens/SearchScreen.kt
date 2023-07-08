@@ -5,9 +5,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Divider
@@ -36,7 +34,6 @@ import us.huseli.umpc.viewmodels.SearchViewModel
 fun SearchScreen(
     modifier: Modifier = Modifier,
     viewModel: SearchViewModel = hiltViewModel(),
-    listState: LazyListState = rememberLazyListState(),
     onGotoAlbumClick: (MPDAlbum) -> Unit,
     onGotoArtistClick: (String) -> Unit,
 ) {
@@ -78,7 +75,7 @@ fun SearchScreen(
         } else if (searchResults.isEmpty()) {
             Text(stringResource(R.string.no_songs_were_found), modifier = Modifier.padding(10.dp))
         } else {
-            LazyColumn(state = listState) {
+            LazyColumn(state = viewModel.listState) {
                 items(searchResults) { song ->
                     val albumArt by viewModel.getAlbumArtState(song)
 

@@ -1,5 +1,6 @@
 package us.huseli.umpc.viewmodels
 
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.ui.text.input.TextFieldValue
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -17,6 +18,7 @@ class SearchViewModel @Inject constructor(repo: MPDRepository) : BaseViewModel(r
     val songSearchResults = _songSearchResults.asStateFlow()
     val songSearchTerm = _songSearchTerm.asStateFlow()
     val isSearching = _isSearching.asStateFlow()
+    val listState = LazyListState()
 
     fun setSongSearchTerm(value: TextFieldValue) {
         _songSearchTerm.value = value

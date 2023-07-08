@@ -7,9 +7,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.Badge
 import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -52,7 +50,6 @@ import kotlin.math.max
 fun QueueScreen(
     modifier: Modifier = Modifier,
     viewModel: QueueViewModel = hiltViewModel(),
-    listState: LazyListState = rememberLazyListState(),
     onGotoAlbumClick: (MPDAlbum) -> Unit,
     onGotoArtistClick: (String) -> Unit,
 ) {
@@ -68,13 +65,13 @@ fun QueueScreen(
     // how, though.
     val localQueue = remember { queue.toMutableStateList() }
     val reorderableState = rememberReorderableLazyListState(
-        listState = listState,
+        listState = viewModel.listState,
         onMove = { from, to -> localQueue.add(to.index, localQueue.removeAt(from.index)) },
         onDragEnd = { from, to -> viewModel.moveSong(from, to) },
     )
 
     val scrollToCurrent: () -> Unit = {
-        scope.launch { currentSongPosition?.let { listState.scrollToItem(max(0, it - 1)) } }
+        scope.launch { currentSongPosition?.let { viewModel.listState.scrollToItem(max(0, it - 1)) } }
     }
 
     LaunchedEffect(queue) {
@@ -101,9 +98,9 @@ fun QueueScreen(
         ListWithScrollbar(
             modifier = modifier.fillMaxWidth(),
             listSize = localQueue.size,
-            listState = listState,
+            listState = viewModel.listState,
         ) {
-            LazyColumn(modifier = Modifier.reorderable(reorderableState), state = listState) {
+            LazyColumn(modifier = Modifier.reorderable(reorderableState), state = viewModel.listState) {
                 itemsIndexed(localQueue, key = { _, song -> song.id!! }) { index, song ->
                     Divider()
 

@@ -1,5 +1,6 @@
 package us.huseli.umpc.viewmodels
 
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -24,11 +25,15 @@ class LibraryViewModel @Inject constructor(repo: MPDRepository) : BaseViewModel(
     private val _albums = MutableStateFlow<List<MPDAlbum>>(emptyList())
     private val _artists = MutableStateFlow<List<MPDArtistWithAlbums>>(emptyList())
     private val _librarySearchTerm = MutableStateFlow("")
+    private var _grouping = MutableStateFlow(LibraryGrouping.ARTIST)
 
     val albums = _albums.asStateFlow()
     val artists = _artists.asStateFlow()
     val isLibrarySearchActive = _activeLibrarySearchType.map { it != LibrarySearchType.NONE }
     val librarySearchTerm = _librarySearchTerm.asStateFlow()
+    val grouping = _grouping.asStateFlow()
+    val artistListState = LazyListState()
+    val albumListState = LazyListState()
 
     init {
         viewModelScope.launch {
@@ -73,6 +78,10 @@ class LibraryViewModel @Inject constructor(repo: MPDRepository) : BaseViewModel(
             LibraryGrouping.ARTIST -> _activeLibrarySearchType.value = LibrarySearchType.ARTIST
             LibraryGrouping.ALBUM -> _activeLibrarySearchType.value = LibrarySearchType.ALBUM
         }
+    }
+
+    fun setGrouping(value: LibraryGrouping) {
+        _grouping.value = value
     }
 
     fun setLibrarySearchTerm(value: String) {
