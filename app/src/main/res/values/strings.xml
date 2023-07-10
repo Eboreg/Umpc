@@ -13,7 +13,8 @@
     <string name="debug">Debug</string>
     <string name="delete">Delete</string>
     <string name="delete_playlist">Delete playlist</string>
-    <string name="delete_playlist_x">Delete playlist %1$s?</string>
+    <string name="delete_playlist_question">Delete playlist?</string>
+    <string name="delete_playlist_x">Delete playlist "%1$s"?</string>
     <string name="enqueue">Enqueue</string>
     <string name="enter_at_least_3_characters">Enter at least 3 characters.</string>
     <string name="forward">Forward</string>

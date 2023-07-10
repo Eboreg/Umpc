@@ -49,17 +49,19 @@ data class DynamicPlaylistFilter(
                 DynamicPlaylistFilterComparator.NOT_CONTAINS -> contains(key.mpdTag, value).not()
             }
         }
+
+    override fun toString() = "${key.displayName} ${comparator.displayName} \"$value\""
 }
 
 @Parcelize
 data class DynamicPlaylist(
-    val name: String,
     val filter: DynamicPlaylistFilter,
     val shuffle: Boolean = false,
     val lastModified: Instant = Instant.now(),
 ) : Parcelable {
-    override fun equals(other: Any?) = other is DynamicPlaylist && other.name == name
-    override fun hashCode() = name.hashCode()
+    override fun equals(other: Any?) = other is DynamicPlaylist && other.filter == filter
+    override fun hashCode() = filter.hashCode()
+    override fun toString() = filter.toString()
 }
 
 class DynamicPlaylistState(
@@ -156,7 +158,7 @@ class DynamicPlaylistState(
             if (response.isSuccess) {
                 ioScope.launch {
                     mutex.withLock {
-                        val filenames = response.extractFilenames().minus(pastFiles)
+                        val filenames = response.extractFilenames().minus(pastFiles.toSet())
                         futureFiles.clear()
                         if (playlist.shuffle)
                             futureFiles.addAll(filenames.shuffled())

@@ -21,39 +21,65 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun FadingImageBox(
     modifier: Modifier = Modifier,
+    contentPadding: PaddingValues = PaddingValues(10.dp),
+    verticalSpacing: Dp = 10.dp,
+    colorStops: Array<Pair<Float, Color>>,
+    image: @Composable BoxScope.() -> Unit,
+    topContent: (@Composable ColumnScope.() -> Unit)? = null,
+    bottomContent: (@Composable ColumnScope.() -> Unit)? = null,
+) {
+    val brush = Brush.verticalGradient(colorStops = colorStops)
+
+    Box(modifier = modifier) {
+        image()
+        Box(modifier = Modifier.matchParentSize().background(brush = brush))
+        topContent?.let {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .align(Alignment.TopCenter)
+                    .padding(contentPadding),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(verticalSpacing),
+                content = it,
+            )
+        }
+        bottomContent?.let {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .align(Alignment.BottomCenter)
+                    .padding(contentPadding),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(verticalSpacing),
+                content = it,
+            )
+        }
+    }
+}
+
+
+@Composable
+fun FadingImageBox(
+    modifier: Modifier = Modifier,
     backgroundColor: Color = MaterialTheme.colorScheme.background,
     contentPadding: PaddingValues = PaddingValues(10.dp),
     fadeStartY: Float = 0.75f,
     verticalSpacing: Dp = 10.dp,
     image: @Composable BoxScope.() -> Unit,
-    topContent: @Composable ColumnScope.() -> Unit,
-    bottomContent: @Composable ColumnScope.() -> Unit,
+    topContent: (@Composable ColumnScope.() -> Unit)? = null,
+    bottomContent: (@Composable ColumnScope.() -> Unit)? = null,
 ) {
-    val brush = Brush.verticalGradient(
-        colors = listOf(Color.Transparent, backgroundColor),
-        startY = fadeStartY
+    FadingImageBox(
+        modifier = modifier,
+        contentPadding = contentPadding,
+        verticalSpacing = verticalSpacing,
+        colorStops = arrayOf(
+            fadeStartY to Color.Transparent,
+            1f to backgroundColor,
+        ),
+        image = image,
+        topContent = topContent,
+        bottomContent = bottomContent,
     )
-
-    Box(modifier = modifier) {
-        image()
-        Box(modifier = Modifier.matchParentSize().background(brush = brush))
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .align(Alignment.TopCenter)
-                .padding(contentPadding),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(verticalSpacing),
-            content = topContent,
-        )
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .align(Alignment.BottomCenter)
-                .padding(contentPadding),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(verticalSpacing),
-            content = bottomContent,
-        )
-    }
 }

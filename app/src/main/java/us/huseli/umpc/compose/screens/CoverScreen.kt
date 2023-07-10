@@ -6,17 +6,19 @@ import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.FractionalThreshold
+import androidx.compose.material.ResistanceConfig
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.sharp.Headphones
 import androidx.compose.material.icons.sharp.Repeat
@@ -36,6 +38,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
@@ -50,7 +53,6 @@ import us.huseli.umpc.compose.PlayerControls
 import us.huseli.umpc.compose.SongProgressSlider
 import us.huseli.umpc.compose.VolumeSlider
 import us.huseli.umpc.compose.utils.FadingImageBox
-import us.huseli.umpc.compose.utils.SimpleResponsiveBlock
 import us.huseli.umpc.data.MPDAlbum
 import us.huseli.umpc.data.MPDAudioFormat
 import us.huseli.umpc.data.MPDSong
@@ -106,7 +108,65 @@ fun CoverScreenSongTechInfo(
     }
 }
 
-@OptIn(ExperimentalMaterialApi::class, ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
+@Composable
+fun CoverScreenFilterChips(
+    viewModel: CurrentSongViewModel = hiltViewModel(),
+) {
+    val repeatState by viewModel.repeatState.collectAsStateWithLifecycle()
+    val randomState by viewModel.randomState.collectAsStateWithLifecycle()
+    val isStreaming by viewModel.isStreaming.collectAsStateWithLifecycle()
+    val streamingUrl by viewModel.streamingUrl.collectAsStateWithLifecycle()
+
+    val streamingStarted =
+        streamingUrl?.let { stringResource(R.string.streaming_from_x_started, it) }
+        ?: stringResource(R.string.streaming_started)
+    val streamingStopped = stringResource(R.string.streaming_stopped)
+
+    val filterChipColors = FilterChipDefaults.filterChipColors(
+        labelColor = LocalContentColor.current.copy(0.5f),
+        iconColor = LocalContentColor.current.copy(0.5f),
+        selectedLabelColor = LocalContentColor.current,
+        selectedLeadingIconColor = MaterialTheme.colorScheme.primary,
+    )
+
+    FlowRow(
+        modifier = Modifier.padding(horizontal = 10.dp).fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceEvenly,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        FilterChip(
+            shape = ShapeDefaults.ExtraSmall,
+            selected = repeatState,
+            colors = filterChipColors,
+            onClick = { viewModel.toggleRepeatState() },
+            label = { Text(stringResource(R.string.repeat)) },
+            leadingIcon = { Icon(Icons.Sharp.Repeat, null) }
+        )
+        FilterChip(
+            shape = ShapeDefaults.ExtraSmall,
+            selected = randomState,
+            colors = filterChipColors,
+            onClick = { viewModel.toggleRandomState() },
+            label = { Text(stringResource(R.string.shuffle)) },
+            leadingIcon = { Icon(Icons.Sharp.Shuffle, null) }
+        )
+        FilterChip(
+            shape = ShapeDefaults.ExtraSmall,
+            selected = isStreaming,
+            colors = filterChipColors,
+            onClick = {
+                viewModel.toggleStream {
+                    viewModel.addMessage(if (it) streamingStarted else streamingStopped)
+                }
+            },
+            label = { Text(stringResource(R.string.stream)) },
+            leadingIcon = { Icon(Icons.Sharp.Headphones, null) }
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterialApi::class)
 @Composable
 fun CoverScreen(
     modifier: Modifier = Modifier,
@@ -121,11 +181,7 @@ fun CoverScreen(
     val currentSong by viewModel.currentSong.collectAsStateWithLifecycle()
     val duration by viewModel.currentSongDuration.collectAsStateWithLifecycle()
     val elapsed by viewModel.currentSongElapsed.collectAsStateWithLifecycle()
-    val isStreaming by viewModel.isStreaming.collectAsStateWithLifecycle()
     val playerState by viewModel.playerState.collectAsStateWithLifecycle()
-    val randomState by viewModel.randomState.collectAsStateWithLifecycle()
-    val repeatState by viewModel.repeatState.collectAsStateWithLifecycle()
-    val streamingUrl by viewModel.streamingUrl.collectAsStateWithLifecycle()
     val volume by viewModel.volume.collectAsStateWithLifecycle()
 
     val density = LocalDensity.current
@@ -133,17 +189,6 @@ fun CoverScreen(
     val screenHeightPx = with(density) { screenHeightDp.toPx() }
     val anchors = mapOf(0f to "show", screenHeightPx to "hide")
     val landscape = isInLandscapeMode()
-    val streamingStarted =
-        streamingUrl?.let { stringResource(R.string.streaming_from_x_started, it) }
-        ?: stringResource(R.string.streaming_started)
-    val streamingStopped = stringResource(R.string.streaming_stopped)
-
-    val filterChipColors = FilterChipDefaults.filterChipColors(
-        labelColor = LocalContentColor.current.copy(0.5f),
-        iconColor = LocalContentColor.current.copy(0.5f),
-        selectedLabelColor = LocalContentColor.current,
-        selectedLeadingIconColor = MaterialTheme.colorScheme.primary,
-    )
 
     val swipeableState = rememberSwipeableState(
         initialValue = "show",
@@ -160,90 +205,62 @@ fun CoverScreen(
                 anchors = anchors,
                 orientation = Orientation.Vertical,
                 thresholds = { _, _ -> FractionalThreshold(0.8f) },
+                resistance = ResistanceConfig(0f, 0f, 0f),
             )
             .fillMaxHeight()
     ) {
-        Column(
+        Box(
             modifier = Modifier
                 .offset { IntOffset(0, swipeableState.offset.value.roundToInt()) }
                 .fillMaxHeight()
                 .background(MaterialTheme.colorScheme.background)
         ) {
-            SimpleResponsiveBlock(
-                content1 = {
-                    FadingImageBox(
-                        fadeStartY = if (landscape) 0f else 0.5f,
-                        verticalSpacing = 5.dp,
-                        contentPadding = PaddingValues(0.dp),
-                        image = { AlbumArt(imageBitmap = albumArt?.fullImage) },
-                        topContent = {
-                            VolumeSlider(
-                                volume = volume.toFloat(),
-                                onVolumeChange = { viewModel.setVolume(it.toInt()) },
-                            )
-                            CoverScreenSongTechInfo(bitrate, audioFormat)
-                        },
-                        bottomContent = { CoverScreenSongInfoTexts(currentSong, onGotoAlbumClick, onGotoArtistClick) },
-                    )
-                },
-                content2 = {
-                    Column(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.SpaceBetween) {
-                        SongProgressSlider(
-                            modifier = Modifier.height(IntrinsicSize.Min),
-                            elapsed = elapsed ?: 0.0,
-                            duration = duration ?: 0.0,
-                            playerState = playerState,
-                            onManualChange = { viewModel.seek(it) },
-                        )
+            val colorStops =
+                if (landscape) arrayOf(
+                    0f to MaterialTheme.colorScheme.background.copy(alpha = 0.5f),
+                    1f to MaterialTheme.colorScheme.background,
+                )
+                else arrayOf(
+                    0.5f to Color.Transparent,
+                    1f to MaterialTheme.colorScheme.background,
+                )
 
-                        Row(
-                            modifier = Modifier.padding(horizontal = 10.dp).fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceEvenly,
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            FilterChip(
-                                shape = ShapeDefaults.ExtraSmall,
-                                selected = repeatState,
-                                colors = filterChipColors,
-                                onClick = { viewModel.toggleRepeatState() },
-                                label = { Text(stringResource(R.string.repeat)) },
-                                leadingIcon = { Icon(Icons.Sharp.Repeat, null) }
-                            )
-                            FilterChip(
-                                shape = ShapeDefaults.ExtraSmall,
-                                selected = randomState,
-                                colors = filterChipColors,
-                                onClick = { viewModel.toggleRandomState() },
-                                label = { Text(stringResource(R.string.shuffle)) },
-                                leadingIcon = { Icon(Icons.Sharp.Shuffle, null) }
-                            )
-                            FilterChip(
-                                shape = ShapeDefaults.ExtraSmall,
-                                selected = isStreaming,
-                                colors = filterChipColors,
-                                onClick = {
-                                    viewModel.toggleStream {
-                                        viewModel.addMessage(if (it) streamingStarted else streamingStopped)
-                                    }
-                                },
-                                label = { Text(stringResource(R.string.stream)) },
-                                leadingIcon = { Icon(Icons.Sharp.Headphones, null) }
-                            )
-                        }
-
-                        PlayerControls(
-                            modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
-                            playerState = playerState,
-                            onPreviousClick = { viewModel.previousOrRestart() },
-                            onPlayPauseClick = { viewModel.playOrPause() },
-                            onStopClick = { viewModel.stop() },
-                            onNextClick = { viewModel.next() },
-                            onForwardClick = { viewModel.seekRelative(10.0) },
-                            onReverseClick = { viewModel.seekRelative(-10.0) },
-                        )
-                    }
-                },
+            FadingImageBox(
+                colorStops = colorStops,
+                verticalSpacing = 5.dp,
+                contentPadding = PaddingValues(0.dp),
+                image = { AlbumArt(imageBitmap = albumArt?.fullImage) },
             )
+
+            Column {
+                VolumeSlider(
+                    volume = volume.toFloat(),
+                    onVolumeChange = { viewModel.setVolume(it.toInt()) },
+                )
+                CoverScreenSongTechInfo(bitrate, audioFormat)
+            }
+
+            Column(modifier = Modifier.align(Alignment.BottomCenter)) {
+                CoverScreenSongInfoTexts(currentSong, onGotoAlbumClick, onGotoArtistClick)
+                CoverScreenFilterChips(viewModel)
+
+                PlayerControls(
+                    playerState = playerState,
+                    onPreviousClick = { viewModel.previousOrRestart() },
+                    onPlayPauseClick = { viewModel.playOrPause() },
+                    onStopClick = { viewModel.stop() },
+                    onNextClick = { viewModel.next() },
+                    onForwardClick = { viewModel.seekRelative(10.0) },
+                    onReverseClick = { viewModel.seekRelative(-10.0) },
+                )
+                SongProgressSlider(
+                    modifier = Modifier.height(IntrinsicSize.Min),
+                    elapsed = elapsed ?: 0.0,
+                    duration = duration ?: 0.0,
+                    playerState = playerState,
+                    onManualChange = { viewModel.seek(it) },
+                )
+            }
         }
     }
 }

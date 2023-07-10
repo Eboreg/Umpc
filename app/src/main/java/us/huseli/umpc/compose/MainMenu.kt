@@ -1,5 +1,6 @@
 package us.huseli.umpc.compose
 
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.sharp.BugReport
@@ -8,23 +9,20 @@ import androidx.compose.material.icons.sharp.PlaylistPlay
 import androidx.compose.material.icons.sharp.QueueMusic
 import androidx.compose.material.icons.sharp.Search
 import androidx.compose.material.icons.sharp.Settings
-import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalDrawerSheet
-import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationDrawerItem
+import androidx.compose.material3.PermanentDrawerSheet
+import androidx.compose.material3.PermanentNavigationDrawer
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import kotlinx.coroutines.launch
 import us.huseli.umpc.BuildConfig
 import us.huseli.umpc.ContentScreen
 import us.huseli.umpc.R
@@ -71,30 +69,26 @@ fun HorizontalMainMenu(
 
 @Composable
 fun VerticalMainMenu(
+    modifier: Modifier = Modifier,
     activeScreen: ContentScreen,
     onMenuItemClick: (ContentScreen) -> Unit,
-    content: @Composable () -> Unit,
 ) {
-    val scope = rememberCoroutineScope()
-    val drawerState = rememberDrawerState(DrawerValue.Closed)
-
-    ModalNavigationDrawer(
-        drawerState = drawerState,
+    PermanentNavigationDrawer(
+        modifier = modifier,
         drawerContent = {
-            ModalDrawerSheet(modifier = Modifier.widthIn(max = 250.dp)) {
+            PermanentDrawerSheet(modifier = Modifier.widthIn(max = 200.dp)) {
                 getMainMenuItems().forEach { item ->
                     NavigationDrawerItem(
+                        modifier = Modifier.height(50.dp),
                         icon = { Icon(item.icon, null) },
                         label = { Text(item.description) },
                         selected = activeScreen == item.contentScreen,
-                        onClick = {
-                            scope.launch { drawerState.close() }
-                            onMenuItemClick(item.contentScreen)
-                        },
+                        onClick = { onMenuItemClick(item.contentScreen) },
+                        shape = RectangleShape,
                     )
                 }
             }
         },
-        content = content,
+        content = {},
     )
 }

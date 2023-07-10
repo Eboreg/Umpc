@@ -34,6 +34,7 @@ fun AlbumArt(
                 contentDescription = null,
                 modifier = imageModifier,
                 contentScale = ContentScale.Crop,
+                alignment = Alignment.TopCenter,
             )
         } else {
             Icon(

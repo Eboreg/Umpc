@@ -12,7 +12,7 @@ import us.huseli.umpc.R
 @Composable
 fun DeletePlaylistDialog(
     modifier: Modifier = Modifier,
-    name: String,
+    name: String? = null,
     onConfirm: () -> Unit,
     onCancel: () -> Unit,
 ) {
@@ -23,6 +23,11 @@ fun DeletePlaylistDialog(
         onDismissRequest = onCancel,
         confirmButton = { TextButton(onClick = onConfirm) { Text(stringResource(R.string.delete)) } },
         dismissButton = { TextButton(onClick = onCancel) { Text(stringResource(R.string.cancel)) } },
-        text = { Text(stringResource(R.string.delete_playlist_x, name)) }
+        text = {
+            Text(
+                if (name != null) stringResource(R.string.delete_playlist_x, name)
+                else stringResource(R.string.delete_playlist_question)
+            )
+        }
     )
 }

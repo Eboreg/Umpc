@@ -86,7 +86,7 @@ fun QueueScreen(
     Column(modifier = modifier.fillMaxWidth()) {
         Surface(tonalElevation = 2.dp, modifier = Modifier.fillMaxWidth()) {
             Row(
-                modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp).padding(horizontal = 10.dp),
+                modifier = Modifier.fillMaxWidth().padding(10.dp),
                 horizontalArrangement = Arrangement.SpaceAround,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -107,8 +107,8 @@ fun QueueScreen(
                     ReorderableItem(reorderableState, key = song.id) { isDragging ->
                         val albumArt by viewModel.getAlbumArtState(song)
                         val rowModifier =
-                            if (isDragging) Modifier
-                                .border(1.dp, MaterialTheme.colorScheme.outline, ShapeDefaults.ExtraSmall)
+                            if (isDragging)
+                                Modifier.border(1.dp, MaterialTheme.colorScheme.outline, ShapeDefaults.ExtraSmall)
                             else Modifier
 
                         LargeSongRow(

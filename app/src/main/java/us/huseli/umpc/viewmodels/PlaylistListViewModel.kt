@@ -18,8 +18,8 @@ class PlaylistListViewModel @Inject constructor(repo: MPDRepository) : BaseViewM
 
     fun activateDynamicPlaylist(playlist: DynamicPlaylist) = repo.engines.playlist.activateDynamicPlaylist(playlist)
 
-    fun createDynamicPlaylist(name: String, filter: DynamicPlaylistFilter, shuffle: Boolean) =
-        repo.engines.playlist.createDynamicPlaylist(name, filter, shuffle)
+    fun createDynamicPlaylist(filter: DynamicPlaylistFilter, shuffle: Boolean) =
+        repo.engines.playlist.createDynamicPlaylist(filter, shuffle)
 
     fun deleteDynamicPlaylist(playlist: DynamicPlaylist) = repo.engines.playlist.deleteDynamicPlaylist(playlist)
 
@@ -32,8 +32,7 @@ class PlaylistListViewModel @Inject constructor(repo: MPDRepository) : BaseViewM
 
     fun updateDynamicPlaylist(
         playlist: DynamicPlaylist,
-        name: String,
         filter: DynamicPlaylistFilter,
         shuffle: Boolean,
-    ) = repo.engines.playlist.updateDynamicPlaylist(playlist, name, filter, shuffle)
+    ) = repo.engines.playlist.updateDynamicPlaylist(playlist, filter, shuffle)
 }

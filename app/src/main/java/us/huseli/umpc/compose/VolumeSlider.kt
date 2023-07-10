@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.sharp.VolumeDown
@@ -26,6 +25,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import us.huseli.umpc.R
 
@@ -69,9 +69,10 @@ fun VolumeSlider(
                 onValueChangeFinished = { onVolumeChange(mutableVolume) },
             )
             Text(
-                "${mutableVolume.toInt()}%",
+                text = "${mutableVolume.toInt()}%",
+                textAlign = TextAlign.Center,
                 style = MaterialTheme.typography.bodySmall,
-                modifier = Modifier.padding(end = 5.dp)
+                modifier = Modifier.width(48.dp),
             )
         }
     }

@@ -18,6 +18,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.IconToggleButton
 import androidx.compose.material3.LocalContentColor
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -25,7 +26,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import us.huseli.umpc.PlayerState
@@ -78,10 +78,10 @@ fun BottomBar(
                     currentSong?.let {
                         AutoScrollingTextLine(it.title)
                         if (isInLandscapeMode()) {
-                            Text("${it.artist} • ${it.album.name}", fontSize = 12.sp)
+                            Text("${it.artist} • ${it.album.name}", style = MaterialTheme.typography.bodySmall)
                         } else {
-                            AutoScrollingTextLine(it.artist, fontSize = 12.sp)
-                            AutoScrollingTextLine(it.album.name, fontSize = 12.sp)
+                            AutoScrollingTextLine(it.artist, style = MaterialTheme.typography.bodySmall)
+                            AutoScrollingTextLine(it.album.name, style = MaterialTheme.typography.bodySmall)
                         }
                     }
                 }

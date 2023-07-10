@@ -10,18 +10,17 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.sharp.Add
 import androidx.compose.material.icons.sharp.Delete
 import androidx.compose.material.icons.sharp.Done
 import androidx.compose.material.icons.sharp.Edit
 import androidx.compose.material.icons.sharp.PlayArrow
 import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.ShapeDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -55,8 +54,6 @@ fun PlaylistListScreen(
     storedPlaylistScrollState: ScrollState = rememberScrollState(),
     dynamicPlaylistScrollState: ScrollState = rememberScrollState(),
 ) {
-    val storedPlaylists by viewModel.storedPlaylists.collectAsStateWithLifecycle()
-    val dynamicPlaylists by viewModel.dynamicPlaylists.collectAsStateWithLifecycle()
     val displayType by viewModel.displayType.collectAsStateWithLifecycle()
     var isCreateDynamicPlaylistDialogOpen by rememberSaveable { mutableStateOf(false) }
     var editingDynamicPlaylist by rememberSaveable { mutableStateOf<DynamicPlaylist?>(null) }
@@ -65,9 +62,9 @@ fun PlaylistListScreen(
 
     if (isCreateDynamicPlaylistDialogOpen) {
         EditDynamicPlaylistDialog(
-            onSave = { name, filter, shuffle ->
+            onSave = { filter, shuffle ->
                 isCreateDynamicPlaylistDialogOpen = false
-                viewModel.createDynamicPlaylist(name, filter, shuffle)
+                viewModel.createDynamicPlaylist(filter, shuffle)
             },
             onCancel = { isCreateDynamicPlaylistDialogOpen = false },
         )
@@ -75,9 +72,9 @@ fun PlaylistListScreen(
         editingDynamicPlaylist?.let { playlist ->
             EditDynamicPlaylistDialog(
                 playlist = playlist,
-                onSave = { name, filter, shuffle ->
+                onSave = { filter, shuffle ->
                     isCreateDynamicPlaylistDialogOpen = false
-                    viewModel.updateDynamicPlaylist(playlist, name, filter, shuffle)
+                    viewModel.updateDynamicPlaylist(playlist, filter, shuffle)
                 },
                 onCancel = { editingDynamicPlaylist = null },
             )
@@ -85,7 +82,6 @@ fun PlaylistListScreen(
     } else if (deletingDynamicPlaylist != null) {
         deletingDynamicPlaylist?.let { playlist ->
             DeletePlaylistDialog(
-                name = playlist.name,
                 onConfirm = {
                     deletingDynamicPlaylist = null
                     viewModel.deleteDynamicPlaylist(playlist)
@@ -121,6 +117,8 @@ fun PlaylistListScreen(
     ) {
         when (displayType) {
             PlaylistType.STORED -> {
+                val storedPlaylists by viewModel.storedPlaylists.collectAsStateWithLifecycle()
+
                 Column(modifier = Modifier.fillMaxWidth().verticalScroll(storedPlaylistScrollState)) {
                     storedPlaylists.forEach { playlist ->
                         var soungCount by rememberSaveable { mutableStateOf<Int?>(null) }
@@ -138,20 +136,23 @@ fun PlaylistListScreen(
                 }
             }
             PlaylistType.DYNAMIC -> {
-                Column(modifier = modifier.fillMaxWidth().verticalScroll(dynamicPlaylistScrollState)) {
-                    OutlinedButton(
+                val dynamicPlaylists by viewModel.dynamicPlaylists.collectAsStateWithLifecycle()
+
+                Column(
+                    modifier = modifier.fillMaxWidth().verticalScroll(dynamicPlaylistScrollState)
+                ) {
+                    FilledTonalButton(
+                        modifier = Modifier.padding(10.dp),
                         onClick = { isCreateDynamicPlaylistDialogOpen = true },
                         shape = ShapeDefaults.ExtraSmall,
-                    ) {
-                        Text(stringResource(R.string.create_dynamic_playlist))
-                        Icon(Icons.Sharp.Add, null)
-                    }
+                        content = { Text(stringResource(R.string.create_dynamic_playlist)) },
+                    )
                     dynamicPlaylists.forEach { playlist ->
                         DynamicPlaylistRow(
-                            playlist = playlist,
                             onEditClick = { editingDynamicPlaylist = playlist },
                             onDeleteClick = { deletingDynamicPlaylist = playlist },
                             onPlayClick = { viewModel.activateDynamicPlaylist(playlist) },
+                            playlist = playlist,
                         )
                     }
                 }
@@ -169,11 +170,11 @@ fun DynamicPlaylistRow(
     onPlayClick: () -> Unit,
 ) {
     Row(
-        modifier = modifier.fillMaxWidth().padding(vertical = 20.dp, horizontal = 10.dp),
+        modifier = modifier.fillMaxWidth().padding(10.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(playlist.name)
+        Text(playlist.filter.toString())
         Row {
             IconButton(onClick = onEditClick) {
                 Icon(Icons.Sharp.Edit, stringResource(R.string.edit_dynamic_playlist))
@@ -186,6 +187,7 @@ fun DynamicPlaylistRow(
             }
         }
     }
+    Divider()
 }
 
 @Composable

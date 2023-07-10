@@ -48,8 +48,8 @@ class MPDPlaylistEngine(private val repo: MPDRepository, context: Context, priva
     fun addAlbumToStoredPlaylist(album: MPDAlbum, playlistName: String, onFinish: (MPDMapResponse) -> Unit) =
         repo.client.enqueue("searchaddpl", listOf(playlistName, album.searchFilter.toString()), onFinish)
 
-    fun createDynamicPlaylist(name: String, filter: DynamicPlaylistFilter, shuffle: Boolean) {
-        val playlist = DynamicPlaylist(name, filter, shuffle)
+    fun createDynamicPlaylist(filter: DynamicPlaylistFilter, shuffle: Boolean) {
+        val playlist = DynamicPlaylist(filter, shuffle)
         _dynamicPlaylists.value = _dynamicPlaylists.value.toMutableList().apply { add(playlist) }
         saveDynamicPlaylists()
     }
@@ -91,13 +91,12 @@ class MPDPlaylistEngine(private val repo: MPDRepository, context: Context, priva
 
     fun updateDynamicPlaylist(
         playlist: DynamicPlaylist,
-        name: String,
         filter: DynamicPlaylistFilter,
         shuffle: Boolean,
     ) {
         _dynamicPlaylists.value = _dynamicPlaylists.value.toMutableList().apply {
             remove(playlist)
-            add(DynamicPlaylist(name, filter, shuffle))
+            add(DynamicPlaylist(filter, shuffle))
         }
         saveDynamicPlaylists()
     }
