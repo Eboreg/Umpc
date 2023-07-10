@@ -125,6 +125,7 @@ fun CoverScreen(
     val playerState by viewModel.playerState.collectAsStateWithLifecycle()
     val randomState by viewModel.randomState.collectAsStateWithLifecycle()
     val repeatState by viewModel.repeatState.collectAsStateWithLifecycle()
+    val streamingUrl by viewModel.streamingUrl.collectAsStateWithLifecycle()
     val volume by viewModel.volume.collectAsStateWithLifecycle()
 
     val density = LocalDensity.current
@@ -132,6 +133,10 @@ fun CoverScreen(
     val screenHeightPx = with(density) { screenHeightDp.toPx() }
     val anchors = mapOf(0f to "show", screenHeightPx to "hide")
     val landscape = isInLandscapeMode()
+    val streamingStarted =
+        streamingUrl?.let { stringResource(R.string.streaming_from_x_started, it) }
+        ?: stringResource(R.string.streaming_started)
+    val streamingStopped = stringResource(R.string.streaming_stopped)
 
     val filterChipColors = FilterChipDefaults.filterChipColors(
         labelColor = LocalContentColor.current.copy(0.5f),
@@ -167,7 +172,6 @@ fun CoverScreen(
             SimpleResponsiveBlock(
                 content1 = {
                     FadingImageBox(
-                        // modifier = Modifier.fillMaxWidth().weight(1f),
                         fadeStartY = if (landscape) 0f else 0.5f,
                         verticalSpacing = 5.dp,
                         contentPadding = PaddingValues(0.dp),
@@ -179,9 +183,7 @@ fun CoverScreen(
                             )
                             CoverScreenSongTechInfo(bitrate, audioFormat)
                         },
-                        bottomContent = {
-                            CoverScreenSongInfoTexts(currentSong, onGotoAlbumClick, onGotoArtistClick)
-                        },
+                        bottomContent = { CoverScreenSongInfoTexts(currentSong, onGotoAlbumClick, onGotoArtistClick) },
                     )
                 },
                 content2 = {
@@ -205,9 +207,7 @@ fun CoverScreen(
                                 colors = filterChipColors,
                                 onClick = { viewModel.toggleRepeatState() },
                                 label = { Text(stringResource(R.string.repeat)) },
-                                leadingIcon = {
-                                    Icon(Icons.Sharp.Repeat, null)
-                                }
+                                leadingIcon = { Icon(Icons.Sharp.Repeat, null) }
                             )
                             FilterChip(
                                 shape = ShapeDefaults.ExtraSmall,
@@ -215,19 +215,19 @@ fun CoverScreen(
                                 colors = filterChipColors,
                                 onClick = { viewModel.toggleRandomState() },
                                 label = { Text(stringResource(R.string.shuffle)) },
-                                leadingIcon = {
-                                    Icon(Icons.Sharp.Shuffle, null)
-                                }
+                                leadingIcon = { Icon(Icons.Sharp.Shuffle, null) }
                             )
                             FilterChip(
                                 shape = ShapeDefaults.ExtraSmall,
                                 selected = isStreaming,
                                 colors = filterChipColors,
-                                onClick = { viewModel.toggleStream() },
+                                onClick = {
+                                    viewModel.toggleStream {
+                                        viewModel.addMessage(if (it) streamingStarted else streamingStopped)
+                                    }
+                                },
                                 label = { Text(stringResource(R.string.stream)) },
-                                leadingIcon = {
-                                    Icon(Icons.Sharp.Headphones, null)
-                                }
+                                leadingIcon = { Icon(Icons.Sharp.Headphones, null) }
                             )
                         }
 

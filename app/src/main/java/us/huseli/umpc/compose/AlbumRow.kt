@@ -50,7 +50,7 @@ fun AlbumRow(
     onEnqueueClick: () -> Unit,
     onPlayClick: () -> Unit,
     onGotoAlbumClick: () -> Unit,
-    expandedContent: @Composable (ColumnScope.() -> Unit),
+    expandedContent: @Composable ColumnScope.() -> Unit,
 ) {
     var isExpanded by rememberSaveable { mutableStateOf(false) }
 

@@ -50,9 +50,14 @@ class MPDStreamPlayer @Inject constructor(@ApplicationContext private val contex
         exoPlayer = null
     }
 
-    suspend fun toggle() {
-        if (_isStreaming.value) stop()
-        else start()
+    suspend fun toggle(): Boolean {
+        return if (_isStreaming.value) {
+            stop()
+            false
+        } else {
+            start()
+            true
+        }
     }
 
     override fun onSharedPreferenceChanged(sharedPreferences: SharedPreferences?, key: String?) {

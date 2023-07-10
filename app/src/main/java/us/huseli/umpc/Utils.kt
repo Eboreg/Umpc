@@ -15,6 +15,7 @@ import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.DateTimeFormatterBuilder
+import kotlin.math.roundToInt
 import kotlin.time.Duration.Companion.seconds
 
 val SENSIBLE_DATE_TIME: DateTimeFormatter = DateTimeFormatterBuilder()
@@ -61,6 +62,12 @@ fun String.toInstant(): Instant? = try {
 fun String.parseYear(): Int? = Regex("^([1-2]\\d{3})").find(this)?.value?.toInt()
 
 fun <T : Any> Collection<T>.skipEveryX(x: Int) = this.filterIndexed { index, _ -> (index + 1) % x != 0 }
+
+fun <T : Any> Collection<T>.includeEveryX(x: Int) = this.filterIndexed { index, _ -> index % x == 0 }
+
+fun <T : Any> Collection<T>.prune(maxLength: Int) =
+    if (maxLength < this.size / 2) this.includeEveryX((this.size.toFloat() / maxLength).roundToInt())
+    else this.skipEveryX((this.size.toFloat() / (this.size - maxLength)).roundToInt())
 
 fun <T : Any> Flow<List<T>>.leadingChars(transform: (T) -> String) = this.map { items ->
     items.mapNotNull {

@@ -36,5 +36,6 @@ class CurrentSongViewModel @Inject constructor(
     fun stop() = repo.engines.control.stop()
     fun toggleRandomState() = repo.engines.control.toggleRandomState()
     fun toggleRepeatState() = repo.engines.control.toggleRepeatState()
-    fun toggleStream() = viewModelScope.launch { streamPlayer.toggle() }
+    fun toggleStream(onFinish: ((Boolean) -> Unit)? = null) =
+        viewModelScope.launch { onFinish?.invoke(streamPlayer.toggle()) }
 }

@@ -48,6 +48,10 @@ fun BottomBar(
     val currentSongElapsed by viewModel.currentSongElapsed.collectAsStateWithLifecycle()
     val streamingUrl by viewModel.streamingUrl.collectAsStateWithLifecycle()
     val height = if (isInLandscapeMode()) 68.dp else 74.dp
+    val streamingStarted =
+        streamingUrl?.let { stringResource(R.string.streaming_from_x_started, it) }
+        ?: stringResource(R.string.streaming_started)
+    val streamingStopped = stringResource(R.string.streaming_stopped)
 
     val iconToggleButtonColors = IconButtonDefaults.iconToggleButtonColors(
         contentColor = LocalContentColor.current.copy(0.5f)
@@ -85,7 +89,11 @@ fun BottomBar(
                 if (streamingUrl != null) {
                     IconToggleButton(
                         checked = isStreaming,
-                        onCheckedChange = { viewModel.toggleStream() },
+                        onCheckedChange = {
+                            viewModel.toggleStream {
+                                viewModel.addMessage(if (it) streamingStarted else streamingStopped)
+                            }
+                        },
                         colors = iconToggleButtonColors,
                     ) {
                         Icon(

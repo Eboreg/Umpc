@@ -74,6 +74,9 @@
     <string name="edit_dynamic_playlist">Edit dynamic playlist</string>
     <string name="delete_dynamic_playlist">Delete dynamic playlist</string>
     <string name="play_dynamic_playlist">Play dynamic playlist</string>
+    <string name="streaming_started">Streaming started.</string>
+    <string name="streaming_from_x_started">Streaming from %1$s started.</string>
+    <string name="streaming_stopped">Streaming stopped.</string>
     <plurals name="x_albums">
         <item quantity="one">1 album</item>
         <item quantity="other">%1$d albums</item>

@@ -26,7 +26,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
-import us.huseli.umpc.skipEveryX
+import us.huseli.umpc.prune
 
 @Composable
 fun <T> ListWithAlphabetBar(
@@ -51,8 +51,7 @@ fun <T> ListWithAlphabetBar(
 
             if (characters.isNotEmpty() && items.size >= minItems) {
                 val maxCharacters = (maxHeightDp / 30.dp).toInt()
-                val skipEvery = (characters.size.toFloat() / (characters.size - maxCharacters)).toInt()
-                val displayedCharacters = characters.skipEveryX(skipEvery)
+                val displayedCharacters = characters.prune(maxCharacters)
 
                 Box(modifier = Modifier.width(width).fillMaxHeight()) {
                     displayedCharacters.forEachIndexed { index, char ->
