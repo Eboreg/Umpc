@@ -42,7 +42,7 @@ import us.huseli.umpc.R
 import us.huseli.umpc.compose.AlbumRow
 import us.huseli.umpc.compose.ArtistRow
 import us.huseli.umpc.compose.SmallSongRow
-import us.huseli.umpc.compose.utils.ListWithScrollbar
+import us.huseli.umpc.compose.utils.ListWithAlphabetBar
 import us.huseli.umpc.compose.utils.SubMenuScreen
 import us.huseli.umpc.data.MPDAlbum
 import us.huseli.umpc.data.MPDAlbumWithSongs
@@ -95,7 +95,6 @@ fun LibraryScreenArtistRow(
     onGotoAlbumClick: (MPDAlbum) -> Unit,
     onGotoArtistClick: (String) -> Unit,
 ) {
-    Divider()
     ArtistRow(
         artist = artist,
         padding = PaddingValues(start = 10.dp),
@@ -237,11 +236,14 @@ fun LibraryScreen(
 
         if (grouping == LibraryGrouping.ARTIST) {
             val artists by viewModel.artists.collectAsStateWithLifecycle()
+            val artistLeadingChars by viewModel.artistLeadingChars.collectAsStateWithLifecycle(emptyList())
 
-            ListWithScrollbar(
+            ListWithAlphabetBar(
                 modifier = Modifier.fillMaxWidth(),
-                listSize = artists.size,
+                characters = artistLeadingChars,
                 listState = viewModel.artistListState,
+                items = artists,
+                selector = { it.name },
             ) {
                 LazyColumn(state = viewModel.artistListState, modifier = Modifier.fillMaxWidth()) {
                     items(artists, key = { it.name }) { artist ->
@@ -253,20 +255,23 @@ fun LibraryScreen(
                             onGotoAlbumClick = onGotoAlbumClick,
                             onGotoArtistClick = onGotoArtistClick,
                         )
+                        Divider()
                     }
                 }
             }
         } else {
             val albums by viewModel.albums.collectAsStateWithLifecycle()
+            val albumLeadingChars by viewModel.albumLeadingChars.collectAsStateWithLifecycle(emptyList())
 
-            ListWithScrollbar(
+            ListWithAlphabetBar(
                 modifier = Modifier.fillMaxWidth(),
-                listSize = albums.size,
+                characters = albumLeadingChars,
                 listState = viewModel.albumListState,
+                items = albums,
+                selector = { it.name },
             ) {
                 LazyColumn(state = viewModel.albumListState) {
                     items(albums, key = { it.hashCode() }) { album ->
-                        Divider()
                         LibraryScreenAlbumRow(
                             viewModel = viewModel,
                             album = album,
@@ -275,6 +280,7 @@ fun LibraryScreen(
                             onGotoAlbumClick = onGotoAlbumClick,
                             onGotoArtistClick = onGotoArtistClick,
                         )
+                        Divider()
                     }
                 }
             }

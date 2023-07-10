@@ -8,6 +8,8 @@ import android.graphics.BitmapFactory
 import androidx.activity.ComponentActivity
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalConfiguration
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import java.io.File
 import java.time.Instant
 import java.time.ZoneId
@@ -40,8 +42,6 @@ fun IntRange.toYearRangeString() =
 
 fun Instant.formatDateTime(): String = atZone(ZoneId.systemDefault()).format(SENSIBLE_DATE_TIME)
 
-fun Instant.formatDate(): String = atZone(ZoneId.systemDefault()).format(DateTimeFormatter.ISO_LOCAL_DATE)
-
 fun Context.getActivity(): ComponentActivity? = when (this) {
     is ComponentActivity -> this
     is ContextWrapper -> baseContext.getActivity()
@@ -59,3 +59,14 @@ fun String.toInstant(): Instant? = try {
 }
 
 fun String.parseYear(): Int? = Regex("^([1-2]\\d{3})").find(this)?.value?.toInt()
+
+fun <T : Any> Collection<T>.skipEveryX(x: Int) = this.filterIndexed { index, _ -> (index + 1) % x != 0 }
+
+fun <T : Any> Flow<List<T>>.leadingChars(transform: (T) -> String) = this.map { items ->
+    items.mapNotNull {
+        transform(it)
+            .replace(Regex("[^\\w&&[^0-9]]"), "#")
+            .getOrNull(0)
+            ?.uppercaseChar()
+    }.distinct().sorted()
+}

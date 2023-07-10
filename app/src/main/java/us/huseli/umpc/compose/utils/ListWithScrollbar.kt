@@ -49,8 +49,7 @@ fun ListWithScrollbar(
             scrollPos += delta.toInt()
             scope.launch {
                 val itemIndex = (listSize * (scrollPos / maxHeightPx)).toInt()
-                if (itemIndex >= 0 && itemIndex < listSize)
-                    listState.scrollToItem(itemIndex)
+                if (itemIndex in 0 until listSize) listState.scrollToItem(itemIndex)
             }
         }
     }

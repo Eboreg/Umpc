@@ -3,6 +3,9 @@ package us.huseli.umpc.compose
 import android.os.Looper
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -236,7 +239,11 @@ fun App(
             }
         }
 
-        if (isCoverShown) {
+        AnimatedVisibility(
+            visible = isCoverShown,
+            enter = slideInVertically(initialOffsetY = { it }),
+            exit = slideOutVertically(targetOffsetY = { it }),
+        ) {
             CoverScreen(
                 modifier = modifier.padding(innerPadding),
                 onGotoAlbumClick = onGotoAlbumClick,

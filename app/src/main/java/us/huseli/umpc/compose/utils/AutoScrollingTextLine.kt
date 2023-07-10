@@ -39,7 +39,6 @@ fun AutoScrollingTextLine(
     val offset by remember { mutableStateOf(Animatable(0f)) }
     var containerWidth by remember { mutableStateOf(0f) }
     var textWidth by remember { mutableStateOf(0f) }
-
     val target = containerWidth - textWidth
     val durationMillis = (1000 * (abs(target) / pixelsPerSecond)).toInt() + (2 * delayMillis)
 

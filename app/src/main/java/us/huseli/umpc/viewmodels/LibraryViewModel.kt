@@ -16,6 +16,7 @@ import us.huseli.umpc.data.MPDAlbumArt
 import us.huseli.umpc.data.MPDAlbumWithSongs
 import us.huseli.umpc.data.MPDArtistWithAlbums
 import us.huseli.umpc.data.groupByArtist
+import us.huseli.umpc.leadingChars
 import us.huseli.umpc.mpd.MPDRepository
 import javax.inject.Inject
 
@@ -34,6 +35,8 @@ class LibraryViewModel @Inject constructor(repo: MPDRepository) : BaseViewModel(
     val grouping = _grouping.asStateFlow()
     val artistListState = LazyListState()
     val albumListState = LazyListState()
+    val artistLeadingChars = _artists.leadingChars { it.name }
+    val albumLeadingChars = _albums.leadingChars { it.name }
 
     init {
         viewModelScope.launch {
