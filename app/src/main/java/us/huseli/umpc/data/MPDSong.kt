@@ -1,10 +1,15 @@
 package us.huseli.umpc.data
 
+import android.os.Parcelable
 import android.util.Log
+import kotlinx.parcelize.IgnoredOnParcel
+import kotlinx.parcelize.Parcelize
 import us.huseli.umpc.Logger
+import us.huseli.umpc.parseYear
 import java.nio.file.Paths
 import kotlin.io.path.nameWithoutExtension
 
+@Parcelize
 data class MPDSong(
     val filename: String,
     val id: Int?,
@@ -16,7 +21,9 @@ data class MPDSong(
     val duration: Double?,
     val year: Int?,
     val audioFormat: MPDAudioFormat?,
-) {
+) : Parcelable {
+    @IgnoredOnParcel
+    @Transient
     val albumArtKey = AlbumArtKey(album.artist, album.name, filename)
 
     override fun equals(other: Any?) = other is MPDSong && other.filename == filename
@@ -24,12 +31,6 @@ data class MPDSong(
 }
 
 fun Map<String, String>.toMPDSong() = try {
-    // The Date field is almost always a year. So even if it's a complete date,
-    // just parse it as a year anyway.
-    val parseYear: (String?) -> Int? = { string ->
-        string?.let { Regex("^([1-2]\\d{3})").find(it)?.value?.toInt() }
-    }
-
     MPDSong(
         filename = this["file"]!!,
         id = this["Id"]?.toInt(),
@@ -39,7 +40,7 @@ fun Map<String, String>.toMPDSong() = try {
         trackNumber = this["Track"]?.toInt(),
         discNumber = this["Disc"]?.toInt(),
         duration = this["duration"]?.toDouble(),
-        year = parseYear(this["Date"]),
+        year = this["Date"]?.parseYear(),
         audioFormat = this["Format"]?.toMPDAudioFormat(),
     )
 } catch (e: NullPointerException) {

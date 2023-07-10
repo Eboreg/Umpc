@@ -3,6 +3,7 @@ package us.huseli.umpc
 object Constants {
     const val ALBUM_ART_MAXSIZE = 1500
     const val BINARY_LIMIT = 1_048_576
+    const val DYNAMIC_PLAYLIST_CHUNK_SIZE = 20
     const val NAV_ARG_ALBUM = "album"
     const val NAV_ARG_ARTIST = "artist"
     const val NAV_ARG_PLAYLIST = "playlist"

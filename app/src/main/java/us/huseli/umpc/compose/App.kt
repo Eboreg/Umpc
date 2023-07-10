@@ -3,9 +3,7 @@ package us.huseli.umpc.compose
 import android.os.Looper
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
@@ -46,48 +44,14 @@ import us.huseli.umpc.compose.screens.QueueScreen
 import us.huseli.umpc.compose.screens.SearchScreen
 import us.huseli.umpc.compose.screens.SettingsScreen
 import us.huseli.umpc.compose.screens.StoredPlaylistScreen
+import us.huseli.umpc.compose.utils.ResponsiveScaffold
 import us.huseli.umpc.data.MPDAlbum
 import us.huseli.umpc.data.MPDPlaylist
 import us.huseli.umpc.getActivity
-import us.huseli.umpc.isInLandscapeMode
 import us.huseli.umpc.viewmodels.LibraryViewModel
 import us.huseli.umpc.viewmodels.MPDViewModel
 import us.huseli.umpc.viewmodels.QueueViewModel
 import us.huseli.umpc.viewmodels.SearchViewModel
-
-@Composable
-fun ResponsiveScaffold(
-    activeScreen: ContentScreen,
-    onMenuItemClick: (ContentScreen) -> Unit,
-    snackbarHost: @Composable () -> Unit = {},
-    bottomBar: @Composable () -> Unit = {},
-    content: @Composable (PaddingValues) -> Unit
-) {
-    if (isInLandscapeMode()) {
-        VerticalMainMenu(
-            activeScreen = activeScreen,
-            onMenuItemClick = onMenuItemClick,
-        ) {
-            Scaffold(
-                snackbarHost = snackbarHost,
-                bottomBar = bottomBar,
-                content = content
-            )
-        }
-    } else {
-        Scaffold(
-            snackbarHost = snackbarHost,
-            bottomBar = bottomBar,
-            topBar = {
-                HorizontalMainMenu(
-                    activeScreen = activeScreen,
-                    onMenuItemClick = onMenuItemClick,
-                )
-            },
-            content = content
-        )
-    }
-}
 
 @Composable
 fun App(

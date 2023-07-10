@@ -13,8 +13,11 @@ import kotlinx.coroutines.withContext
 import us.huseli.umpc.LoggerInterface
 import us.huseli.umpc.data.MPDCredentials
 import us.huseli.umpc.mpd.command.MPDBaseCommand
-import us.huseli.umpc.mpd.command.MPDCommand
-import us.huseli.umpc.mpd.response.MPDResponse
+import us.huseli.umpc.mpd.command.MPDMapCommand
+import us.huseli.umpc.mpd.command.MPDMultiMapCommand
+import us.huseli.umpc.mpd.response.MPDBaseResponse
+import us.huseli.umpc.mpd.response.MPDMapResponse
+import us.huseli.umpc.mpd.response.MPDMultiMapResponse
 import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.net.Socket
@@ -31,7 +34,7 @@ open class MPDClient(private val ioScope: CoroutineScope) : LoggerInterface {
     enum class State { STARTED, PREPARED, READY, RUNNING, ERROR }
 
     private val commandQueueMutex = Mutex()
-    private val commandQueue = mutableListOf<MPDBaseCommand>()
+    private val commandQueue = mutableListOf<MPDBaseCommand<*>>()
     private var credentials: MPDCredentials? = null
     private val wantedTagTypes = listOf(
         "Artist",
@@ -50,17 +53,34 @@ open class MPDClient(private val ioScope: CoroutineScope) : LoggerInterface {
     protected val state = MutableStateFlow(State.STARTED)
     protected var socket = Socket()
 
-    fun enqueue(command: String, onFinish: ((MPDResponse) -> Unit)? = null) =
+    fun enqueueMultiMap(command: String, onFinish: ((MPDMultiMapResponse) -> Unit)? = null) =
+        enqueue(MPDMultiMapCommand(command, onFinish = onFinish))
+
+    fun enqueueMultiMap(command: String, arg: String, onFinish: ((MPDMultiMapResponse) -> Unit)? = null) =
+        enqueue(MPDMultiMapCommand(command, args = listOf(arg), onFinish = onFinish))
+
+    fun enqueue(command: String, onFinish: ((MPDMapResponse) -> Unit)? = null) =
         enqueue(command, listOf(), onFinish)
 
-    fun enqueue(command: String, arg: String, onFinish: ((MPDResponse) -> Unit)? = null) =
+    fun enqueue(command: String, arg: String, onFinish: ((MPDMapResponse) -> Unit)? = null) =
         enqueue(command, listOf(arg), onFinish)
 
     open fun enqueue(
         command: String,
         args: Collection<String> = emptyList(),
-        onFinish: ((MPDResponse) -> Unit)? = null,
-    ) = enqueue(MPDCommand(command, args, onFinish))
+        onFinish: ((MPDMapResponse) -> Unit)? = null,
+    ) = enqueue(MPDMapCommand(command, args, onFinish))
+
+    fun <RT : MPDBaseResponse> enqueue(command: MPDBaseCommand<RT>) {
+        ioScope.launch {
+            commandQueueMutex.withLock {
+                if (!commandQueue.contains(command)) {
+                    log("ENQUEUE $command, commandQueue2=$commandQueue")
+                    commandQueue.add(command)
+                }
+            }
+        }
+    }
 
     fun setCredentials(credentials: MPDCredentials) {
         if (credentials != this.credentials) {
@@ -75,9 +95,11 @@ open class MPDClient(private val ioScope: CoroutineScope) : LoggerInterface {
                 when (state.value) {
                     State.PREPARED -> connect(failSilently = true)
                     State.READY -> {
-                        if (commandQueue.isNotEmpty()) {
-                            state.value = State.RUNNING
-                            runCommand(commandQueue.removeFirst())
+                        commandQueueMutex.withLock {
+                            if (commandQueue.isNotEmpty()) {
+                                state.value = State.RUNNING
+                                runCommand(commandQueue.removeFirst())
+                            }
                         }
                     }
                     else -> delay(100)
@@ -102,14 +124,14 @@ open class MPDClient(private val ioScope: CoroutineScope) : LoggerInterface {
                 }
 
                 credentials?.password?.also { password ->
-                    val response = MPDCommand("password", password).execute(socket)
+                    val response = MPDMapCommand("password", password).execute(socket)
                     if (!response.isSuccess) {
                         throw MPDClientException(this@MPDClient, "Error on password command: ${response.error}")
                     }
                 }
 
-                MPDCommand("tagtypes").execute(socket).extractTagTypes().also {
-                    MPDCommand("tagtypes disable", it.minus(wantedTagTypes)).execute(socket)
+                MPDMapCommand("tagtypes").execute(socket).extractTagTypes().also {
+                    MPDMapCommand("tagtypes disable", it.minus(wantedTagTypes)).execute(socket)
                 }
 
                 state.value = State.READY
@@ -125,22 +147,11 @@ open class MPDClient(private val ioScope: CoroutineScope) : LoggerInterface {
         }
     }
 
-    protected fun enqueue(command: MPDBaseCommand) {
-        ioScope.launch {
-            commandQueueMutex.withLock {
-                if (!commandQueue.contains(command)) {
-                    log("ENQUEUE $command, commandQueue=$commandQueue")
-                    commandQueue.add(command)
-                }
-            }
-        }
-    }
-
-    private suspend fun runCommand(command: MPDBaseCommand) {
+    private suspend fun <RT : MPDBaseResponse> runCommand(command: MPDBaseCommand<RT>) {
         try {
             state.value = State.RUNNING
             val response = command.execute(socket)
-            if (response.status == MPDResponse.Status.EMPTY_RESPONSE) {
+            if (response.status == MPDBaseResponse.Status.EMPTY_RESPONSE) {
                 connect(failSilently = true)
                 enqueue(command)
             } else {

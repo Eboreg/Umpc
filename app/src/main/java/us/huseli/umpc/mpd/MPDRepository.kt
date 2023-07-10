@@ -104,7 +104,7 @@ class MPDRepository @Inject constructor(
             image = MPDImageEngine(this, ioScope),
             control = MPDControlEngine(this),
             message = MessageEngine(this),
-            playlist = MPDPlaylistEngine(this, context),
+            playlist = MPDPlaylistEngine(this, context, ioScope),
         )
 
         ioScope.launch {
@@ -179,7 +179,7 @@ class MPDRepository @Inject constructor(
          * Because we cannot do OR queries, we have to resort to this
          * inefficient bullshit in order to search both artist & albumartist.
          */
-        client.enqueue(mpdFind { equals("artist", artist) }) { response ->
+        client.enqueueMultiMap(mpdFind { equals("artist", artist) }) { response ->
             val songs = response.extractSongs().toMutableSet()
 
             addSongs(songs)
@@ -209,7 +209,7 @@ class MPDRepository @Inject constructor(
         // Albums where the artist _is_ the album artist:
         var albumArtistAlbums = listOf<MPDAlbumWithSongs>()
 
-        client.enqueue(mpdFind { equals("artist", artist) }) { response ->
+        client.enqueueMultiMap(mpdFind { equals("artist", artist) }) { response ->
             // We got songs where this artist is in the "artist" tag:
             response.extractSongs().toMutableSet().also { songs ->
                 nonAlbumArtistAlbums = songs.filter { it.artist != it.album.artist }.groupByAlbum()
@@ -230,7 +230,7 @@ class MPDRepository @Inject constructor(
 
     fun fetchSongListByAlbum(album: MPDAlbum, onFinish: (List<MPDSong>) -> Unit) {
         /** In: 1 album. Out: All songs for this album. Updates _albumsWithSongs. */
-        client.enqueue(album.searchFilter.find()) { response ->
+        client.enqueueMultiMap(album.searchFilter.find()) { response ->
             val songs = response.extractSongs()
             onFinish(songs)
             _albumsWithSongs.value = _albumsWithSongs.value.plus(MPDAlbumWithSongs(album, songs))
@@ -239,7 +239,7 @@ class MPDRepository @Inject constructor(
 
     private fun fetchSongListByAlbumArtist(albumArtist: String, onFinish: (List<MPDSong>) -> Unit) {
         /** Will also update this._albumsWithSongs. */
-        client.enqueue(mpdFind { equals("albumartist", albumArtist) }) { response ->
+        client.enqueueMultiMap(mpdFind { equals("albumartist", albumArtist) }) { response ->
             response.extractSongs().also {
                 onFinish(it)
                 // addSongs(it)
@@ -249,7 +249,7 @@ class MPDRepository @Inject constructor(
     }
 
     fun fetchSongListByArtist(artist: String, onFinish: (List<MPDSong>) -> Unit) {
-        client.enqueue(mpdFind { equals("artist", artist) }) { response ->
+        client.enqueueMultiMap(mpdFind { equals("artist", artist) }) { response ->
             // We got songs where this artist is in the "artist" tag:
             val artistSongs = response.extractSongs().toMutableSet()
             // Albums where the artist is _not_ the album artist:
@@ -288,7 +288,7 @@ class MPDRepository @Inject constructor(
          * filtering must be applied.
          */
         if (term.isNotEmpty()) {
-            client.enqueue(mpdSearch { contains("any", term) }) { response ->
+            client.enqueueMultiMap(mpdSearch { contains("any", term) }) { response ->
                 onFinish(
                     response.extractSongs().filter {
                         it.album.name.contains(term, true) ||
@@ -327,7 +327,7 @@ class MPDRepository @Inject constructor(
         if (albums.isEmpty()) onFinish(albumsWithSongs)
 
         albums.forEach { album ->
-            client.enqueue(album.searchFilter.find()) { response ->
+            client.enqueueMultiMap(album.searchFilter.find()) { response ->
                 val albumWithSongs = response.extractSongs().groupByAlbum()[0]
 
                 albumsWithSongs.add(albumWithSongs)
@@ -339,7 +339,7 @@ class MPDRepository @Inject constructor(
 
     /** Caches every album artist and their albums, no songs. */
     private fun loadAlbums() {
-        client.enqueue("list albumsort group albumartistsort") { response ->
+        client.enqueueMultiMap("list albumsort group albumartistsort") { response ->
             response.extractAlbums().also { albums ->
                 _albums.value = albums.sortedBy { it.name.lowercase() }
             }
@@ -348,7 +348,7 @@ class MPDRepository @Inject constructor(
 
     private fun loadCurrentSong() {
         client.enqueue("currentsong") { response ->
-            _currentSong.value = response.responseMap.toMPDSong()?.also { song ->
+            _currentSong.value = response.responseMap.mapValues { it.value.first() }.toMPDSong()?.also { song ->
                 song.duration?.let { _currentSongDuration.value = it }
                 addSongs(listOf(song))
             }
@@ -356,7 +356,7 @@ class MPDRepository @Inject constructor(
     }
 
     private fun loadOutputs(onFinish: ((List<MPDOutput>) -> Unit)? = null) {
-        client.enqueue("outputs") { response ->
+        client.enqueueMultiMap("outputs") { response ->
             response.extractOutputs().also {
                 _outputs.value = it
                 onFinish?.invoke(it)
@@ -365,7 +365,7 @@ class MPDRepository @Inject constructor(
     }
 
     private fun loadQueue() {
-        client.enqueue("playlistinfo") { response ->
+        client.enqueueMultiMap("playlistinfo") { response ->
             response.extractSongs().also { songs ->
                 _queue.value = songs
                 addSongs(songs)
@@ -375,7 +375,7 @@ class MPDRepository @Inject constructor(
 
     private fun loadStatus() {
         client.enqueue("status") { response ->
-            response.responseMap.toMPDStatus()?.also { status ->
+            response.responseMap.mapValues { it.value.first() }.toMPDStatus()?.also { status ->
                 status.volume?.let { _volume.value = it }
                 status.repeat?.let { _repeatState.value = it }
                 status.random?.let { _randomState.value = it }

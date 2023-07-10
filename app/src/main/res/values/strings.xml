@@ -73,6 +73,7 @@
     <string name="dynamic_playlists">Dynamic playlists</string>
     <string name="edit_dynamic_playlist">Edit dynamic playlist</string>
     <string name="delete_dynamic_playlist">Delete dynamic playlist</string>
+    <string name="play_dynamic_playlist">Play dynamic playlist</string>
     <plurals name="x_albums">
         <item quantity="one">1 album</item>
         <item quantity="other">%1$d albums</item>

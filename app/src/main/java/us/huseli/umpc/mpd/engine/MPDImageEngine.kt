@@ -18,6 +18,7 @@ import us.huseli.umpc.data.MPDAlbumArt
 import us.huseli.umpc.data.filterByAlbum
 import us.huseli.umpc.mpd.MPDRepository
 import us.huseli.umpc.toBitmap
+import java.io.ByteArrayInputStream
 import java.io.File
 import kotlin.math.max
 import kotlin.math.roundToInt
@@ -75,11 +76,11 @@ class MPDImageEngine(private val repo: MPDRepository, private val ioScope: Corou
                 }
             } else {
                 // We have a song filename, now we can fetch albumart:
-                repo.binaryClient.enqueue("albumart", key.filename) { response ->
+                repo.binaryClient.enqueueBinary("albumart", key.filename) { response ->
                     _fetchedAlbumArtKeys.add(key)
                     if (response.isSuccess) {
                         ioScope.launch {
-                            saveAlbumArt(key = key, data = response.binaryResponse, callback = callback)
+                            saveAlbumArt(key = key, stream = response.stream, callback = callback)
                         }
                     }
                 }
@@ -103,10 +104,10 @@ class MPDImageEngine(private val repo: MPDRepository, private val ioScope: Corou
 
     private suspend fun saveAlbumArt(
         key: AlbumArtKey,
-        data: ByteArray,
+        stream: ByteArrayInputStream,
         callback: (MPDAlbumArt) -> Unit,
     ) {
-        BitmapFactory.decodeByteArray(data, 0, data.size)?.also { fullImage ->
+        BitmapFactory.decodeStream(stream)?.also { fullImage ->
             val fullImageFile = File(repo.albumArtDirectory, key.imageFilename)
             val factor = Constants.ALBUM_ART_MAXSIZE.toFloat() / max(fullImage.width, fullImage.height)
             val thumbnail = createThumbnail(fullImage, key.imageFilename)
@@ -123,7 +124,7 @@ class MPDImageEngine(private val repo: MPDRepository, private val ioScope: Corou
                 }
             } else {
                 callback(MPDAlbumArt(key, fullImage.asImageBitmap(), thumbnail.asImageBitmap()))
-                fullImageFile.outputStream().use { outputStream -> outputStream.write(data) }
+                fullImageFile.outputStream().use { outputStream -> outputStream.write(stream.readBytes()) }
             }
         }
     }

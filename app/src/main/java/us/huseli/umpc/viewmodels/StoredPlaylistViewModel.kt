@@ -8,14 +8,15 @@ import kotlinx.coroutines.flow.map
 import us.huseli.umpc.Constants.NAV_ARG_PLAYLIST
 import us.huseli.umpc.data.MPDSong
 import us.huseli.umpc.mpd.MPDRepository
-import us.huseli.umpc.mpd.response.MPDResponse
+import us.huseli.umpc.mpd.OnMPDChangeListener
+import us.huseli.umpc.mpd.response.MPDMapResponse
 import javax.inject.Inject
 
 @HiltViewModel
 class StoredPlaylistViewModel @Inject constructor(
     repo: MPDRepository,
     savedStateHandle: SavedStateHandle,
-) : BaseViewModel(repo) {
+) : BaseViewModel(repo), OnMPDChangeListener {
     private val playlistName: String = savedStateHandle.get<String>(NAV_ARG_PLAYLIST)!!
     private val _songs = MutableStateFlow<List<MPDSong>>(emptyList())
 
@@ -23,14 +24,23 @@ class StoredPlaylistViewModel @Inject constructor(
     val playlist = repo.engines.playlist.storedPlaylists.map { playlists -> playlists.find { it.name == playlistName } }
 
     init {
-        repo.engines.playlist.fetchStoredPlaylistSongs(playlistName) { _songs.value = it }
+        loadSongs()
+        repo.registerOnMPDChangeListener(this)
     }
 
-    fun deletePlaylist(onFinish: (MPDResponse) -> Unit) =
+    fun deletePlaylist(onFinish: (MPDMapResponse) -> Unit) =
         repo.engines.playlist.deleteStoredPlaylist(playlistName, onFinish)
 
     fun play() = repo.engines.playlist.enqueueStoredPlaylistAndPlay(playlistName)
 
     fun rename(newName: String, onFinish: (Boolean) -> Unit) =
         repo.engines.playlist.renameStoredPlaylist(playlistName, newName, onFinish)
+
+    private fun loadSongs() {
+        repo.engines.playlist.fetchStoredPlaylistSongs(playlistName) { _songs.value = it }
+    }
+
+    override fun onMPDChanged(subsystems: List<String>) {
+        if (subsystems.contains("stored_playlist")) loadSongs()
+    }
 }

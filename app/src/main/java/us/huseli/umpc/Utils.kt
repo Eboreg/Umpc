@@ -51,3 +51,11 @@ fun Context.getActivity(): ComponentActivity? = when (this) {
 @Suppress("BooleanMethodIsAlwaysInverted")
 @Composable
 fun isInLandscapeMode() = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
+
+fun String.toInstant(): Instant? = try {
+    Instant.parse(this)
+} catch (e: Exception) {
+    null
+}
+
+fun String.parseYear(): Int? = Regex("^([1-2]\\d{3})").find(this)?.value?.toInt()

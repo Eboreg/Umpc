@@ -14,6 +14,7 @@ import androidx.compose.material.icons.sharp.Add
 import androidx.compose.material.icons.sharp.Delete
 import androidx.compose.material.icons.sharp.Done
 import androidx.compose.material.icons.sharp.Edit
+import androidx.compose.material.icons.sharp.PlayArrow
 import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
@@ -150,6 +151,7 @@ fun PlaylistListScreen(
                             playlist = playlist,
                             onEditClick = { editingDynamicPlaylist = playlist },
                             onDeleteClick = { deletingDynamicPlaylist = playlist },
+                            onPlayClick = { viewModel.activateDynamicPlaylist(playlist) },
                         )
                     }
                 }
@@ -164,6 +166,7 @@ fun DynamicPlaylistRow(
     playlist: DynamicPlaylist,
     onEditClick: () -> Unit,
     onDeleteClick: () -> Unit,
+    onPlayClick: () -> Unit,
 ) {
     Row(
         modifier = modifier.fillMaxWidth().padding(vertical = 20.dp, horizontal = 10.dp),
@@ -177,6 +180,9 @@ fun DynamicPlaylistRow(
             }
             IconButton(onClick = onDeleteClick) {
                 Icon(Icons.Sharp.Delete, stringResource(R.string.delete_dynamic_playlist))
+            }
+            IconButton(onClick = onPlayClick) {
+                Icon(Icons.Sharp.PlayArrow, stringResource(R.string.play_dynamic_playlist))
             }
         }
     }

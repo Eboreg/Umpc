@@ -6,27 +6,28 @@ import androidx.preference.PreferenceManager
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import com.google.gson.reflect.TypeToken
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import us.huseli.umpc.Constants.PREF_DYNAMIC_PLAYLISTS
 import us.huseli.umpc.InstantAdapter
 import us.huseli.umpc.data.DynamicPlaylist
 import us.huseli.umpc.data.DynamicPlaylistFilter
+import us.huseli.umpc.data.DynamicPlaylistState
 import us.huseli.umpc.data.MPDAlbum
 import us.huseli.umpc.data.MPDPlaylist
-import us.huseli.umpc.data.MPDPlaylistWithSongs
 import us.huseli.umpc.data.MPDSong
 import us.huseli.umpc.mpd.MPDRepository
 import us.huseli.umpc.mpd.OnMPDChangeListener
-import us.huseli.umpc.mpd.response.MPDResponse
+import us.huseli.umpc.mpd.response.MPDMapResponse
 import java.time.Instant
 
-class MPDPlaylistEngine(private val repo: MPDRepository, context: Context) :
+class MPDPlaylistEngine(private val repo: MPDRepository, context: Context, private val ioScope: CoroutineScope) :
     OnMPDChangeListener, SharedPreferences.OnSharedPreferenceChangeListener {
     private val preferences = PreferenceManager.getDefaultSharedPreferences(context)
-    private val storedPlaylistsWithSongs = MutableStateFlow<List<MPDPlaylistWithSongs>>(emptyList())
     private val _storedPlaylists = MutableStateFlow<List<MPDPlaylist>>(emptyList())
     private val _dynamicPlaylists = MutableStateFlow<List<DynamicPlaylist>>(emptyList())
+    private var dynamicPlaylistState: DynamicPlaylistState? = null
     private val gson: Gson = GsonBuilder()
         .registerTypeAdapter(Instant::class.java, InstantAdapter())
         .create()
@@ -40,12 +41,15 @@ class MPDPlaylistEngine(private val repo: MPDRepository, context: Context) :
         loadDynamicPlaylists()
     }
 
-    fun addAlbumToStoredPlaylist(album: MPDAlbum, playlistName: String, onFinish: (MPDResponse) -> Unit) =
+    fun activateDynamicPlaylist(playlist: DynamicPlaylist) {
+        dynamicPlaylistState = DynamicPlaylistState(playlist, repo, ioScope)
+    }
+
+    fun addAlbumToStoredPlaylist(album: MPDAlbum, playlistName: String, onFinish: (MPDMapResponse) -> Unit) =
         repo.client.enqueue("searchaddpl", listOf(playlistName, album.searchFilter.toString()), onFinish)
 
     fun createDynamicPlaylist(name: String, filter: DynamicPlaylistFilter, shuffle: Boolean) {
         val playlist = DynamicPlaylist(name, filter, shuffle)
-
         _dynamicPlaylists.value = _dynamicPlaylists.value.toMutableList().apply { add(playlist) }
         saveDynamicPlaylists()
     }
@@ -57,7 +61,7 @@ class MPDPlaylistEngine(private val repo: MPDRepository, context: Context) :
         saveDynamicPlaylists()
     }
 
-    fun deleteStoredPlaylist(playlistName: String, onFinish: (MPDResponse) -> Unit) =
+    fun deleteStoredPlaylist(playlistName: String, onFinish: (MPDMapResponse) -> Unit) =
         repo.client.enqueue("rm", playlistName, onFinish)
 
     fun enqueueStoredPlaylistAndPlay(playlistName: String) {
@@ -70,7 +74,7 @@ class MPDPlaylistEngine(private val repo: MPDRepository, context: Context) :
     }
 
     fun fetchStoredPlaylistSongs(playlistName: String, onFinish: (List<MPDSong>) -> Unit) {
-        repo.client.enqueue("listplaylistinfo", playlistName) { response ->
+        repo.client.enqueueMultiMap("listplaylistinfo", playlistName) { response ->
             onFinish(response.extractSongs())
         }
     }
@@ -99,7 +103,7 @@ class MPDPlaylistEngine(private val repo: MPDRepository, context: Context) :
     }
 
     private fun fetchStoredPlaylists(onFinish: (List<MPDPlaylist>) -> Unit) {
-        repo.client.enqueue("listplaylists") { response ->
+        repo.client.enqueueMultiMap("listplaylists") { response ->
             onFinish(response.extractPlaylists())
         }
     }
@@ -109,25 +113,6 @@ class MPDPlaylistEngine(private val repo: MPDRepository, context: Context) :
 
         gson.fromJson(preferences.getString(PREF_DYNAMIC_PLAYLISTS, "[]"), listType)?.let {
             _dynamicPlaylists.value = it
-        }
-    }
-
-    private fun loadStoredPlaylistsWithSongs() {
-        fetchStoredPlaylists { playlists ->
-            playlists.forEach { playlist ->
-                fetchStoredPlaylistSongs(playlist.name) { songs ->
-                    val pws = MPDPlaylistWithSongs(playlist, songs)
-
-                    storedPlaylistsWithSongs.value = storedPlaylistsWithSongs.value
-                        .toMutableList()
-                        .apply {
-                            if (!contains(pws)) {
-                                removeIf { it.playlist == playlist }
-                                add(pws)
-                            }
-                        }.sortedByDescending { it.playlist.lastModified }
-                }
-            }
         }
     }
 
@@ -143,7 +128,6 @@ class MPDPlaylistEngine(private val repo: MPDRepository, context: Context) :
     override fun onMPDChanged(subsystems: List<String>) {
         if (subsystems.contains("stored_playlist")) {
             loadStoredPlaylists()
-            loadStoredPlaylistsWithSongs()
         }
     }
 

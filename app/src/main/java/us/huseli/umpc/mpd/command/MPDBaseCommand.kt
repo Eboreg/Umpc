@@ -6,7 +6,8 @@ import kotlinx.coroutines.withContext
 import us.huseli.umpc.Constants.READ_BUFFER_SIZE
 import us.huseli.umpc.LoggerInterface
 import us.huseli.umpc.mpd.MPDFilterContext
-import us.huseli.umpc.mpd.response.MPDResponse
+import us.huseli.umpc.mpd.response.MPDBaseResponse
+import us.huseli.umpc.mpd.response.MPDBaseTextResponse
 import java.io.ByteArrayOutputStream
 import java.io.InputStream
 import java.io.PrintWriter
@@ -14,10 +15,10 @@ import java.net.Socket
 import kotlin.math.max
 import kotlin.math.min
 
-abstract class MPDBaseCommand(
+abstract class MPDBaseCommand<RT : MPDBaseResponse>(
     val command: String,
     val args: Collection<String> = emptyList(),
-    val onFinish: ((MPDResponse) -> Unit)? = null,
+    val onFinish: ((RT) -> Unit)? = null,
 ) : LoggerInterface {
     private val readBuffer = ByteArray(READ_BUFFER_SIZE)
     private val lineBuffer = ByteArrayOutputStream()
@@ -28,13 +29,42 @@ abstract class MPDBaseCommand(
     private lateinit var inputStream: InputStream
     private lateinit var writer: PrintWriter
 
-    protected abstract suspend fun getResponse(): MPDResponse
+    abstract suspend fun execute(socket: Socket): RT
 
-    suspend fun execute(socket: Socket): MPDResponse {
+    suspend fun <RT : MPDBaseTextResponse> fillTextResponse(response: RT): RT {
+        var line: String?
+
+        log("START $this")
+        try {
+            writeLine(getCommand(command, args))
+        } catch (e: Exception) {
+            return response.finish(status = MPDBaseResponse.Status.ERROR_NET, exception = e)
+        }
+
+        while (true) {
+            try {
+                line = readLine()
+            } catch (e: Exception) {
+                return response.finish(status = MPDBaseResponse.Status.ERROR_NET, exception = e)
+            }
+            if (line != null) {
+                if (line == "OK")
+                    return response.finish(status = MPDBaseResponse.Status.OK)
+                else if (line.startsWith("ACK ")) {
+                    return response.finish(
+                        status = MPDBaseResponse.Status.ERROR_MPD,
+                        error = line.substring(4)
+                    )
+                } else response.putLine(line)
+            } else return response.finish(status = MPDBaseResponse.Status.EMPTY_RESPONSE)
+        }
+    }
+
+    protected suspend fun <RT : MPDBaseResponse> withSocket(socket: Socket, onFinish: suspend () -> RT): RT {
         return withContext(Dispatchers.IO) {
             inputStream = socket.getInputStream()
             writer = PrintWriter(socket.getOutputStream())
-            getResponse()
+            onFinish()
         }
     }
 
@@ -117,7 +147,7 @@ abstract class MPDBaseCommand(
 
     override fun toString() = "${javaClass.simpleName}[${getCommand(command, args)}]"
 
-    override fun equals(other: Any?) = other is MPDBaseCommand && other.command == command && other.args == args
+    override fun equals(other: Any?) = other is MPDBaseCommand<*> && other.command == command && other.args == args
 
     override fun hashCode(): Int = 31 * command.hashCode() + args.hashCode()
 

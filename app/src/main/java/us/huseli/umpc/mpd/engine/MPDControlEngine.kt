@@ -3,12 +3,12 @@ package us.huseli.umpc.mpd.engine
 import androidx.annotation.IntRange
 import us.huseli.umpc.PlayerState
 import us.huseli.umpc.data.MPDAlbum
-import us.huseli.umpc.mpd.response.MPDResponse
 import us.huseli.umpc.data.MPDSong
 import us.huseli.umpc.mpd.MPDRepository
+import us.huseli.umpc.mpd.response.MPDMapResponse
 
 class MPDControlEngine(private val repo: MPDRepository) {
-    fun enqueueAlbumLast(album: MPDAlbum, onFinish: (MPDResponse) -> Unit) {
+    fun enqueueAlbumLast(album: MPDAlbum, onFinish: (MPDMapResponse) -> Unit) {
         repo.client.enqueue(album.searchFilter.findadd(), onFinish = onFinish)
     }
 
@@ -18,7 +18,7 @@ class MPDControlEngine(private val repo: MPDRepository) {
         }
     }
 
-    fun enqueueSongLast(song: MPDSong, onFinish: (MPDResponse) -> Unit) {
+    fun enqueueSongLast(song: MPDSong, onFinish: (MPDMapResponse) -> Unit) {
         repo.client.enqueue("add", song.filename, onFinish)
     }
 

@@ -1,9 +1,15 @@
 package us.huseli.umpc.data
 
+import android.os.Parcelable
+import kotlinx.parcelize.IgnoredOnParcel
+import kotlinx.parcelize.Parcelize
 import us.huseli.umpc.mpd.MPDFilter
 import us.huseli.umpc.mpd.mpdFilter
 
-open class MPDAlbum(val artist: String, val name: String) {
+@Parcelize
+data class MPDAlbum(val artist: String, val name: String) : Parcelable {
+    @IgnoredOnParcel
+    @Transient
     val searchFilter: MPDFilter = mpdFilter { equals("album", name).and(equals("albumartist", artist)) }
 
     override fun equals(other: Any?) =

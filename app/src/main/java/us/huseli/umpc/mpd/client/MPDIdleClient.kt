@@ -4,12 +4,12 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import us.huseli.umpc.mpd.command.MPDCommand
-import us.huseli.umpc.mpd.response.MPDResponse
+import us.huseli.umpc.mpd.command.MPDMapCommand
+import us.huseli.umpc.mpd.response.MPDMapResponse
 
 class MPDIdleClient(ioScope: CoroutineScope) : MPDClient(ioScope) {
-    fun start(onFinish: (MPDResponse) -> Unit) {
-        val command = MPDCommand("idle")
+    fun start(onFinish: (MPDMapResponse) -> Unit) {
+        val command = MPDMapCommand("idle")
 
         workerScope.launch {
             while (isActive) {

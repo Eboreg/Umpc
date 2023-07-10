@@ -16,6 +16,8 @@ class PlaylistListViewModel @Inject constructor(repo: MPDRepository) : BaseViewM
     val displayType = _displayType.asStateFlow()
     val dynamicPlaylists = repo.engines.playlist.dynamicPlaylists
 
+    fun activateDynamicPlaylist(playlist: DynamicPlaylist) = repo.engines.playlist.activateDynamicPlaylist(playlist)
+
     fun createDynamicPlaylist(name: String, filter: DynamicPlaylistFilter, shuffle: Boolean) =
         repo.engines.playlist.createDynamicPlaylist(name, filter, shuffle)
 

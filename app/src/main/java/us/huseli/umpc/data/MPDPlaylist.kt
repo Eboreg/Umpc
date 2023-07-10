@@ -1,5 +1,6 @@
 package us.huseli.umpc.data
 
+import us.huseli.umpc.toInstant
 import java.time.Instant
 
 open class MPDPlaylist(val name: String, val lastModified: Instant? = null) {
@@ -17,17 +18,9 @@ class MPDPlaylistWithSongs(val playlist: MPDPlaylist, val songs: List<MPDSong>) 
 }
 
 fun Map<String, String>.toMPDPlaylist() = try {
-    val lastModified = this["Last-Modified"]?.let {
-        try {
-            Instant.parse(it)
-        } catch (e: Exception) {
-            null
-        }
-    }
-
     MPDPlaylist(
         name = this["playlist"]!!,
-        lastModified = lastModified,
+        lastModified = this["Last-Modified"]?.toInstant(),
     )
 } catch (e: NullPointerException) {
     null
