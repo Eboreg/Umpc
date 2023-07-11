@@ -1,13 +1,11 @@
 package us.huseli.umpc.mpd.response
 
-import android.util.Log
-import us.huseli.umpc.LoggerInterface
-
-abstract class MPDBaseResponse : LoggerInterface {
+abstract class MPDBaseResponse {
     enum class Status { PENDING, OK, ERROR_MPD, ERROR_NET, ERROR_OTHER, EMPTY_RESPONSE }
 
     var status = Status.PENDING
         private set
+    @Suppress("MemberVisibilityCanBePrivate")
     var exception: Throwable? = null
         private set
     var error: String? = null
@@ -25,7 +23,6 @@ abstract class MPDBaseResponse : LoggerInterface {
         this.status = status
         this.exception = exception
         this.error = error
-        log("FINISH $this", level = if (status == Status.OK) Log.INFO else Log.ERROR)
         return this as RT
     }
 

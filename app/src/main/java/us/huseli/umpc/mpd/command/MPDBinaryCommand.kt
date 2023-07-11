@@ -9,7 +9,7 @@ class MPDBinaryCommand(
     args: Collection<String> = emptyList(),
     onFinish: ((MPDBinaryResponse) -> Unit)? = null,
 ) : MPDBaseCommand<MPDBinaryResponse>(command, args, onFinish) {
-    override suspend fun execute(socket: Socket): MPDBinaryResponse {
+    override suspend fun getResponse(socket: Socket): MPDBinaryResponse {
         return withSocket(socket) { getBinaryResponse() }
     }
 

@@ -8,7 +8,7 @@ class MPDMultiMapCommand(
     args: Collection<String> = emptyList(),
     onFinish: ((MPDMultiMapResponse) -> Unit)? = null,
 ) : MPDBaseCommand<MPDMultiMapResponse>(command, args, onFinish) {
-    override suspend fun execute(socket: Socket): MPDMultiMapResponse {
+    override suspend fun getResponse(socket: Socket): MPDMultiMapResponse {
         return withSocket(socket) {
             fillTextResponse(MPDMultiMapResponse())
         }

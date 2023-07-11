@@ -29,12 +29,27 @@ abstract class MPDBaseCommand<RT : MPDBaseResponse>(
     private lateinit var inputStream: InputStream
     private lateinit var writer: PrintWriter
 
-    abstract suspend fun execute(socket: Socket): RT
+    /**************************************************************************
+     * ABSTRACT METHODS
+     *************************************************************************/
+    abstract suspend fun getResponse(socket: Socket): RT
 
-    suspend fun <RT : MPDBaseTextResponse> fillTextResponse(response: RT): RT {
+    /**************************************************************************
+     * PUBLIC METHODS
+     *************************************************************************/
+    suspend fun execute(socket: Socket): RT {
+        log("START $this")
+        val response = getResponse(socket)
+        log("FINISH $this, response=$response", level = if (response.isSuccess) Log.INFO else Log.ERROR)
+        return response
+    }
+
+    /**************************************************************************
+     * PROTECTED METHODS
+     *************************************************************************/
+    protected suspend fun <RT : MPDBaseTextResponse> fillTextResponse(response: RT): RT {
         var line: String?
 
-        log("START $this")
         try {
             writeLine(getCommand(command, args))
         } catch (e: Exception) {
@@ -57,30 +72,6 @@ abstract class MPDBaseCommand<RT : MPDBaseResponse>(
                     )
                 } else response.putLine(line)
             } else return response.finish(status = MPDBaseResponse.Status.EMPTY_RESPONSE)
-        }
-    }
-
-    protected suspend fun <RT : MPDBaseResponse> withSocket(socket: Socket, onFinish: suspend () -> RT): RT {
-        return withContext(Dispatchers.IO) {
-            inputStream = socket.getInputStream()
-            writer = PrintWriter(socket.getOutputStream())
-            onFinish()
-        }
-    }
-
-    private fun dataReady(): Int = readBufferWritePos - readBufferReadPos
-
-    @Suppress("LiftReturnOrAssignment")
-    private suspend fun fillReadBuffer() {
-        withContext(Dispatchers.IO) {
-            try {
-                readBufferWritePos = max(inputStream.read(readBuffer, 0, READ_BUFFER_SIZE), 0)
-            } catch (e: Exception) {
-                log("fillReadBuffer: $e, cause=${e.cause}", Log.ERROR)
-                readBufferWritePos = 0
-                // throw MPDCommandException(e)
-            }
-            readBufferReadPos = 0
         }
     }
 
@@ -125,6 +116,38 @@ abstract class MPDBaseCommand<RT : MPDBaseResponse>(
         return lineBuffer.toString().takeIf { it.isNotEmpty() }
     }
 
+    protected suspend fun <RT : MPDBaseResponse> withSocket(socket: Socket, onFinish: suspend () -> RT): RT {
+        return withContext(Dispatchers.IO) {
+            inputStream = socket.getInputStream()
+            writer = PrintWriter(socket.getOutputStream())
+            onFinish()
+        }
+    }
+
+    protected fun writeLine(line: String) {
+        writer.println(line)
+        writer.flush()
+    }
+
+    /**************************************************************************
+     * PRIVATE METHODS
+     *************************************************************************/
+    private fun dataReady(): Int = readBufferWritePos - readBufferReadPos
+
+    @Suppress("LiftReturnOrAssignment")
+    private suspend fun fillReadBuffer() {
+        withContext(Dispatchers.IO) {
+            try {
+                readBufferWritePos = max(inputStream.read(readBuffer, 0, READ_BUFFER_SIZE), 0)
+            } catch (e: Exception) {
+                log("fillReadBuffer: $e, cause=${e.cause}", Log.ERROR)
+                readBufferWritePos = 0
+                // throw MPDCommandException(e)
+            }
+            readBufferReadPos = 0
+        }
+    }
+
     @Suppress("SameParameterValue")
     private suspend fun skipBytes(size: Int) {
         var dataRead = 0
@@ -140,11 +163,9 @@ abstract class MPDBaseCommand<RT : MPDBaseResponse>(
         }
     }
 
-    protected fun writeLine(line: String) {
-        writer.println(line)
-        writer.flush()
-    }
-
+    /**************************************************************************
+     * OVERRIDDEN METHODS
+     *************************************************************************/
     override fun toString() = "${javaClass.simpleName}[${getCommand(command, args)}]"
 
     override fun equals(other: Any?) = other is MPDBaseCommand<*> && other.command == command && other.args == args
