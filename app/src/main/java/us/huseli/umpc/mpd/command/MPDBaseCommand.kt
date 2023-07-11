@@ -152,13 +152,8 @@ abstract class MPDBaseCommand<RT : MPDBaseResponse>(
     override fun hashCode(): Int = 31 * command.hashCode() + args.hashCode()
 
     companion object {
-        val responseRegex = Regex("^([^:]*): (.*)$")
-
         fun getCommand(command: String, args: Collection<String> = emptyList()) =
             if (args.isEmpty()) command
             else "$command ${args.joinToString(" ") { "\"${MPDFilterContext.escape(it)}\"" }}"
-
-        fun parseResponseLine(line: String): Pair<String, String>? =
-            responseRegex.find(line)?.groupValues?.let { if (it.size == 3) it[1] to it[2] else null }
     }
 }

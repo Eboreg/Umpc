@@ -7,6 +7,7 @@ object Constants {
     const val NAV_ARG_ALBUM = "album"
     const val NAV_ARG_ARTIST = "artist"
     const val NAV_ARG_PLAYLIST = "playlist"
+    const val PREF_ACTIVE_DYNAMIC_PLAYLIST = "activeDynamicPlaylist"
     const val PREF_DYNAMIC_PLAYLISTS = "dynamicPlaylists"
     const val PREF_HOSTNAME = "hostname"
     const val PREF_OUTPUTS_ENABLED = "outputsEnabled"

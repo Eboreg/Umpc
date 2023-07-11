@@ -5,10 +5,10 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.sharp.Pause
 import androidx.compose.material.icons.sharp.PlayArrow
-import androidx.compose.material.icons.sharp.QueueMusic
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalAbsoluteTonalElevation
@@ -25,7 +25,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -45,20 +44,14 @@ fun SmallSongRowContent(
     showYear: Boolean = true,
     playerState: PlayerState?,
     onPlayPauseClick: () -> Unit,
-    onEnqueueClick: () -> Unit,
-    showEnqueueButton: Boolean = true,
 ) {
     val durationAndYear = listOfNotNull(
         song.duration?.formatDuration(),
         if (showYear) song.year?.toString() else null,
     )
     val numbers =
-        if (song.discNumber != null && song.trackNumber != null) String.format(
-            "%d-%2d",
-            song.discNumber,
-            song.trackNumber
-        )
-        else if (song.trackNumber != null) String.format("%2d", song.trackNumber)
+        if (song.discNumber != null && song.trackNumber != null) "${song.discNumber}-${song.trackNumber}"
+        else if (song.trackNumber != null) song.trackNumber.toString()
         else null
 
     Row(
@@ -69,9 +62,8 @@ fun SmallSongRowContent(
         numbers?.let {
             Text(
                 text = it,
-                modifier = Modifier.padding(end = 5.dp),
+                modifier = Modifier.width(30.dp).padding(end = 5.dp),
                 style = MaterialTheme.typography.bodySmall,
-                fontFamily = FontFamily.Monospace,
             )
         }
         Column(modifier = Modifier.weight(1f)) {
@@ -98,17 +90,10 @@ fun SmallSongRowContent(
                 }
             }
         }
-        Row(horizontalArrangement = Arrangement.End) {
-            if (showEnqueueButton) {
-                IconButton(onClick = onEnqueueClick) {
-                    Icon(Icons.Sharp.QueueMusic, stringResource(R.string.enqueue))
-                }
-            }
-            IconButton(onClick = onPlayPauseClick) {
-                if (isCurrentSong && playerState == PlayerState.PLAY)
-                    Icon(Icons.Sharp.Pause, stringResource(R.string.pause))
-                else Icon(Icons.Sharp.PlayArrow, stringResource(R.string.play))
-            }
+        IconButton(onClick = onPlayPauseClick) {
+            if (isCurrentSong && playerState == PlayerState.PLAY)
+                Icon(Icons.Sharp.Pause, stringResource(R.string.pause))
+            else Icon(Icons.Sharp.PlayArrow, stringResource(R.string.play))
         }
     }
 }
@@ -126,7 +111,6 @@ fun SmallSongRow(
     onEnqueueClick: () -> Unit,
     onGotoAlbumClick: (() -> Unit)? = null,
     onGotoArtistClick: (() -> Unit)? = null,
-    showEnqueueButton: Boolean = true,
 ) {
     var isExpanded by rememberSaveable { mutableStateOf(false) }
     val tonalElevation = LocalAbsoluteTonalElevation.current + if (isCurrentSong) 5.dp else 0.dp
@@ -157,8 +141,6 @@ fun SmallSongRow(
                     showYear = showYear,
                     playerState = playerState,
                     onPlayPauseClick = onPlayPauseClick,
-                    onEnqueueClick = onEnqueueClick,
-                    showEnqueueButton = showEnqueueButton,
                 )
             }
         }

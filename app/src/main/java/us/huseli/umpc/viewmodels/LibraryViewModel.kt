@@ -69,9 +69,6 @@ class LibraryViewModel @Inject constructor(repo: MPDRepository) : BaseViewModel(
     fun getAlbumWithSongsByAlbum(album: MPDAlbum, callback: (MPDAlbumWithSongs) -> Unit) =
         repo.getAlbumWithSongsByAlbum(album, callback)
 
-    fun getAlbumsWithSongsByAlbumArtist(artist: String, onFinish: (List<MPDAlbumWithSongs>) -> Unit) =
-        repo.fetchAlbumWithSongsListByAlbumArtist(artist, onFinish)
-
     fun getThumbnail(album: MPDAlbumWithSongs, callback: (MPDAlbumArt) -> Unit) = viewModelScope.launch {
         repo.engines.image.getAlbumArt(album.albumArtKey, ImageRequestType.THUMBNAIL, callback)
     }

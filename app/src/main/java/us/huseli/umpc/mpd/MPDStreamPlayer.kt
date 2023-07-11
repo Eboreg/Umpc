@@ -26,8 +26,18 @@ class MPDStreamPlayer @Inject constructor(@ApplicationContext private val contex
         preferences.registerOnSharedPreferenceChangeListener(this)
     }
 
+    suspend fun toggle(): Boolean {
+        return if (_isStreaming.value) {
+            stop()
+            false
+        } else {
+            start()
+            true
+        }
+    }
+
     @Suppress("RedundantSuspendModifier")
-    suspend fun start() {
+    private suspend fun start() {
         url?.let {
             exoPlayer?.release()
 
@@ -41,23 +51,13 @@ class MPDStreamPlayer @Inject constructor(@ApplicationContext private val contex
     }
 
     @Suppress("RedundantSuspendModifier")
-    suspend fun stop() {
+    private suspend fun stop() {
         exoPlayer?.apply {
             stop()
             release()
         }
         _isStreaming.value = false
         exoPlayer = null
-    }
-
-    suspend fun toggle(): Boolean {
-        return if (_isStreaming.value) {
-            stop()
-            false
-        } else {
-            start()
-            true
-        }
     }
 
     override fun onSharedPreferenceChanged(sharedPreferences: SharedPreferences?, key: String?) {

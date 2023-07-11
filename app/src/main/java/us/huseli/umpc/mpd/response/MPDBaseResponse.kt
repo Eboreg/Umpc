@@ -31,4 +31,11 @@ abstract class MPDBaseResponse : LoggerInterface {
 
     override fun toString() =
         "${javaClass.simpleName}[status=$status, error=$error]"
+
+    companion object {
+        val responseRegex = Regex("^([^:]*): (.*)$")
+
+        fun parseResponseLine(line: String): Pair<String, String>? =
+            responseRegex.find(line)?.groupValues?.let { if (it.size == 3) it[1] to it[2] else null }
+    }
 }

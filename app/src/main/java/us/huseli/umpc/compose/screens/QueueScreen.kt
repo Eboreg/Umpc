@@ -1,16 +1,22 @@
 package us.huseli.umpc.compose.screens
 
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.sharp.ExpandLess
+import androidx.compose.material.icons.sharp.ExpandMore
 import androidx.compose.material3.Badge
 import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ShapeDefaults
 import androidx.compose.material3.Surface
@@ -28,6 +34,7 @@ import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -40,6 +47,7 @@ import org.burnoutcrew.reorderable.reorderable
 import us.huseli.umpc.R
 import us.huseli.umpc.compose.LargeSongRow
 import us.huseli.umpc.compose.utils.ListWithScrollbar
+import us.huseli.umpc.compose.utils.SmallOutlinedButton
 import us.huseli.umpc.data.MPDAlbum
 import us.huseli.umpc.formatDuration
 import us.huseli.umpc.viewmodels.QueueViewModel
@@ -59,6 +67,8 @@ fun QueueScreen(
     val playerState by viewModel.playerState.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
     var totalDuration by rememberSaveable { mutableStateOf(0.0) }
+    var isSubmenuExpanded by rememberSaveable { mutableStateOf(false) }
+    val queueClearedMsg = stringResource(R.string.the_queue_was_cleared)
 
     // Somehow, this setup makes it so the list can both be manually reordered
     // _and_ get updated when it's changed externally. Don't really understand
@@ -85,13 +95,41 @@ fun QueueScreen(
 
     Column(modifier = modifier.fillMaxWidth()) {
         Surface(tonalElevation = 2.dp, modifier = Modifier.fillMaxWidth()) {
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(10.dp),
-                horizontalArrangement = Arrangement.SpaceAround,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Badge { Text(pluralStringResource(R.plurals.x_songs, localQueue.size, localQueue.size)) }
-                Badge { Text(totalDuration.formatDuration()) }
+            Column(modifier = modifier.fillMaxWidth()) {
+                if (isSubmenuExpanded) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(10.dp),
+                        horizontalArrangement = Arrangement.SpaceAround,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        SmallOutlinedButton(
+                            onClick = { viewModel.clearQueue { viewModel.addMessage(queueClearedMsg) } },
+                            content = { Text(stringResource(R.string.clear_queue)) }
+                        )
+                    }
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(10.dp),
+                    horizontalArrangement = Arrangement.SpaceAround,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
+                        Badge { Text(pluralStringResource(R.plurals.x_songs, localQueue.size, localQueue.size)) }
+                    }
+                    Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
+                        Icon(
+                            imageVector = if (isSubmenuExpanded) Icons.Sharp.ExpandLess else Icons.Sharp.ExpandMore,
+                            contentDescription = null,
+                            modifier = Modifier
+                                .height(16.dp)
+                                .fillMaxWidth()
+                                .clickable { isSubmenuExpanded = !isSubmenuExpanded },
+                        )
+                    }
+                    Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
+                        Badge { Text(totalDuration.formatDuration()) }
+                    }
+                }
             }
         }
 

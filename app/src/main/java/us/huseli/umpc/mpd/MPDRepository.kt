@@ -8,8 +8,6 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import us.huseli.umpc.LoggerInterface
@@ -131,9 +129,10 @@ class MPDRepository @Inject constructor(
         }
 
         ioScope.launch {
-            // Fetch current song info as soon as it changes.
-            _currentSongPosition.filterNotNull().distinctUntilChanged().collect {
-                loadCurrentSong()
+            // Fetch (or empty) current song info as soon as it changes.
+            _currentSongPosition.collect {
+                if (it != null) loadCurrentSong()
+                else _currentSong.value = null
             }
         }
 
@@ -159,35 +158,6 @@ class MPDRepository @Inject constructor(
 
     fun registerOnMPDChangeListener(listener: OnMPDChangeListener) {
         onMPDChangeListeners.add(listener)
-    }
-
-    fun fetchAlbumWithSongsListByAlbumArtist(artist: String, onFinish: (List<MPDAlbumWithSongs>) -> Unit) {
-        /**
-         * In: 1 artist. Out: All albums where that artist is an _album artist_
-         * (i.e. not just featured on a couple of songs), and all their songs.
-         * Used in LibraryScreen, ARTIST grouping.
-         * Will update this._albumsWithSongs.
-         */
-        fetchSongListByAlbumArtist(artist) { songs ->
-            onFinish(songs.groupByAlbum().sortedByYear())
-        }
-    }
-
-    fun fetchAlbumWithSongsListByArtist(artist: String, onFinish: (List<MPDAlbumWithSongs>) -> Unit) {
-        /**
-         * Searches both artist and album artist tags.
-         * Because we cannot do OR queries, we have to resort to this
-         * inefficient bullshit in order to search both artist & albumartist.
-         */
-        client.enqueueMultiMap(mpdFind { equals("artist", artist) }) { response ->
-            val songs = response.extractSongs().toMutableSet()
-
-            addSongs(songs)
-            fetchSongListByAlbumArtist(artist) {
-                songs.addAll(it)
-                onFinish(songs.groupByAlbum())
-            }
-        }
     }
 
     fun fetchAlbumWithSongsListsByArtist(
@@ -244,29 +214,6 @@ class MPDRepository @Inject constructor(
                 onFinish(it)
                 // addSongs(it)
                 _albumsWithSongs.value = _albumsWithSongs.value.plus(it.groupByAlbum())
-            }
-        }
-    }
-
-    fun fetchSongListByArtist(artist: String, onFinish: (List<MPDSong>) -> Unit) {
-        client.enqueueMultiMap(mpdFind { equals("artist", artist) }) { response ->
-            // We got songs where this artist is in the "artist" tag:
-            val artistSongs = response.extractSongs().toMutableSet()
-            // Albums where the artist is _not_ the album artist:
-            val artistAlbums = artistSongs.filter { it.artist != it.album.artist }.groupByAlbum()
-            // Albums where the artist _is_ the album artist:
-            val albumArtistAlbums = artistSongs.filter { it.artist == it.album.artist }.groupByAlbum()
-            // The artistAlbums are likely not complete (as they contain songs
-            // by other artists), so the songs for those will have to be
-            // fetched separately:
-            fetchAlbumWithSongsListsByAlbumList(artistAlbums.map { it.album }) {
-
-            }
-
-            // addSongs(artistSongs)
-            fetchSongListByAlbumArtist(artist) {
-                artistSongs.addAll(it)
-                onFinish(artistSongs.toList())
             }
         }
     }

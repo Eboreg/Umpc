@@ -64,7 +64,7 @@ fun FadingImageBox(
     modifier: Modifier = Modifier,
     backgroundColor: Color = MaterialTheme.colorScheme.background,
     contentPadding: PaddingValues = PaddingValues(10.dp),
-    fadeStartY: Float = 0.75f,
+    fadeStartY: Float = 0f,
     verticalSpacing: Dp = 10.dp,
     image: @Composable BoxScope.() -> Unit,
     topContent: (@Composable ColumnScope.() -> Unit)? = null,

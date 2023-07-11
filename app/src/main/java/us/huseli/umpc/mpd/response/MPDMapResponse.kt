@@ -1,7 +1,5 @@
 package us.huseli.umpc.mpd.response
 
-import us.huseli.umpc.mpd.command.MPDBaseCommand
-
 class MPDMapResponse : MPDBaseTextResponse() {
     private val _responseMap = mutableMapOf<String, List<String>>()
 
@@ -11,8 +9,8 @@ class MPDMapResponse : MPDBaseTextResponse() {
     fun start() {}
 
     override fun putLine(line: String) {
-        if (MPDBaseCommand.responseRegex.matches(line)) {
-            MPDBaseCommand.parseResponseLine(line)?.let { (key, value) ->
+        if (responseRegex.matches(line)) {
+            parseResponseLine(line)?.let { (key, value) ->
                 _responseMap[key] = _responseMap[key]?.let { it + value } ?: listOf(value)
             }
         }

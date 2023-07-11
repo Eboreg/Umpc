@@ -8,12 +8,18 @@ import us.huseli.umpc.mpd.MPDRepository
 import us.huseli.umpc.mpd.response.MPDMapResponse
 
 class MPDControlEngine(private val repo: MPDRepository) {
+    fun clearQueue(onFinish: (MPDMapResponse) -> Unit) {
+        repo.client.enqueue("clear", onFinish = onFinish)
+    }
+
     fun enqueueAlbumLast(album: MPDAlbum, onFinish: (MPDMapResponse) -> Unit) {
         repo.client.enqueue(album.searchFilter.findadd(), onFinish = onFinish)
     }
 
     fun enqueueAlbumNextAndPlay(album: MPDAlbum) {
-        repo.client.enqueue(album.searchFilter.findadd(0)) { response ->
+        val position = if (repo.currentSongId.value != null) 0 else null
+
+        repo.client.enqueue(album.searchFilter.findadd(position)) { response ->
             if (response.isSuccess) repo.currentSongPosition.value?.let { playSongPosition(it + 1) }
         }
     }
@@ -23,8 +29,12 @@ class MPDControlEngine(private val repo: MPDRepository) {
     }
 
     fun enqueueSongNextAndPlay(song: MPDSong) {
-        repo.client.enqueue("addid", listOf(song.filename, "+0")) { response ->
-            response.responseMap["Id"]?.let { repo.client.enqueue("playid $it") }
+        val args =
+            if (repo.currentSongId.value != null) listOf(song.filename, "+0")
+            else listOf(song.filename)
+
+        repo.client.enqueue("addid", args) { response ->
+            response.responseMap["Id"]?.get(0).let { repo.client.enqueue("playid $it") }
         }
     }
 

@@ -54,8 +54,5 @@ fun Iterable<MPDSong>.sorted(): List<MPDSong> =
 fun Iterable<MPDSong>.filterByAlbum(artist: String, album: String): List<MPDSong> =
     this.filter { it.album.name == album && it.album.artist == artist }.sorted()
 
-fun Iterable<MPDSong>.filterByAlbum(album: MPDAlbum): List<MPDSong> =
-    this.filter { it.album == album }.sorted()
-
 fun Iterable<MPDSong>.groupByAlbum(): List<MPDAlbumWithSongs> =
     this.groupBy { it.album }.map { MPDAlbumWithSongs(it.key, it.value.sorted()) }

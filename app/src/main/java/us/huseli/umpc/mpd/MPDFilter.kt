@@ -12,7 +12,8 @@ open class MPDFilter(private val term: String) {
     fun find() = "find \"${MPDFilterContext.escape(term)}\""
     fun search() = "search \"${MPDFilterContext.escape(term)}\""
     fun findadd() = "findadd \"${MPDFilterContext.escape(term)}\""
-    fun findadd(position: Int): String {
+    fun findadd(position: Int? = null): String {
+        if (position == null) return findadd()
         val pos = if (position >= 0) "+${position}" else position.toString()
         return "findadd \"${MPDFilterContext.escape(term)}\" position $pos"
     }

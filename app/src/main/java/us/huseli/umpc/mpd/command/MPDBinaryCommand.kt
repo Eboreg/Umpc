@@ -42,7 +42,7 @@ class MPDBinaryCommand(
 
             // Inner loop handles individual server responses:
             while (line != null && !line.startsWith("OK")) {
-                parseResponseLine(line)?.also { (key, value) ->
+                MPDBaseResponse.parseResponseLine(line)?.also { (key, value) ->
                     if (firstRun && key == "size") {
                         length = value.toInt()
                         dataToRead = length

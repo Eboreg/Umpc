@@ -33,7 +33,6 @@ fun AlbumArtGrid(modifier: Modifier = Modifier, albumArtList: List<MPDAlbumArt>)
         Column(modifier = modifier.fillMaxWidth()) {
             slicedAlbumArtList.chunked(itemsPerRow).forEachIndexed { index, sublist ->
                 if (sublist.size > 1 || index == 0) {
-                    // Row(modifier = Modifier.height(screenWidth / sublist.size)) {
                     Row(modifier = Modifier.heightIn(min = 0.dp)) {
                         sublist.forEach { albumArt ->
                             Logger.log(
@@ -44,7 +43,7 @@ fun AlbumArtGrid(modifier: Modifier = Modifier, albumArtList: List<MPDAlbumArt>)
                                 bitmap = albumArt.fullImage,
                                 contentDescription = null,
                                 contentScale = ContentScale.Crop,
-                                modifier = Modifier.size(screenWidth / sublist.size) // .width(screenWidth / sublist.size) //.fillMaxHeight()
+                                modifier = Modifier.size(screenWidth / sublist.size)
                             )
                         }
                     }

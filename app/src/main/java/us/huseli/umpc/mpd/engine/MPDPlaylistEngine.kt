@@ -9,6 +9,7 @@ import com.google.gson.reflect.TypeToken
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import us.huseli.umpc.Constants.PREF_ACTIVE_DYNAMIC_PLAYLIST
 import us.huseli.umpc.Constants.PREF_DYNAMIC_PLAYLISTS
 import us.huseli.umpc.InstantAdapter
 import us.huseli.umpc.data.DynamicPlaylist
@@ -25,7 +26,9 @@ import java.time.Instant
 class MPDPlaylistEngine(private val repo: MPDRepository, context: Context, private val ioScope: CoroutineScope) :
     OnMPDChangeListener, SharedPreferences.OnSharedPreferenceChangeListener {
     private val preferences = PreferenceManager.getDefaultSharedPreferences(context)
+    private val cacheDir = context.cacheDir
     private val _storedPlaylists = MutableStateFlow<List<MPDPlaylist>>(emptyList())
+    private val _activeDynamicPlaylist = MutableStateFlow<DynamicPlaylist?>(null)
     private val _dynamicPlaylists = MutableStateFlow<List<DynamicPlaylist>>(emptyList())
     private var dynamicPlaylistState: DynamicPlaylistState? = null
     private val gson: Gson = GsonBuilder()
@@ -42,7 +45,7 @@ class MPDPlaylistEngine(private val repo: MPDRepository, context: Context, priva
     }
 
     fun activateDynamicPlaylist(playlist: DynamicPlaylist) {
-        dynamicPlaylistState = DynamicPlaylistState(playlist, repo, ioScope)
+        dynamicPlaylistState = DynamicPlaylistState(cacheDir, playlist, repo, ioScope)
     }
 
     fun addAlbumToStoredPlaylist(album: MPDAlbum, playlistName: String, onFinish: (MPDMapResponse) -> Unit) =
@@ -107,6 +110,14 @@ class MPDPlaylistEngine(private val repo: MPDRepository, context: Context, priva
         }
     }
 
+    private fun loadActiveDynamicPlaylist() {
+        val type = object : TypeToken<DynamicPlaylist>() {}
+
+        gson.fromJson(preferences.getString(PREF_ACTIVE_DYNAMIC_PLAYLIST, null), type)?.let {
+            _activeDynamicPlaylist.value = it
+        }
+    }
+
     private fun loadDynamicPlaylists() {
         val listType = object : TypeToken<List<DynamicPlaylist>>() {}
 
@@ -131,6 +142,9 @@ class MPDPlaylistEngine(private val repo: MPDRepository, context: Context, priva
     }
 
     override fun onSharedPreferenceChanged(sharedPreferences: SharedPreferences?, key: String?) {
-        if (key == PREF_DYNAMIC_PLAYLISTS) loadDynamicPlaylists()
+        when (key) {
+            PREF_DYNAMIC_PLAYLISTS -> loadDynamicPlaylists()
+            PREF_ACTIVE_DYNAMIC_PLAYLIST -> loadActiveDynamicPlaylist()
+        }
     }
 }

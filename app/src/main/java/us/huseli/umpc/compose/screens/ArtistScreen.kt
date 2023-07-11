@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Divider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -22,15 +21,11 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import us.huseli.umpc.PlayerState
 import us.huseli.umpc.R
 import us.huseli.umpc.compose.AlbumArtGrid
 import us.huseli.umpc.compose.AlbumRow
-import us.huseli.umpc.compose.SmallSongRow
 import us.huseli.umpc.compose.utils.FadingImageBox
 import us.huseli.umpc.data.MPDAlbum
-import us.huseli.umpc.data.MPDAlbumArt
-import us.huseli.umpc.data.MPDAlbumWithSongs
 import us.huseli.umpc.formatDuration
 import us.huseli.umpc.isInLandscapeMode
 import us.huseli.umpc.viewmodels.ArtistViewModel
@@ -59,8 +54,6 @@ fun ArtistScreen(
 ) {
     val albumArtistAlbums by viewModel.albumArtistAlbums.collectAsStateWithLifecycle()
     val nonAlbumArtistAlbums by viewModel.nonAlbumArtistAlbums.collectAsStateWithLifecycle()
-    val currentSongFilename by viewModel.currentSongFilename.collectAsStateWithLifecycle(null)
-    val playerState by viewModel.playerState.collectAsStateWithLifecycle()
     val albumArtMap by viewModel.albumArtMap.collectAsStateWithLifecycle()
     val songCount by viewModel.songCount.collectAsStateWithLifecycle(0)
     val totalDuration by viewModel.totalDuration.collectAsStateWithLifecycle(0.0)
@@ -112,13 +105,11 @@ fun ArtistScreen(
                 modifier = Modifier.padding(10.dp),
             )
             albumArtistAlbums.forEach { album ->
-                ArtistAlbumRow(
+                AlbumRow(
                     album = album,
-                    viewModel = viewModel,
-                    currentSongFilename = currentSongFilename,
-                    playerState = playerState,
-                    albumArtMap = albumArtMap,
-                    onGotoAlbumClick = onGotoAlbumClick,
+                    thumbnail = albumArtMap[album.album.name]?.thumbnail,
+                    showArtist = album.album.artist != viewModel.artist,
+                    onGotoAlbumClick = { onGotoAlbumClick(album.album) },
                 )
             }
         }
@@ -130,50 +121,13 @@ fun ArtistScreen(
                 modifier = Modifier.padding(10.dp),
             )
             nonAlbumArtistAlbums.forEach { album ->
-                ArtistAlbumRow(
+                AlbumRow(
                     album = album,
-                    viewModel = viewModel,
-                    currentSongFilename = currentSongFilename,
-                    playerState = playerState,
-                    albumArtMap = albumArtMap,
-                    onGotoAlbumClick = onGotoAlbumClick,
-                    isNonAlbumArtistAlbum = true,
+                    thumbnail = albumArtMap[album.album.name]?.thumbnail,
+                    showArtist = album.album.artist != viewModel.artist,
+                    onGotoAlbumClick = { onGotoAlbumClick(album.album) },
                 )
             }
-        }
-    }
-}
-
-
-@Composable
-fun ArtistAlbumRow(
-    album: MPDAlbumWithSongs,
-    viewModel: ArtistViewModel,
-    currentSongFilename: String?,
-    playerState: PlayerState?,
-    albumArtMap: Map<String, MPDAlbumArt>,
-    isNonAlbumArtistAlbum: Boolean = false,
-    onGotoAlbumClick: (MPDAlbum) -> Unit,
-) {
-    AlbumRow(
-        album = album,
-        thumbnail = albumArtMap[album.album.name]?.thumbnail,
-        showArtist = album.album.artist != viewModel.artist,
-        onEnqueueClick = { viewModel.enqueueAlbum(album.album) },
-        onPlayClick = { viewModel.playAlbum(album.album) },
-        onGotoAlbumClick = { onGotoAlbumClick(album.album) },
-    ) {
-        album.songs.forEach { song ->
-            Divider()
-            SmallSongRow(
-                song = song,
-                isCurrentSong = currentSongFilename == song.filename,
-                playerState = playerState,
-                showArtist = isNonAlbumArtistAlbum || song.artist != viewModel.artist,
-                onEnqueueClick = { viewModel.enqueueSong(song) },
-                onPlayPauseClick = { viewModel.playOrPauseSong(song) },
-                color = if (isNonAlbumArtistAlbum && song.artist != viewModel.artist) MaterialTheme.colorScheme.outline else MaterialTheme.colorScheme.onSurface,
-            )
         }
     }
 }

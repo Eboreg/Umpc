@@ -8,7 +8,6 @@ import us.huseli.umpc.data.toMPDAlbums
 import us.huseli.umpc.data.toMPDOutput
 import us.huseli.umpc.data.toMPDPlaylist
 import us.huseli.umpc.data.toMPDSong
-import us.huseli.umpc.mpd.command.MPDBaseCommand
 
 class MPDMultiMapResponse : MPDBaseTextResponse() {
     private val _responseMaps = mutableListOf<Map<String, List<String>>>()
@@ -19,8 +18,8 @@ class MPDMultiMapResponse : MPDBaseTextResponse() {
         get() = _responseMaps
 
     override fun putLine(line: String) {
-        if (MPDBaseCommand.responseRegex.matches(line)) {
-            MPDBaseCommand.parseResponseLine(line)?.let { (key, value) ->
+        if (responseRegex.matches(line)) {
+            parseResponseLine(line)?.let { (key, value) ->
                 if (_startKey == null) _startKey = key
                 else if (key == _startKey) {
                     _responseMaps.add(_currentMap)
