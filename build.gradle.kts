@@ -1,6 +1,3 @@
-val var1 by extra("umpc")
-val var2 by extra("Y3n6PZMgEuCG6tUY")
-val var3 by extra("PRb2QDU9bBAn4ppX")
 // Top-level build file where you can add configuration options common to all sub-projects/modules.
 plugins {
     id("com.android.application") version "8.0.2" apply false
@@ -8,4 +5,5 @@ plugins {
     id("org.jetbrains.kotlin.android") version "1.8.10" apply false
     id("org.jetbrains.kotlin.kapt") version "1.8.10" apply false
     id("com.google.dagger.hilt.android") version "2.46" apply false
+    id("com.google.protobuf") version "0.9.1" apply false
 }

@@ -61,7 +61,7 @@ fun QueueScreen(
     onGotoAlbumClick: (MPDAlbum) -> Unit,
     onGotoArtistClick: (String) -> Unit,
 ) {
-    val queue by viewModel.queue.collectAsStateWithLifecycle()
+    val queue by viewModel.queue.collectAsStateWithLifecycle(emptyList())
     val currentSongPosition by viewModel.currentSongPosition.collectAsStateWithLifecycle()
     val currentSongId by viewModel.currentSongId.collectAsStateWithLifecycle()
     val playerState by viewModel.playerState.collectAsStateWithLifecycle()

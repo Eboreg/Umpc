@@ -10,7 +10,6 @@ import kotlinx.coroutines.launch
 import us.huseli.umpc.Constants.NAV_ARG_ALBUM
 import us.huseli.umpc.Constants.NAV_ARG_ARTIST
 import us.huseli.umpc.ImageRequestType
-import us.huseli.umpc.data.AlbumArtKey
 import us.huseli.umpc.data.MPDAlbum
 import us.huseli.umpc.data.MPDAlbumWithSongs
 import us.huseli.umpc.mpd.MPDRepository
@@ -20,7 +19,7 @@ import javax.inject.Inject
 @HiltViewModel
 class AlbumViewModel @Inject constructor(
     repo: MPDRepository,
-    savedStateHandle: SavedStateHandle
+    savedStateHandle: SavedStateHandle,
 ) : BaseViewModel(repo) {
     private val albumArg: String = savedStateHandle.get<String>(NAV_ARG_ALBUM)!!
     private val artistArg: String = savedStateHandle.get<String>(NAV_ARG_ARTIST)!!
@@ -32,12 +31,16 @@ class AlbumViewModel @Inject constructor(
     val albumArt = _albumArt.asStateFlow()
 
     init {
-        repo.fetchSongListByAlbum(album) {
-            _albumWithSongs.value = MPDAlbumWithSongs(album, it)
-        }
-        viewModelScope.launch {
-            repo.engines.image.getAlbumArt(AlbumArtKey(artistArg, albumArg), ImageRequestType.FULL) {
-                _albumArt.value = it.fullImage
+        repo.fetchSongListByAlbum(album) { songs ->
+            val albumWithSongs = MPDAlbumWithSongs(album, songs)
+
+            _albumWithSongs.value = albumWithSongs
+            viewModelScope.launch {
+                albumWithSongs.albumArtKey?.let { albumArtKey ->
+                    repo.engines.image.getAlbumArt(albumArtKey, ImageRequestType.FULL) {
+                        _albumArt.value = it.fullImage
+                    }
+                }
             }
         }
     }

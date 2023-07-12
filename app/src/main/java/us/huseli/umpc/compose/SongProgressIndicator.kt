@@ -28,7 +28,7 @@ fun SongProgressIndicator(
         while (playerState == PlayerState.PLAY) {
             progress = getProgress(mutableElapsed, duration)
             delay(500)
-            mutableElapsed += 0.1
+            mutableElapsed += 0.5
         }
     }
 

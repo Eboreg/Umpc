@@ -8,6 +8,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import us.huseli.umpc.LoggerInterface
@@ -19,9 +20,11 @@ import us.huseli.umpc.data.MPDOutput
 import us.huseli.umpc.data.MPDSong
 import us.huseli.umpc.data.groupByAlbum
 import us.huseli.umpc.data.plus
+import us.huseli.umpc.data.queueDataStore
 import us.huseli.umpc.data.sortedByYear
 import us.huseli.umpc.data.toMPDSong
 import us.huseli.umpc.data.toMPDStatus
+import us.huseli.umpc.data.toNative
 import us.huseli.umpc.mpd.client.MPDBinaryClient
 import us.huseli.umpc.mpd.client.MPDClient
 import us.huseli.umpc.mpd.client.MPDClientException
@@ -46,7 +49,7 @@ class Engines(
 @Singleton
 class MPDRepository @Inject constructor(
     private val ioScope: CoroutineScope,
-    @ApplicationContext context: Context,
+    @ApplicationContext private val context: Context,
 ) : LoggerInterface {
     private var statusJob: Job? = null
     private val onMPDChangeListeners = mutableListOf<OnMPDChangeListener>()
@@ -65,10 +68,8 @@ class MPDRepository @Inject constructor(
     private val _currentBitrate = MutableStateFlow<Int?>(null)
     private val _outputs = MutableStateFlow<List<MPDOutput>>(emptyList())
     private val _playerState = MutableStateFlow(PlayerState.STOP)
-    private val _queue = MutableStateFlow<List<MPDSong>>(emptyList())
     private val _randomState = MutableStateFlow(false)
     private val _repeatState = MutableStateFlow(false)
-    private val _songs = MutableStateFlow<List<MPDSong>>(emptyList())
     private val _volume = MutableStateFlow(100)
 
     val engines: Engines
@@ -90,10 +91,9 @@ class MPDRepository @Inject constructor(
     val albums = _albums.asStateFlow()
     val outputs = _outputs.asStateFlow()
     val playerState = _playerState.asStateFlow()
-    val queue = _queue.asStateFlow()
+    val queue = context.queueDataStore.data.map { it.toNative() }
     val randomState = _randomState.asStateFlow()
     val repeatState = _repeatState.asStateFlow()
-    val songs = _songs.asStateFlow()
     val volume = _volume.asStateFlow()
 
     init {
@@ -212,7 +212,6 @@ class MPDRepository @Inject constructor(
         client.enqueueMultiMap(mpdFind { equals("albumartist", albumArtist) }) { response ->
             response.extractSongs().also {
                 onFinish(it)
-                // addSongs(it)
                 _albumsWithSongs.value = _albumsWithSongs.value.plus(it.groupByAlbum())
             }
         }
@@ -251,18 +250,6 @@ class MPDRepository @Inject constructor(
     // fun setConsumeState(state: ConsumeState) = client.value?.enqueue("consume ${state.value}")
     // fun setSingleState(state: SingleState) = client.value?.enqueue("single ${state.value}")
 
-    private fun addSongs(songs: Collection<MPDSong>) {
-        if (songs.isNotEmpty()) {
-            _songs.value = _songs.value.toMutableList().apply {
-                // Looks weird, but thanks to MPDSong's custom equals()
-                // method, we're actually replacing any old versions of
-                // songs with new ones.
-                removeAll(songs.toSet())
-                addAll(songs)
-            }
-        }
-    }
-
     private fun fetchAlbumWithSongsListsByAlbumList(
         albums: List<MPDAlbum>,
         onFinish: (List<MPDAlbumWithSongs>) -> Unit,
@@ -297,7 +284,6 @@ class MPDRepository @Inject constructor(
         client.enqueue("currentsong") { response ->
             _currentSong.value = response.responseMap.mapValues { it.value.first() }.toMPDSong()?.also { song ->
                 song.duration?.let { _currentSongDuration.value = it }
-                addSongs(listOf(song))
             }
         }
     }
@@ -314,8 +300,14 @@ class MPDRepository @Inject constructor(
     private fun loadQueue() {
         client.enqueueMultiMap("playlistinfo") { response ->
             response.extractSongs().also { songs ->
-                _queue.value = songs
-                addSongs(songs)
+                ioScope.launch {
+                    context.queueDataStore.updateData { currentQueue ->
+                        currentQueue.toBuilder()
+                            .clearSongs()
+                            .addAllSongs(songs.mapNotNull { it.toProto() })
+                            .build()
+                    }
+                }
             }
         }
     }

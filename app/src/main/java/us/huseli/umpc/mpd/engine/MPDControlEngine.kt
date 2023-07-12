@@ -8,7 +8,7 @@ import us.huseli.umpc.mpd.MPDRepository
 import us.huseli.umpc.mpd.response.MPDMapResponse
 
 class MPDControlEngine(private val repo: MPDRepository) {
-    fun clearQueue(onFinish: (MPDMapResponse) -> Unit) {
+    fun clearQueue(onFinish: ((MPDMapResponse) -> Unit)? = null) {
         repo.client.enqueue("clear", onFinish = onFinish)
     }
 
@@ -24,8 +24,11 @@ class MPDControlEngine(private val repo: MPDRepository) {
         }
     }
 
-    fun enqueueSongLast(song: MPDSong, onFinish: (MPDMapResponse) -> Unit) {
-        repo.client.enqueue("add", song.filename, onFinish)
+    fun enqueueSongLast(song: MPDSong, onFinish: ((MPDMapResponse) -> Unit)? = null) =
+        enqueueSongLast(song.filename, onFinish)
+
+    fun enqueueSongLast(filename: String, onFinish: ((MPDMapResponse) -> Unit)? = null) {
+        repo.client.enqueue("add", filename, onFinish)
     }
 
     fun enqueueSongNextAndPlay(song: MPDSong) {
@@ -44,7 +47,7 @@ class MPDControlEngine(private val repo: MPDRepository) {
 
     private fun pause() = repo.client.enqueue("pause 1")
 
-    fun play() = playSongPosition(repo.currentSongPosition.value ?: 0)
+    fun play(position: Int? = null) = playSongPosition(position ?: repo.currentSongPosition.value ?: 0)
 
     fun playOrPause() {
         when (repo.playerState.value) {

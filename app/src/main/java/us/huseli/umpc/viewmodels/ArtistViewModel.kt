@@ -40,7 +40,7 @@ class ArtistViewModel @Inject constructor(
             _nonAlbumArtistAlbums.value = nonAlbumArtistAlbums
 
             viewModelScope.launch {
-                val keys = (albumArtistAlbums + nonAlbumArtistAlbums).map { it.albumArtKey }
+                val keys = (albumArtistAlbums + nonAlbumArtistAlbums).mapNotNull { it.albumArtKey }
                 var finishedImages = 0
 
                 keys.forEach { key ->

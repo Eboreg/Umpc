@@ -1,5 +1,6 @@
 @file:Suppress("UnstableApiUsage")
 
+import com.google.protobuf.gradle.id
 import java.io.FileInputStream
 import java.util.Properties
 
@@ -13,6 +14,7 @@ plugins {
     id("org.jetbrains.kotlin.kapt")
     id("com.google.dagger.hilt.android")
     id("kotlin-parcelize")
+    id("com.google.protobuf")
 }
 
 kotlin {
@@ -38,6 +40,7 @@ android {
         targetSdk = 33
         versionCode = 1
         versionName = "1.0"
+        // multiDexEnabled = true
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
@@ -117,4 +120,30 @@ dependencies {
 
     // Gson:
     implementation("com.google.code.gson:gson:2.10.1")
+
+    // Paging:
+    implementation("androidx.paging:paging-compose:3.2.0-rc01")
+
+    // Datastore (Proto):
+    implementation("androidx.datastore:datastore:1.0.0")
+    implementation("com.google.protobuf:protobuf-javalite:3.23.4")
+}
+
+protobuf {
+    protoc {
+        artifact = "com.google.protobuf:protoc:3.23.4"
+    }
+
+    // Generates the java Protobuf-lite code for the Protobufs in this project. See
+    // https://github.com/google/protobuf-gradle-plugin#customizing-protobuf-compilation
+    // for more information.
+    generateProtoTasks {
+        all().forEach { task ->
+            task.builtins {
+                id("java") {
+                    option("lite")
+                }
+            }
+        }
+    }
 }

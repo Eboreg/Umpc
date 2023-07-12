@@ -11,10 +11,10 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import us.huseli.umpc.Constants.PREF_ACTIVE_DYNAMIC_PLAYLIST
 import us.huseli.umpc.Constants.PREF_DYNAMIC_PLAYLISTS
+import us.huseli.umpc.DynamicPlaylistState
 import us.huseli.umpc.InstantAdapter
 import us.huseli.umpc.data.DynamicPlaylist
 import us.huseli.umpc.data.DynamicPlaylistFilter
-import us.huseli.umpc.data.DynamicPlaylistState
 import us.huseli.umpc.data.MPDAlbum
 import us.huseli.umpc.data.MPDPlaylist
 import us.huseli.umpc.data.MPDSong
@@ -23,10 +23,13 @@ import us.huseli.umpc.mpd.OnMPDChangeListener
 import us.huseli.umpc.mpd.response.MPDMapResponse
 import java.time.Instant
 
-class MPDPlaylistEngine(private val repo: MPDRepository, context: Context, private val ioScope: CoroutineScope) :
+class MPDPlaylistEngine(
+    private val repo: MPDRepository,
+    private val context: Context,
+    private val ioScope: CoroutineScope,
+) :
     OnMPDChangeListener, SharedPreferences.OnSharedPreferenceChangeListener {
     private val preferences = PreferenceManager.getDefaultSharedPreferences(context)
-    private val cacheDir = context.cacheDir
     private val _storedPlaylists = MutableStateFlow<List<MPDPlaylist>>(emptyList())
     private val _activeDynamicPlaylist = MutableStateFlow<DynamicPlaylist?>(null)
     private val _dynamicPlaylists = MutableStateFlow<List<DynamicPlaylist>>(emptyList())
@@ -45,7 +48,7 @@ class MPDPlaylistEngine(private val repo: MPDRepository, context: Context, priva
     }
 
     fun activateDynamicPlaylist(playlist: DynamicPlaylist) {
-        dynamicPlaylistState = DynamicPlaylistState(cacheDir, playlist, repo, ioScope)
+        dynamicPlaylistState = DynamicPlaylistState(context, playlist, repo, ioScope)
     }
 
     fun addAlbumToStoredPlaylist(album: MPDAlbum, playlistName: String, onFinish: (MPDMapResponse) -> Unit) =

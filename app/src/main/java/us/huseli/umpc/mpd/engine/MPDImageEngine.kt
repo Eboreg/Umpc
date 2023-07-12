@@ -13,9 +13,7 @@ import kotlinx.coroutines.launch
 import us.huseli.umpc.Constants
 import us.huseli.umpc.ImageRequestType
 import us.huseli.umpc.data.AlbumArtKey
-import us.huseli.umpc.data.MPDAlbum
 import us.huseli.umpc.data.MPDAlbumArt
-import us.huseli.umpc.data.filterByAlbum
 import us.huseli.umpc.mpd.MPDRepository
 import us.huseli.umpc.toBitmap
 import java.io.ByteArrayInputStream
@@ -56,32 +54,11 @@ class MPDImageEngine(private val repo: MPDRepository, private val ioScope: Corou
         else if (thumbnail != null && fullImage != null)
             callback(MPDAlbumArt(key, fullImage = fullImage.asImageBitmap(), thumbnail = thumbnail.asImageBitmap()))
         else if (!_fetchedAlbumArtKeys.contains(key)) {
-            if (key.filename == null) {
-                // First we must have the filename of a song. Then try again.
-                // Perhaps a song already exists in _songs?
-                val song = repo.songs.value.filterByAlbum(key.albumArtist, key.album).firstOrNull()
-                if (song != null) {
+            repo.binaryClient.enqueueBinary("albumart", key.filename) { response ->
+                _fetchedAlbumArtKeys.add(key)
+                if (response.isSuccess) {
                     ioScope.launch {
-                        getAlbumArt(key.copy(filename = song.filename), requestType, callback)
-                    }
-                } else {
-                    // Otherwise, fetch songs.
-                    repo.fetchSongListByAlbum(MPDAlbum(key.albumArtist, key.album)) { songs ->
-                        songs.firstOrNull()?.let { song ->
-                            ioScope.launch {
-                                getAlbumArt(key.copy(filename = song.filename), requestType, callback)
-                            }
-                        }
-                    }
-                }
-            } else {
-                // We have a song filename, now we can fetch albumart:
-                repo.binaryClient.enqueueBinary("albumart", key.filename) { response ->
-                    _fetchedAlbumArtKeys.add(key)
-                    if (response.isSuccess) {
-                        ioScope.launch {
-                            saveAlbumArt(key = key, stream = response.stream, callback = callback)
-                        }
+                        saveAlbumArt(key = key, stream = response.stream, callback = callback)
                     }
                 }
             }

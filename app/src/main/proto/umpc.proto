@@ -1,0 +1,30 @@
+syntax = "proto3";
+package umpc;
+
+option java_package = "us.huseli.umpc.proto";
+option java_multiple_files = true;
+
+message MPDAlbumProto {
+    string artist = 1;
+    string name = 2;
+}
+
+message MPDSongProto {
+    string filename = 1;
+    int32 id = 2;
+    string artist = 3;
+    string title = 4;
+    optional int32 track_number = 5;
+    optional int32 disc_number = 6;
+    optional double duration = 7;
+    optional int32 year = 8;
+    MPDAlbumProto album = 9;
+}
+
+message DynamicPlaylistProto {
+    repeated string filenames = 1;
+}
+
+message QueueProto {
+    repeated MPDSongProto songs = 1;
+}

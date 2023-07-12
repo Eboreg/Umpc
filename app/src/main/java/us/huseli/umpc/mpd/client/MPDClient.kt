@@ -4,11 +4,10 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import us.huseli.umpc.LoggerInterface
 import us.huseli.umpc.data.MPDCredentials
@@ -33,8 +32,7 @@ class MPDClientException(
 open class MPDClient(private val ioScope: CoroutineScope) : LoggerInterface {
     enum class State { STARTED, PREPARED, READY, RUNNING, ERROR }
 
-    private val commandQueueMutex = Mutex()
-    private val commandQueue = mutableListOf<MPDBaseCommand<*>>()
+    private val commandQueue = MutableSharedFlow<MPDBaseCommand<*>>(replay = 20)
     private var credentials: MPDCredentials? = null
     private val wantedTagTypes = listOf(
         "Artist",
@@ -53,12 +51,6 @@ open class MPDClient(private val ioScope: CoroutineScope) : LoggerInterface {
     protected val state = MutableStateFlow(State.STARTED)
     protected var socket = Socket()
 
-    fun enqueueMultiMap(command: String, onFinish: ((MPDMultiMapResponse) -> Unit)? = null) =
-        enqueue(MPDMultiMapCommand(command, onFinish = onFinish))
-
-    fun enqueueMultiMap(command: String, arg: String, onFinish: ((MPDMultiMapResponse) -> Unit)? = null) =
-        enqueue(MPDMultiMapCommand(command, args = listOf(arg), onFinish = onFinish))
-
     fun enqueue(command: String, onFinish: ((MPDMapResponse) -> Unit)? = null) =
         enqueue(command, listOf(), onFinish)
 
@@ -73,14 +65,16 @@ open class MPDClient(private val ioScope: CoroutineScope) : LoggerInterface {
 
     fun <RT : MPDBaseResponse> enqueue(command: MPDBaseCommand<RT>) {
         ioScope.launch {
-            commandQueueMutex.withLock {
-                if (!commandQueue.contains(command)) {
-                    log("ENQUEUE $command, commandQueue2=$commandQueue")
-                    commandQueue.add(command)
-                }
-            }
+            log("ENQUEUE $command, commandQueue.replayCache=${commandQueue.replayCache}")
+            commandQueue.emit(command)
         }
     }
+
+    fun enqueueMultiMap(command: String, onFinish: ((MPDMultiMapResponse) -> Unit)? = null) =
+        enqueue(MPDMultiMapCommand(command, onFinish = onFinish))
+
+    fun enqueueMultiMap(command: String, arg: String, onFinish: ((MPDMultiMapResponse) -> Unit)? = null) =
+        enqueue(MPDMultiMapCommand(command, args = listOf(arg), onFinish = onFinish))
 
     fun setCredentials(credentials: MPDCredentials) {
         if (credentials != this.credentials) {
@@ -95,15 +89,14 @@ open class MPDClient(private val ioScope: CoroutineScope) : LoggerInterface {
                 when (state.value) {
                     State.PREPARED -> connect(failSilently = true)
                     State.READY -> {
-                        commandQueueMutex.withLock {
-                            if (commandQueue.isNotEmpty()) {
-                                state.value = State.RUNNING
-                                runCommand(commandQueue.removeFirst())
-                            }
+                        commandQueue.collect { command ->
+                            state.value = State.RUNNING
+                            runCommand(command)
                         }
                     }
-                    else -> delay(100)
+                    else -> {}
                 }
+                delay(100)
             }
         }
     }

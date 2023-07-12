@@ -18,8 +18,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import us.huseli.umpc.R
 import us.huseli.umpc.data.DynamicPlaylistFilter
-import us.huseli.umpc.data.DynamicPlaylistFilterComparator
-import us.huseli.umpc.data.DynamicPlaylistFilterKey
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -51,7 +49,7 @@ fun DynamicPlaylistFilterSection(
                 expanded = isKeyDropdownExpanded,
                 onDismissRequest = { isKeyDropdownExpanded = false },
             ) {
-                DynamicPlaylistFilterKey.values().forEach { key ->
+                DynamicPlaylistFilter.Key.values().forEach { key ->
                     DropdownMenuItem(
                         text = { Text(key.displayName) },
                         onClick = {
@@ -82,7 +80,7 @@ fun DynamicPlaylistFilterSection(
                 expanded = isComparatorDropdownExpanded,
                 onDismissRequest = { isComparatorDropdownExpanded = false },
             ) {
-                DynamicPlaylistFilterComparator.values().forEach { comparator ->
+                DynamicPlaylistFilter.Comparator.values().forEach { comparator ->
                     DropdownMenuItem(
                         text = { Text(comparator.displayName) },
                         onClick = {

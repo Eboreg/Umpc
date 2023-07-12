@@ -5,6 +5,7 @@ import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
 import us.huseli.umpc.mpd.MPDFilter
 import us.huseli.umpc.mpd.mpdFilter
+import us.huseli.umpc.proto.MPDAlbumProto
 
 @Parcelize
 data class MPDAlbum(val artist: String, val name: String) : Parcelable {
@@ -17,11 +18,16 @@ data class MPDAlbum(val artist: String, val name: String) : Parcelable {
 
     override fun hashCode() = 31 * artist.hashCode() + name.hashCode()
     override fun toString() = "${javaClass.simpleName}[artist: $artist, name: $name]"
+
+    fun toProto(): MPDAlbumProto? = MPDAlbumProto.newBuilder()
+        .setArtist(artist)
+        .setName(name)
+        .build()
 }
 
 data class MPDAlbumWithSongs(val album: MPDAlbum, val songs: List<MPDSong>) {
-    val albumArtKey: AlbumArtKey
-        get() = songs.firstOrNull()?.albumArtKey ?: AlbumArtKey(album.artist, album.name)
+    val albumArtKey: AlbumArtKey?
+        get() = songs.firstOrNull()?.albumArtKey
 
     val duration: Double? = songs.mapNotNull { it.duration }.takeIf { it.isNotEmpty() }?.sum()
     val yearRange: IntRange? =
