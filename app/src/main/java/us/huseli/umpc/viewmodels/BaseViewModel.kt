@@ -1,8 +1,5 @@
 package us.huseli.umpc.viewmodels
 
-import androidx.compose.runtime.State
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.ui.graphics.ImageBitmap
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -10,6 +7,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import us.huseli.umpc.ImageRequestType
 import us.huseli.umpc.data.MPDAlbum
+import us.huseli.umpc.data.MPDAlbumArt
 import us.huseli.umpc.data.MPDSong
 import us.huseli.umpc.mpd.MPDRepository
 
@@ -33,10 +31,8 @@ abstract class BaseViewModel(protected val repo: MPDRepository) : ViewModel() {
         else repo.engines.message.addMessage("Could not enqueue song: ${response.error}")
     }
 
-    fun getAlbumArtState(song: MPDSong): State<ImageBitmap?> = mutableStateOf<ImageBitmap?>(null).also { state ->
-        viewModelScope.launch {
-            repo.engines.image.getAlbumArt(song.albumArtKey, ImageRequestType.FULL) { state.value = it.fullImage }
-        }
+    fun getAlbumArt(song: MPDSong, callback: (MPDAlbumArt) -> Unit) = viewModelScope.launch {
+        repo.engines.image.getAlbumArt(song.albumArtKey, ImageRequestType.FULL, callback)
     }
 
     fun playAlbum(album: MPDAlbum?) = album?.let { repo.engines.control.enqueueAlbumNextAndPlay(album) }

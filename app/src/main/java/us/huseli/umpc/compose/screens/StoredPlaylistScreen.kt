@@ -23,8 +23,10 @@ import androidx.compose.material3.ShapeDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -205,7 +207,11 @@ fun StoredPlaylistScreen(
         }
         LazyColumn(state = listState) {
             items(songs) { song ->
-                val albumArt by viewModel.getAlbumArtState(song)
+                var albumArt by remember { mutableStateOf<ImageBitmap?>(null) }
+
+                LaunchedEffect(song) {
+                    viewModel.getAlbumArt(song) { albumArt = it.fullImage }
+                }
 
                 Divider()
                 StoredPlaylistSongRow(

@@ -22,6 +22,7 @@ data class MPDSong(
     val duration: Double?,
     val year: Int?,
     val audioFormat: MPDAudioFormat?,
+    val queuePosition: Int?,
 ) : Parcelable {
     @IgnoredOnParcel
     @Transient
@@ -57,6 +58,7 @@ fun Map<String, String>.toMPDSong() = try {
         duration = this["duration"]?.toDouble(),
         year = this["Date"]?.parseYear(),
         audioFormat = this["Format"]?.toMPDAudioFormat(),
+        queuePosition = this["Pos"]?.toInt(),
     )
 } catch (e: NullPointerException) {
     Logger.log("MPDSong", "$e, $this", Log.ERROR)
@@ -68,3 +70,5 @@ fun Iterable<MPDSong>.sorted(): List<MPDSong> =
 
 fun Iterable<MPDSong>.groupByAlbum(): List<MPDAlbumWithSongs> =
     this.groupBy { it.album }.map { MPDAlbumWithSongs(it.key, it.value.sorted()) }
+
+fun Iterable<MPDSong>.toProto(): List<MPDSongProto> = this.mapNotNull { it.toProto() }

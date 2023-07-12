@@ -10,7 +10,14 @@ class MPDBinaryCommand(
     onFinish: ((MPDBinaryResponse) -> Unit)? = null,
 ) : MPDBaseCommand<MPDBinaryResponse>(command, args, onFinish) {
     override suspend fun getResponse(socket: Socket): MPDBinaryResponse {
-        return withSocket(socket) { getBinaryResponse() }
+        return try {
+            withSocket(socket) { getBinaryResponse() }
+        } catch (e: Exception) {
+            MPDBinaryResponse().finish(
+                status = MPDBaseResponse.Status.ERROR_NET,
+                exception = e,
+            )
+        }
     }
 
     private suspend fun getBinaryResponse(): MPDBinaryResponse {

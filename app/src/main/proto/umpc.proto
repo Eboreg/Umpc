@@ -19,6 +19,7 @@ message MPDSongProto {
     optional double duration = 7;
     optional int32 year = 8;
     MPDAlbumProto album = 9;
+    optional int32 queuePosition = 10;
 }
 
 message DynamicPlaylistProto {

@@ -13,11 +13,15 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.layout.onPlaced
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
@@ -77,7 +81,11 @@ fun SearchScreen(
         } else {
             LazyColumn(state = viewModel.listState) {
                 items(searchResults) { song ->
-                    val albumArt by viewModel.getAlbumArtState(song)
+                    var albumArt by remember { mutableStateOf<ImageBitmap?>(null) }
+
+                    LaunchedEffect(song) {
+                        viewModel.getAlbumArt(song) { albumArt = it.fullImage }
+                    }
 
                     Divider()
                     LargeSongRow(

@@ -33,6 +33,7 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -143,11 +144,15 @@ fun QueueScreen(
                     Divider()
 
                     ReorderableItem(reorderableState, key = song.id) { isDragging ->
-                        val albumArt by viewModel.getAlbumArtState(song)
                         val rowModifier =
                             if (isDragging)
                                 Modifier.border(1.dp, MaterialTheme.colorScheme.outline, ShapeDefaults.ExtraSmall)
                             else Modifier
+                        var albumArt by remember { mutableStateOf<ImageBitmap?>(null) }
+
+                        LaunchedEffect(song) {
+                            viewModel.getAlbumArt(song) { albumArt = it.fullImage }
+                        }
 
                         LargeSongRow(
                             modifier = rowModifier,

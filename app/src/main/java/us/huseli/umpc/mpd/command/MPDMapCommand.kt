@@ -1,5 +1,6 @@
 package us.huseli.umpc.mpd.command
 
+import us.huseli.umpc.mpd.response.MPDBaseResponse
 import us.huseli.umpc.mpd.response.MPDMapResponse
 import java.net.Socket
 
@@ -12,8 +13,13 @@ class MPDMapCommand(
         this(command, listOf(arg), onFinish)
 
     override suspend fun getResponse(socket: Socket): MPDMapResponse {
-        return withSocket(socket) {
-            fillTextResponse(MPDMapResponse())
+        return try {
+            withSocket(socket) { fillTextResponse(MPDMapResponse()) }
+        } catch (e: Exception) {
+            MPDMapResponse().finish(
+                status = MPDBaseResponse.Status.ERROR_NET,
+                exception = e,
+            )
         }
     }
 }

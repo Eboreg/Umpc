@@ -25,6 +25,7 @@ import us.huseli.umpc.data.sortedByYear
 import us.huseli.umpc.data.toMPDSong
 import us.huseli.umpc.data.toMPDStatus
 import us.huseli.umpc.data.toNative
+import us.huseli.umpc.data.toProto
 import us.huseli.umpc.mpd.client.MPDBinaryClient
 import us.huseli.umpc.mpd.client.MPDClient
 import us.huseli.umpc.mpd.client.MPDClientException
@@ -304,7 +305,7 @@ class MPDRepository @Inject constructor(
                     context.queueDataStore.updateData { currentQueue ->
                         currentQueue.toBuilder()
                             .clearSongs()
-                            .addAllSongs(songs.mapNotNull { it.toProto() })
+                            .addAllSongs(songs.toProto())
                             .build()
                     }
                 }

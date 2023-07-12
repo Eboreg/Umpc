@@ -8,6 +8,8 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import us.huseli.umpc.LoggerInterface
 import us.huseli.umpc.data.MPDCredentials
@@ -33,6 +35,7 @@ open class MPDClient(private val ioScope: CoroutineScope) : LoggerInterface {
     enum class State { STARTED, PREPARED, READY, RUNNING, ERROR }
 
     private val commandQueue = MutableSharedFlow<MPDBaseCommand<*>>(replay = 20)
+    private val commandMutex = Mutex()
     private var credentials: MPDCredentials? = null
     private val wantedTagTypes = listOf(
         "Artist",
@@ -88,12 +91,7 @@ open class MPDClient(private val ioScope: CoroutineScope) : LoggerInterface {
             while (isActive) {
                 when (state.value) {
                     State.PREPARED -> connect(failSilently = true)
-                    State.READY -> {
-                        commandQueue.collect { command ->
-                            state.value = State.RUNNING
-                            runCommand(command)
-                        }
-                    }
+                    State.READY -> commandQueue.collect { command -> runCommand(command) }
                     else -> {}
                 }
                 delay(100)
@@ -143,7 +141,7 @@ open class MPDClient(private val ioScope: CoroutineScope) : LoggerInterface {
     private suspend fun <RT : MPDBaseResponse> runCommand(command: MPDBaseCommand<RT>) {
         try {
             state.value = State.RUNNING
-            val response = command.execute(socket)
+            val response = commandMutex.withLock { command.execute(socket) }
             if (response.status == MPDBaseResponse.Status.EMPTY_RESPONSE) {
                 connect(failSilently = true)
                 enqueue(command)
