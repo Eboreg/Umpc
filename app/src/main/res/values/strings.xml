@@ -81,6 +81,10 @@
     <string name="clear_queue">Clear queue</string>
     <string name="the_queue_was_cleared">The queue was cleared.</string>
     <string name="playlist_x_was_enqueued">The playlist "%1$s" was enqueued.</string>
+    <string name="dynamic_playlist">Dynamic playlist</string>
+    <string name="active_dynamic_playlist_x">Active dynamic playlist: %1$s</string>
+    <string name="deactivate_dynamic_playlist">Deactivate dynamic playlist</string>
+    <string name="loading_dynamic_playlist">Loading dynamic playlist …</string>
     <plurals name="x_albums">
         <item quantity="one">1 album</item>
         <item quantity="other">%1$d albums</item>

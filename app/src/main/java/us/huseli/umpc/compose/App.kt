@@ -6,9 +6,13 @@ import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -16,9 +20,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
@@ -35,6 +42,7 @@ import us.huseli.umpc.LibraryDestination
 import us.huseli.umpc.PlaylistDetailsDestination
 import us.huseli.umpc.PlaylistListDestination
 import us.huseli.umpc.QueueDestination
+import us.huseli.umpc.R
 import us.huseli.umpc.SearchDestination
 import us.huseli.umpc.SettingsDestination
 import us.huseli.umpc.compose.screens.AlbumScreen
@@ -47,8 +55,8 @@ import us.huseli.umpc.compose.screens.QueueScreen
 import us.huseli.umpc.compose.screens.SearchScreen
 import us.huseli.umpc.compose.screens.SettingsScreen
 import us.huseli.umpc.compose.screens.StoredPlaylistScreen
+import us.huseli.umpc.compose.utils.MessageFlash
 import us.huseli.umpc.compose.utils.ResponsiveScaffold
-import us.huseli.umpc.compose.utils.VolumeFlash
 import us.huseli.umpc.data.MPDAlbum
 import us.huseli.umpc.data.MPDPlaylist
 import us.huseli.umpc.getActivity
@@ -76,6 +84,7 @@ fun App(
     val currentSong by viewModel.currentSong.collectAsStateWithLifecycle()
     val showVolumeFlash by viewModel.showVolumeFlash.collectAsStateWithLifecycle()
     val volume by viewModel.volume.collectAsStateWithLifecycle()
+    val loadingDynamicPlaylist by viewModel.loadingDynamicPlaylist.collectAsStateWithLifecycle()
 
     var activeScreen by rememberSaveable { mutableStateOf(ContentScreen.NONE) }
     var isCoverShown by rememberSaveable { mutableStateOf(false) }
@@ -262,5 +271,20 @@ fun App(
             onHide = { viewModel.resetShowVolumeFlash() }
         )
         if (showVolumeFlash && isCoverShown) viewModel.resetShowVolumeFlash()
+
+        if (loadingDynamicPlaylist) {
+            MessageFlash(
+                modifier = Modifier.padding(innerPadding),
+                content = {
+                    Row(modifier = Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.padding(end = 8.dp).size(24.dp),
+                            strokeWidth = 2.dp,
+                        )
+                        Text(stringResource(R.string.loading_dynamic_playlist))
+                    }
+                }
+            )
+        }
     }
 }

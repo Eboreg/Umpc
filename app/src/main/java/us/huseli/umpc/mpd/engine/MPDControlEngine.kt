@@ -22,7 +22,9 @@ class MPDControlEngine(private val repo: MPDRepository) {
         val position = if (repo.currentSongId.value != null) 0 else null
 
         repo.client.enqueue(album.searchFilter.findadd(position)) { response ->
-            if (response.isSuccess) repo.currentSongPosition.value?.let { playSongPosition(it + 1) }
+            if (response.isSuccess) {
+                repo.currentSongPosition.value?.let { playSongPosition(it + 1) } ?: kotlin.run { playSongPosition(0) }
+            }
         }
     }
 

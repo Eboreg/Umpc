@@ -19,6 +19,8 @@ class DynamicPlaylistState(
     private val playlist: DynamicPlaylist,
     private val repo: MPDRepository,
     private val ioScope: CoroutineScope,
+    private val playOnLoad: Boolean,
+    private val onLoaded: (() -> Unit)? = null,
 ) : OnMPDChangeListener, Closeable {
     private var pastFilenames = emptyList<String>()
     private var songPositionListener: Job? = null
@@ -77,11 +79,12 @@ class DynamicPlaylistState(
                 filenames.forEach { filename ->
                     repo.engines.control.enqueueSongLast(filename) { response ->
                         if (response.isSuccess && !isPlayCalled) {
-                            repo.engines.control.play(0)
+                            if (playOnLoad) repo.engines.control.play(0)
                             isPlayCalled = true
                         }
                     }
                 }
+                onLoaded?.invoke()
             }
         }
     }

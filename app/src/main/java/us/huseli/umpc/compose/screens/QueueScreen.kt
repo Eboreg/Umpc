@@ -3,8 +3,10 @@ package us.huseli.umpc.compose.screens
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -51,10 +53,11 @@ import us.huseli.umpc.compose.utils.ListWithScrollbar
 import us.huseli.umpc.compose.utils.SmallOutlinedButton
 import us.huseli.umpc.data.MPDAlbum
 import us.huseli.umpc.formatDuration
+import us.huseli.umpc.isInLandscapeMode
 import us.huseli.umpc.viewmodels.QueueViewModel
 import kotlin.math.max
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun QueueScreen(
     modifier: Modifier = Modifier,
@@ -62,6 +65,7 @@ fun QueueScreen(
     onGotoAlbumClick: (MPDAlbum) -> Unit,
     onGotoArtistClick: (String) -> Unit,
 ) {
+    val activeDynamicPlaylist by viewModel.activeDynamicPlaylist.collectAsStateWithLifecycle()
     val queue by viewModel.queue.collectAsStateWithLifecycle(emptyList())
     val currentSongPosition by viewModel.currentSongPosition.collectAsStateWithLifecycle()
     val currentSongId by viewModel.currentSongId.collectAsStateWithLifecycle()
@@ -95,42 +99,63 @@ fun QueueScreen(
     }
 
     Column(modifier = modifier.fillMaxWidth()) {
-        Surface(tonalElevation = 2.dp, modifier = Modifier.fillMaxWidth()) {
-            Column(modifier = modifier.fillMaxWidth()) {
-                if (isSubmenuExpanded) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(10.dp),
+        Surface(
+            tonalElevation = 2.dp,
+            modifier = Modifier.fillMaxWidth().clickable { isSubmenuExpanded = !isSubmenuExpanded }
+        ) {
+            Box {
+                Column(modifier = modifier.fillMaxWidth()) {
+                    if (isSubmenuExpanded) {
+                        FlowRow(
+                            modifier = Modifier.fillMaxWidth()
+                                .padding(horizontal = 10.dp)
+                                .padding(top = if (isInLandscapeMode()) 10.dp else 0.dp)
+                                .padding(bottom = 10.dp),
+                            horizontalArrangement = Arrangement.SpaceAround,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            if (activeDynamicPlaylist == null) {
+                                SmallOutlinedButton(
+                                    onClick = { viewModel.clearQueue { viewModel.addMessage(queueClearedMsg) } },
+                                    text = stringResource(R.string.clear_queue),
+                                )
+                            }
+                            if (activeDynamicPlaylist != null) {
+                                SmallOutlinedButton(
+                                    onClick = { viewModel.deactivateDynamicPlaylist() },
+                                    text = stringResource(R.string.deactivate_dynamic_playlist),
+                                )
+                            }
+                        }
+                    }
+                    FlowRow(
+                        modifier = Modifier.fillMaxWidth()
+                            .padding(horizontal = 10.dp)
+                            .padding(top = if (isInLandscapeMode()) 10.dp else 0.dp)
+                            .padding(bottom = 16.dp),
                         horizontalArrangement = Arrangement.SpaceAround,
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        SmallOutlinedButton(
-                            onClick = { viewModel.clearQueue { viewModel.addMessage(queueClearedMsg) } },
-                            content = { Text(stringResource(R.string.clear_queue)) }
-                        )
-                    }
-                }
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(10.dp),
-                    horizontalArrangement = Arrangement.SpaceAround,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
                         Badge { Text(pluralStringResource(R.plurals.x_songs, localQueue.size, localQueue.size)) }
-                    }
-                    Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(
-                            imageVector = if (isSubmenuExpanded) Icons.Sharp.ExpandLess else Icons.Sharp.ExpandMore,
-                            contentDescription = null,
-                            modifier = Modifier
-                                .height(16.dp)
-                                .fillMaxWidth()
-                                .clickable { isSubmenuExpanded = !isSubmenuExpanded },
-                        )
-                    }
-                    Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
+                        if (activeDynamicPlaylist != null) {
+                            Badge {
+                                Text(
+                                    if (isSubmenuExpanded) stringResource(
+                                        R.string.active_dynamic_playlist_x,
+                                        activeDynamicPlaylist.toString()
+                                    )
+                                    else stringResource(R.string.dynamic_playlist)
+                                )
+                            }
+                        }
                         Badge { Text(totalDuration.formatDuration()) }
                     }
                 }
+                Icon(
+                    imageVector = if (isSubmenuExpanded) Icons.Sharp.ExpandLess else Icons.Sharp.ExpandMore,
+                    contentDescription = null,
+                    modifier = Modifier.height(16.dp).align(Alignment.BottomCenter),
+                )
             }
         }
 

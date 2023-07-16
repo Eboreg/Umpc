@@ -49,17 +49,17 @@ fun AlbumScreenMetaButtons(
     SmallOutlinedButton(
         onClick = { onEnqueueClick(album) },
         leadingIcon = Icons.Sharp.QueueMusic,
-        content = { Text(stringResource(R.string.enqueue)) },
+        text = stringResource(R.string.enqueue),
     )
     SmallOutlinedButton(
         onClick = { onPlayClick(album) },
         leadingIcon = Icons.Sharp.PlayArrow,
-        content = { Text(stringResource(R.string.play)) },
+        text = stringResource(R.string.play),
     )
     SmallOutlinedButton(
         onClick = { onAddToPlaylistClick(album) },
         leadingIcon = Icons.Sharp.PlaylistAdd,
-        content = { Text(stringResource(R.string.add_to_playlist)) }
+        text = stringResource(R.string.add_to_playlist),
     )
 }
 

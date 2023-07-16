@@ -28,26 +28,34 @@ class MPDPlaylistEngine(
     private val context: Context,
     private val ioScope: CoroutineScope,
 ) : OnMPDChangeListener, SharedPreferences.OnSharedPreferenceChangeListener {
+    private val dynamicPlaylistType = object : TypeToken<DynamicPlaylist>() {}
     private val preferences = PreferenceManager.getDefaultSharedPreferences(context)
+    private var dynamicPlaylistState: DynamicPlaylistState? = null
+    private val gson: Gson = GsonBuilder().registerTypeAdapter(Instant::class.java, InstantAdapter()).create()
     private val _storedPlaylists = MutableStateFlow<List<MPDPlaylist>>(emptyList())
     private val _activeDynamicPlaylist = MutableStateFlow<DynamicPlaylist?>(null)
     private val _dynamicPlaylists = MutableStateFlow<List<DynamicPlaylist>>(emptyList())
-    private var dynamicPlaylistState: DynamicPlaylistState? = null
-    private val gson: Gson = GsonBuilder()
-        .registerTypeAdapter(Instant::class.java, InstantAdapter())
-        .create()
+    private val _loadingDynamicPlaylist = MutableStateFlow(false)
 
     val storedPlaylists = _storedPlaylists.asStateFlow()
     val dynamicPlaylists = _dynamicPlaylists.asStateFlow()
+    val activeDynamicPlaylist = _activeDynamicPlaylist.asStateFlow()
+    val loadingDynamicPlaylist = _loadingDynamicPlaylist.asStateFlow()
 
     init {
         repo.registerOnMPDChangeListener(this)
         preferences.registerOnSharedPreferenceChangeListener(this)
         loadDynamicPlaylists()
+        loadActiveDynamicPlaylist(playOnLoad = false)
     }
 
     fun activateDynamicPlaylist(playlist: DynamicPlaylist) {
-        dynamicPlaylistState = DynamicPlaylistState(context, playlist, repo, ioScope)
+        val json = gson.toJson(playlist)
+
+        preferences
+            .edit()
+            .putString(PREF_ACTIVE_DYNAMIC_PLAYLIST, json)
+            .apply()
     }
 
     fun addAlbumToStoredPlaylist(album: MPDAlbum, playlistName: String, onFinish: (MPDMapResponse) -> Unit) =
@@ -57,6 +65,13 @@ class MPDPlaylistEngine(
         val playlist = DynamicPlaylist(filter, shuffle)
         _dynamicPlaylists.value = _dynamicPlaylists.value.toMutableList().apply { add(playlist) }
         saveDynamicPlaylists()
+    }
+
+    fun deactivateDynamicPlaylist() {
+        preferences
+            .edit()
+            .remove(PREF_ACTIVE_DYNAMIC_PLAYLIST)
+            .apply()
     }
 
     fun deleteDynamicPlaylist(playlist: DynamicPlaylist) {
@@ -117,12 +132,17 @@ class MPDPlaylistEngine(
         }
     }
 
-    private fun loadActiveDynamicPlaylist() {
-        val type = object : TypeToken<DynamicPlaylist>() {}
+    private fun loadActiveDynamicPlaylist(playOnLoad: Boolean) {
+        val playlist = gson.fromJson(preferences.getString(PREF_ACTIVE_DYNAMIC_PLAYLIST, null), dynamicPlaylistType)
 
-        gson.fromJson(preferences.getString(PREF_ACTIVE_DYNAMIC_PLAYLIST, null), type)?.let {
-            _activeDynamicPlaylist.value = it
-        }
+        _activeDynamicPlaylist.value = playlist
+        dynamicPlaylistState =
+            if (playlist != null) {
+                _loadingDynamicPlaylist.value = true
+                DynamicPlaylistState(context, playlist, repo, ioScope, playOnLoad) {
+                    _loadingDynamicPlaylist.value = false
+                }
+            } else null
     }
 
     private fun loadDynamicPlaylists() {
@@ -151,7 +171,7 @@ class MPDPlaylistEngine(
     override fun onSharedPreferenceChanged(sharedPreferences: SharedPreferences?, key: String?) {
         when (key) {
             PREF_DYNAMIC_PLAYLISTS -> loadDynamicPlaylists()
-            PREF_ACTIVE_DYNAMIC_PLAYLIST -> loadActiveDynamicPlaylist()
+            PREF_ACTIVE_DYNAMIC_PLAYLIST -> loadActiveDynamicPlaylist(playOnLoad = true)
         }
     }
 }

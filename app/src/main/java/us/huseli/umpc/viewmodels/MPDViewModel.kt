@@ -13,6 +13,7 @@ class MPDViewModel @Inject constructor(repo: MPDRepository) : BaseViewModel(repo
     val error = repo.engines.message.error
     val message = repo.engines.message.message
     val showVolumeFlash = _showVolumeFlash.asStateFlow()
+    val loadingDynamicPlaylist = repo.engines.playlist.loadingDynamicPlaylist
 
     fun clearError() = repo.engines.message.clearError()
     fun clearMessage() = repo.engines.message.clearMessage()

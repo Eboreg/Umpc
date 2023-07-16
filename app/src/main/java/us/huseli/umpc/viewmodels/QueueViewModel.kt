@@ -8,6 +8,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class QueueViewModel @Inject constructor(repo: MPDRepository) : BaseViewModel(repo) {
+    val activeDynamicPlaylist = repo.engines.playlist.activeDynamicPlaylist
     val currentSongId = repo.currentSongId
     val currentSongPosition = repo.currentSongPosition
     val queue = repo.queue
@@ -15,4 +16,5 @@ class QueueViewModel @Inject constructor(repo: MPDRepository) : BaseViewModel(re
 
     fun moveSong(fromIdx: Int, toIdx: Int) = repo.engines.control.moveSongInQueue(fromIdx, toIdx)
     fun clearQueue(onFinish: (MPDMapResponse) -> Unit) = repo.engines.control.clearQueue(onFinish)
+    fun deactivateDynamicPlaylist() = repo.engines.playlist.deactivateDynamicPlaylist()
 }

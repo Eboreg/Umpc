@@ -1,4 +1,4 @@
-package us.huseli.umpc.compose.utils
+package us.huseli.umpc.compose
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -35,7 +35,6 @@ fun VolumeFlash(modifier: Modifier = Modifier, volume: Int, isVisible: Boolean, 
     if (isVisible) {
         Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Surface(
-                color = MaterialTheme.colorScheme.surface,
                 shape = MaterialTheme.shapes.extraLarge,
                 tonalElevation = 2.dp,
             ) {
