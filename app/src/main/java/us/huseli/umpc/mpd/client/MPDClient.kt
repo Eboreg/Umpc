@@ -122,7 +122,7 @@ open class MPDClient(private val ioScope: CoroutineScope) : LoggerInterface {
                 }
 
                 MPDMapCommand("tagtypes").execute(socket).extractTagTypes().also {
-                    MPDMapCommand("tagtypes disable", it.minus(wantedTagTypes)).execute(socket)
+                    MPDMapCommand("tagtypes disable", it.minus(wantedTagTypes.toSet())).execute(socket)
                 }
 
                 state.value = State.READY

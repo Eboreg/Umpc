@@ -6,8 +6,6 @@ class MPDMapResponse : MPDBaseTextResponse() {
     val responseMap: Map<String, List<String>>
         get() = _responseMap
 
-    fun start() {}
-
     override fun putLine(line: String) {
         if (responseRegex.matches(line)) {
             parseResponseLine(line)?.let { (key, value) ->

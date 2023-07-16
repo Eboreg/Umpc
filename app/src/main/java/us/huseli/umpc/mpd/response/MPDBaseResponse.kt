@@ -5,7 +5,6 @@ abstract class MPDBaseResponse {
 
     var status = Status.PENDING
         private set
-    @Suppress("MemberVisibilityCanBePrivate")
     var exception: Throwable? = null
         private set
     var error: String? = null
