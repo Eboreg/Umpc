@@ -48,6 +48,7 @@ import us.huseli.umpc.compose.screens.SearchScreen
 import us.huseli.umpc.compose.screens.SettingsScreen
 import us.huseli.umpc.compose.screens.StoredPlaylistScreen
 import us.huseli.umpc.compose.utils.ResponsiveScaffold
+import us.huseli.umpc.compose.utils.VolumeFlash
 import us.huseli.umpc.data.MPDAlbum
 import us.huseli.umpc.data.MPDPlaylist
 import us.huseli.umpc.getActivity
@@ -73,6 +74,8 @@ fun App(
     val error by viewModel.error.collectAsStateWithLifecycle()
     val message by viewModel.message.collectAsStateWithLifecycle()
     val currentSong by viewModel.currentSong.collectAsStateWithLifecycle()
+    val showVolumeFlash by viewModel.showVolumeFlash.collectAsStateWithLifecycle()
+    val volume by viewModel.volume.collectAsStateWithLifecycle()
 
     var activeScreen by rememberSaveable { mutableStateOf(ContentScreen.NONE) }
     var isCoverShown by rememberSaveable { mutableStateOf(false) }
@@ -251,5 +254,13 @@ fun App(
                 onDismiss = { isCoverShown = false }
             )
         }
+
+        VolumeFlash(
+            modifier = Modifier.padding(innerPadding),
+            volume = volume,
+            isVisible = showVolumeFlash && !isCoverShown,
+            onHide = { viewModel.resetShowVolumeFlash() }
+        )
+        if (showVolumeFlash && isCoverShown) viewModel.resetShowVolumeFlash()
     }
 }

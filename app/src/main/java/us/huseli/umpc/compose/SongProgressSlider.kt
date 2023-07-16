@@ -5,7 +5,9 @@ import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CornerBasedShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
@@ -31,6 +33,7 @@ fun SongProgressSlider(
     duration: Double,
     backgroundAlpha: Float = 0.5f,
     playerState: PlayerState?,
+    shape: CornerBasedShape = MaterialTheme.shapes.extraLarge,
     onManualChange: (Double) -> Unit,
 ) {
     var progress by remember(elapsed) { mutableStateOf(elapsed) }
@@ -46,14 +49,14 @@ fun SongProgressSlider(
         Surface(
             modifier = Modifier.fillMaxSize(),
             color = MaterialTheme.colorScheme.background.copy(alpha = backgroundAlpha),
-            shape = MaterialTheme.shapes.extraLarge,
+            shape = shape,
             content = {}
         )
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.height(40.dp)) {
             Text(
                 text = progress.formatDuration(),
                 style = MaterialTheme.typography.bodySmall,
-                textAlign = TextAlign.Center,
+                textAlign = TextAlign.End,
                 modifier = Modifier.width(48.dp),
             )
             Slider(
@@ -66,8 +69,8 @@ fun SongProgressSlider(
             Text(
                 text = duration.formatDuration(),
                 style = MaterialTheme.typography.bodySmall,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.width(48.dp),
+                textAlign = TextAlign.End,
+                modifier = Modifier.width(48.dp).padding(end = 10.dp),
             )
         }
     }

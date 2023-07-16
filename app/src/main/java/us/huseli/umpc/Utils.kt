@@ -27,7 +27,7 @@ val SENSIBLE_DATE_TIME: DateTimeFormatter = DateTimeFormatterBuilder()
 
 fun Double.formatDuration() = this.seconds.toComponents { hours, minutes, seconds, _ ->
     if (hours > 0) String.format("%d:%02d:%02d", hours, minutes, seconds)
-    else String.format("%02d:%02d", minutes, seconds)
+    else String.format("%d:%02d", minutes, seconds)
 }
 
 fun File.toBitmap(): Bitmap? = this.takeIf { it.isFile }?.inputStream().use { BitmapFactory.decodeStream(it) }

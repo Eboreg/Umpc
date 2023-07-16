@@ -112,7 +112,7 @@ fun LibraryScreen(
                     items(artists, key = { it.name }) { artist ->
                         ArtistRow(
                             artist = artist,
-                            padding = PaddingValues(start = 10.dp),
+                            padding = PaddingValues(10.dp),
                             onGotoArtistClick = { onGotoArtistClick(artist.name) }
                         )
                         Divider()

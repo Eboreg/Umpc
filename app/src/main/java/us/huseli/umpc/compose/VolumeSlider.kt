@@ -2,10 +2,13 @@ package us.huseli.umpc.compose
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CornerBasedShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.sharp.VolumeDown
 import androidx.compose.material.icons.sharp.VolumeMute
@@ -34,6 +37,8 @@ fun VolumeSlider(
     modifier: Modifier = Modifier,
     volume: Float,
     backgroundAlpha: Float = 0.5f,
+    shape: CornerBasedShape = MaterialTheme.shapes.extraLarge,
+    padding: PaddingValues = PaddingValues(),
     onVolumeChange: (Float) -> Unit,
 ) {
     var mutableVolume by rememberSaveable(volume) { mutableStateOf(volume) }
@@ -42,10 +47,10 @@ fun VolumeSlider(
         Surface(
             modifier = Modifier.fillMaxSize(),
             color = MaterialTheme.colorScheme.background.copy(alpha = backgroundAlpha),
-            shape = MaterialTheme.shapes.extraLarge,
+            shape = shape,
             content = {}
         )
-        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.height(40.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.height(40.dp).padding(padding)) {
             IconButton(
                 modifier = Modifier.width(IntrinsicSize.Min).height(24.dp),
                 onClick = {

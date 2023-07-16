@@ -13,6 +13,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.sharp.Delete
 import androidx.compose.material.icons.sharp.Edit
 import androidx.compose.material.icons.sharp.PlayArrow
+import androidx.compose.material.icons.sharp.QueueMusic
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Divider
 import androidx.compose.material3.Icon
@@ -45,8 +46,126 @@ import us.huseli.umpc.data.MPDAlbum
 import us.huseli.umpc.data.MPDPlaylist
 import us.huseli.umpc.data.MPDSong
 import us.huseli.umpc.formatDateTime
-import us.huseli.umpc.isInLandscapeMode
 import us.huseli.umpc.viewmodels.StoredPlaylistViewModel
+
+@Composable
+fun StoredPlaylistScreen(
+    modifier: Modifier = Modifier,
+    viewModel: StoredPlaylistViewModel = hiltViewModel(),
+    listState: LazyListState = rememberLazyListState(),
+    onGotoAlbumClick: (MPDAlbum) -> Unit,
+    onGotoArtistClick: (String) -> Unit,
+    onPlaylistDeleted: () -> Unit,
+    onPlaylistRenamed: (String) -> Unit,
+) {
+    val playlist by viewModel.playlist.collectAsStateWithLifecycle(null)
+    val songs by viewModel.songs.collectAsStateWithLifecycle()
+    val currentSongFilename by viewModel.currentSongFilename.collectAsStateWithLifecycle(null)
+    val playerState by viewModel.playerState.collectAsStateWithLifecycle()
+    var isRenameDialogOpen by rememberSaveable { mutableStateOf(false) }
+    var isDeleteDialogOpen by rememberSaveable { mutableStateOf(false) }
+
+    if (isRenameDialogOpen) {
+        playlist?.let {
+            RenameStoredPlaylistDialog(
+                name = it.name,
+                onConfirm = { newName ->
+                    viewModel.rename(newName) { isSuccess ->
+                        if (isSuccess) onPlaylistRenamed(newName)
+                    }
+                },
+                onCancel = { isRenameDialogOpen = false },
+            )
+        }
+    }
+
+    if (isDeleteDialogOpen) {
+        playlist?.let {
+            val successMessage = stringResource(R.string.playlist_was_deleted)
+
+            DeletePlaylistDialog(
+                name = it.name,
+                onConfirm = {
+                    viewModel.delete { response ->
+                        if (response.isSuccess) {
+                            viewModel.addMessage(successMessage)
+                            onPlaylistDeleted()
+                        } else {
+                            response.error?.let { error -> viewModel.addMessage(error) }
+                        }
+                    }
+                },
+                onCancel = { isDeleteDialogOpen = false },
+            )
+        }
+    }
+
+    Column(modifier = modifier) {
+        playlist?.let {
+            val enqueuedMessage = stringResource(R.string.playlist_x_was_enqueued, it.name)
+
+            Column(modifier = Modifier.fillMaxWidth().padding(start = 10.dp).padding(vertical = 10.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    Text(it.name, style = MaterialTheme.typography.headlineMedium)
+
+                    Row {
+                        IconButton(
+                            onClick = { isRenameDialogOpen = true },
+                            content = { Icon(Icons.Sharp.Edit, stringResource(R.string.rename)) },
+                        )
+                        IconButton(
+                            onClick = { isDeleteDialogOpen = true },
+                            content = { Icon(Icons.Sharp.Delete, stringResource(R.string.delete)) },
+                        )
+                        IconButton(
+                            onClick = {
+                                viewModel.enqueue { response ->
+                                    if (response.isSuccess) viewModel.addMessage(enqueuedMessage)
+                                    else response.error?.let { error -> viewModel.addMessage(error) }
+                                }
+                            },
+                            content = { Icon(Icons.Sharp.QueueMusic, stringResource(R.string.enqueue)) },
+                        )
+                        IconButton(
+                            onClick = { viewModel.play() },
+                            content = { Icon(Icons.Sharp.PlayArrow, stringResource(R.string.play)) },
+                        )
+                    }
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(end = 10.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    content = { StoredPlaylistScreenMetaInfo(it, songs) },
+                )
+            }
+        }
+        LazyColumn(state = listState) {
+            items(songs) { song ->
+                var albumArt by remember { mutableStateOf<ImageBitmap?>(null) }
+
+                LaunchedEffect(song) {
+                    viewModel.getAlbumArt(song) { albumArt = it.fullImage }
+                }
+
+                Divider()
+                StoredPlaylistSongRow(
+                    song = song,
+                    currentSongFilename = currentSongFilename,
+                    playerState = playerState,
+                    albumArt = albumArt,
+                    onPlayPauseClick = { viewModel.playOrPauseSong(song) },
+                    onEnqueueClick = { viewModel.enqueueSong(song) },
+                    onGotoArtistClick = { onGotoArtistClick(song.artist) },
+                    onGotoAlbumClick = { onGotoAlbumClick(song.album) },
+                )
+            }
+        }
+    }
+}
 
 @Composable
 fun RenameStoredPlaylistDialog(
@@ -120,111 +239,4 @@ fun StoredPlaylistSongRow(
         album = song.album.name,
         albumArt = albumArt,
     )
-}
-
-@Composable
-fun StoredPlaylistScreen(
-    modifier: Modifier = Modifier,
-    viewModel: StoredPlaylistViewModel = hiltViewModel(),
-    listState: LazyListState = rememberLazyListState(),
-    onGotoAlbumClick: (MPDAlbum) -> Unit,
-    onGotoArtistClick: (String) -> Unit,
-    onPlaylistDeleted: () -> Unit,
-    onPlaylistRenamed: (String) -> Unit,
-) {
-    val playlist by viewModel.playlist.collectAsStateWithLifecycle(null)
-    val songs by viewModel.songs.collectAsStateWithLifecycle()
-    val currentSongFilename by viewModel.currentSongFilename.collectAsStateWithLifecycle(null)
-    val playerState by viewModel.playerState.collectAsStateWithLifecycle()
-    var isRenameDialogOpen by rememberSaveable { mutableStateOf(false) }
-    var isDeleteDialogOpen by rememberSaveable { mutableStateOf(false) }
-
-    if (isRenameDialogOpen) {
-        playlist?.let {
-            RenameStoredPlaylistDialog(
-                name = it.name,
-                onConfirm = { newName ->
-                    viewModel.rename(newName) { isSuccess ->
-                        if (isSuccess) onPlaylistRenamed(newName)
-                    }
-                },
-                onCancel = { isRenameDialogOpen = false },
-            )
-        }
-    }
-
-    if (isDeleteDialogOpen) {
-        playlist?.let {
-            val successMessage = stringResource(R.string.playlist_was_deleted)
-
-            DeletePlaylistDialog(
-                name = it.name,
-                onConfirm = {
-                    viewModel.deletePlaylist { response ->
-                        if (response.isSuccess) {
-                            viewModel.addMessage(successMessage)
-                            onPlaylistDeleted()
-                        } else {
-                            response.error?.let { error -> viewModel.addMessage(error) }
-                        }
-                    }
-                },
-                onCancel = { isDeleteDialogOpen = false },
-            )
-        }
-    }
-
-    Column(modifier = modifier) {
-        playlist?.let {
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(start = 10.dp).padding(vertical = 10.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
-                if (isInLandscapeMode()) {
-                    Text(it.name, style = MaterialTheme.typography.headlineMedium)
-                    Column {
-                        StoredPlaylistScreenMetaInfo(it, songs)
-                    }
-                } else {
-                    Column {
-                        Text(it.name, style = MaterialTheme.typography.headlineMedium)
-                        StoredPlaylistScreenMetaInfo(it, songs)
-                    }
-                }
-                Row {
-                    IconButton(onClick = { isRenameDialogOpen = true }) {
-                        Icon(Icons.Sharp.Edit, stringResource(R.string.rename))
-                    }
-                    IconButton(onClick = { isDeleteDialogOpen = true }) {
-                        Icon(Icons.Sharp.Delete, stringResource(R.string.delete))
-                    }
-                    IconButton(onClick = { viewModel.play() }) {
-                        Icon(Icons.Sharp.PlayArrow, stringResource(R.string.play))
-                    }
-                }
-            }
-        }
-        LazyColumn(state = listState) {
-            items(songs) { song ->
-                var albumArt by remember { mutableStateOf<ImageBitmap?>(null) }
-
-                LaunchedEffect(song) {
-                    viewModel.getAlbumArt(song) { albumArt = it.fullImage }
-                }
-
-                Divider()
-                StoredPlaylistSongRow(
-                    song = song,
-                    currentSongFilename = currentSongFilename,
-                    playerState = playerState,
-                    albumArt = albumArt,
-                    onPlayPauseClick = { viewModel.playOrPauseSong(song) },
-                    onEnqueueClick = { viewModel.enqueueSong(song) },
-                    onGotoArtistClick = { onGotoArtistClick(song.artist) },
-                    onGotoAlbumClick = { onGotoAlbumClick(song.album) },
-                )
-            }
-        }
-    }
 }

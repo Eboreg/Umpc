@@ -14,8 +14,10 @@ import us.huseli.umpc.mpd.MPDRepository
 abstract class BaseViewModel(protected val repo: MPDRepository) : ViewModel() {
     val currentSong = repo.currentSong
     val currentSongFilename = repo.currentSong.map { it?.filename }.distinctUntilChanged()
+    val isStreaming = repo.streamPlayer.isStreaming
     val playerState = repo.playerState
     val storedPlaylists = repo.engines.playlist.storedPlaylists
+    val volume = repo.volume
 
     fun addMessage(message: String) = repo.engines.message.addMessage(message)
 

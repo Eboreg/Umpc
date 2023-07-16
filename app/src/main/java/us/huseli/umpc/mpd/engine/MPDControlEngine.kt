@@ -6,6 +6,8 @@ import us.huseli.umpc.data.MPDAlbum
 import us.huseli.umpc.data.MPDSong
 import us.huseli.umpc.mpd.MPDRepository
 import us.huseli.umpc.mpd.response.MPDMapResponse
+import kotlin.math.max
+import kotlin.math.min
 
 class MPDControlEngine(private val repo: MPDRepository) {
     fun clearQueue(onFinish: ((MPDMapResponse) -> Unit)? = null) {
@@ -85,4 +87,18 @@ class MPDControlEngine(private val repo: MPDRepository) {
 
     fun toggleRepeatState() =
         repo.client.enqueue("repeat", if (repo.repeatState.value) "0" else "1")
+
+    fun volumeDown() {
+        if (repo.volume.value > 0) {
+            val volume = max(0, repo.volume.value - 5)
+            repo.client.enqueue("setvol $volume")
+        }
+    }
+
+    fun volumeUp() {
+        if (repo.volume.value < 100) {
+            val volume = min(100, repo.volume.value + 5)
+            repo.client.enqueue("setvol $volume")
+        }
+    }
 }

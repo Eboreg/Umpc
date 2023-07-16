@@ -27,8 +27,7 @@ class MPDPlaylistEngine(
     private val repo: MPDRepository,
     private val context: Context,
     private val ioScope: CoroutineScope,
-) :
-    OnMPDChangeListener, SharedPreferences.OnSharedPreferenceChangeListener {
+) : OnMPDChangeListener, SharedPreferences.OnSharedPreferenceChangeListener {
     private val preferences = PreferenceManager.getDefaultSharedPreferences(context)
     private val _storedPlaylists = MutableStateFlow<List<MPDPlaylist>>(emptyList())
     private val _activeDynamicPlaylist = MutableStateFlow<DynamicPlaylist?>(null)
@@ -70,13 +69,9 @@ class MPDPlaylistEngine(
     fun deleteStoredPlaylist(playlistName: String, onFinish: (MPDMapResponse) -> Unit) =
         repo.client.enqueue("rm", playlistName, onFinish)
 
-    fun enqueueStoredPlaylistAndPlay(playlistName: String) {
-        /** Clears the queue, loads playlist into it, and plays from position 0. */
-        repo.client.enqueue("clear") {
-            repo.client.enqueue("load", playlistName) {
-                repo.client.enqueue("play 0")
-            }
-        }
+    fun enqueueStoredPlaylist(playlistName: String, onFinish: (MPDMapResponse) -> Unit) {
+        /** Just puts stored playlist last in queue, nothing else. */
+        repo.client.enqueue("load", playlistName, onFinish)
     }
 
     fun fetchStoredPlaylistSongs(playlistName: String, onFinish: (List<MPDSong>) -> Unit) {
@@ -87,6 +82,15 @@ class MPDPlaylistEngine(
 
     fun loadStoredPlaylists() {
         fetchStoredPlaylists { _storedPlaylists.value = it }
+    }
+
+    fun playStoredPlaylist(playlistName: String) {
+        /** Clears the queue, loads playlist into it, and plays from position 0. */
+        repo.client.enqueue("clear") {
+            repo.client.enqueue("load", playlistName) {
+                repo.client.enqueue("play 0")
+            }
+        }
     }
 
     fun renameStoredPlaylist(name: String, newName: String, onFinish: (Boolean) -> Unit) {

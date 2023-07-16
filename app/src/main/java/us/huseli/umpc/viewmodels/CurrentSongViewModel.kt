@@ -5,14 +5,10 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import us.huseli.umpc.mpd.MPDRepository
-import us.huseli.umpc.mpd.MPDStreamPlayer
 import javax.inject.Inject
 
 @HiltViewModel
-class CurrentSongViewModel @Inject constructor(
-    repo: MPDRepository,
-    private val streamPlayer: MPDStreamPlayer,
-) : BaseViewModel(repo) {
+class CurrentSongViewModel @Inject constructor(repo: MPDRepository) : BaseViewModel(repo) {
     val currentSongAlbumArt = repo.engines.image.currentSongAlbumArt.asStateFlow()
     val currentSongDuration = repo.currentSongDuration
     val currentSongElapsed = repo.currentSongElapsed
@@ -20,8 +16,6 @@ class CurrentSongViewModel @Inject constructor(
     val currentAudioFormat = repo.currentAudioFormat
     val randomState = repo.randomState
     val repeatState = repo.repeatState
-    val volume = repo.volume
-    val isStreaming = streamPlayer.isStreaming
     val streamingUrl = repo.engines.settings.streamingUrl.asStateFlow()
 
     fun next() = repo.engines.control.next()
@@ -37,5 +31,5 @@ class CurrentSongViewModel @Inject constructor(
     fun toggleRandomState() = repo.engines.control.toggleRandomState()
     fun toggleRepeatState() = repo.engines.control.toggleRepeatState()
     fun toggleStream(onFinish: ((Boolean) -> Unit)? = null) =
-        viewModelScope.launch { onFinish?.invoke(streamPlayer.toggle()) }
+        viewModelScope.launch { onFinish?.invoke(repo.streamPlayer.toggle()) }
 }

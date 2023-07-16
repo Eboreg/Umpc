@@ -50,6 +50,7 @@ class Engines(
 @Singleton
 class MPDRepository @Inject constructor(
     private val ioScope: CoroutineScope,
+    val streamPlayer: MPDStreamPlayer,
     @ApplicationContext private val context: Context,
 ) : LoggerInterface {
     private var statusJob: Job? = null

@@ -28,10 +28,13 @@ class StoredPlaylistViewModel @Inject constructor(
         repo.registerOnMPDChangeListener(this)
     }
 
-    fun deletePlaylist(onFinish: (MPDMapResponse) -> Unit) =
+    fun delete(onFinish: (MPDMapResponse) -> Unit) =
         repo.engines.playlist.deleteStoredPlaylist(playlistName, onFinish)
 
-    fun play() = repo.engines.playlist.enqueueStoredPlaylistAndPlay(playlistName)
+    fun enqueue(onFinish: (MPDMapResponse) -> Unit) =
+        repo.engines.playlist.enqueueStoredPlaylist(playlistName, onFinish)
+
+    fun play() = repo.engines.playlist.playStoredPlaylist(playlistName)
 
     fun rename(newName: String, onFinish: (Boolean) -> Unit) =
         repo.engines.playlist.renameStoredPlaylist(playlistName, newName, onFinish)

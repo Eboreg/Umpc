@@ -80,6 +80,7 @@
     <string name="streaming_stopped">Streaming stopped.</string>
     <string name="clear_queue">Clear queue</string>
     <string name="the_queue_was_cleared">The queue was cleared.</string>
+    <string name="playlist_x_was_enqueued">The playlist "%1$s" was enqueued.</string>
     <plurals name="x_albums">
         <item quantity="one">1 album</item>
         <item quantity="other">%1$d albums</item>

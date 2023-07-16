@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.FractionalThreshold
 import androidx.compose.material.ResistanceConfig
@@ -60,6 +61,113 @@ import us.huseli.umpc.isInLandscapeMode
 import us.huseli.umpc.viewmodels.CurrentSongViewModel
 import kotlin.math.roundToInt
 
+@OptIn(ExperimentalMaterialApi::class)
+@Composable
+fun CoverScreen(
+    modifier: Modifier = Modifier,
+    viewModel: CurrentSongViewModel = hiltViewModel(),
+    onGotoAlbumClick: (MPDAlbum) -> Unit,
+    onGotoArtistClick: (String) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val albumArt by viewModel.currentSongAlbumArt.collectAsStateWithLifecycle()
+    val audioFormat by viewModel.currentAudioFormat.collectAsStateWithLifecycle()
+    val bitrate by viewModel.currentBitrate.collectAsStateWithLifecycle()
+    val currentSong by viewModel.currentSong.collectAsStateWithLifecycle()
+    val duration by viewModel.currentSongDuration.collectAsStateWithLifecycle()
+    val elapsed by viewModel.currentSongElapsed.collectAsStateWithLifecycle()
+    val playerState by viewModel.playerState.collectAsStateWithLifecycle()
+    val volume by viewModel.volume.collectAsStateWithLifecycle()
+
+    val density = LocalDensity.current
+    val screenHeightDp = LocalContext.current.resources.configuration.screenHeightDp.dp
+    val screenHeightPx = with(density) { screenHeightDp.toPx() }
+    val anchors = mapOf(0f to "show", screenHeightPx to "hide")
+    val landscape = isInLandscapeMode()
+
+    val swipeableState = rememberSwipeableState(
+        initialValue = "show",
+        confirmStateChange = {
+            if (it == "hide") onDismiss()
+            true
+        }
+    )
+
+    Box(
+        modifier = modifier
+            .swipeable(
+                state = swipeableState,
+                anchors = anchors,
+                orientation = Orientation.Vertical,
+                thresholds = { _, _ -> FractionalThreshold(0.8f) },
+                resistance = ResistanceConfig(0f, 0f, 0f),
+            )
+            .fillMaxHeight()
+    ) {
+        Box(
+            modifier = Modifier
+                .offset { IntOffset(0, swipeableState.offset.value.roundToInt()) }
+                .fillMaxHeight()
+                .background(MaterialTheme.colorScheme.background)
+        ) {
+            val colorStops =
+                if (landscape) arrayOf(
+                    0f to MaterialTheme.colorScheme.background.copy(alpha = 0.5f),
+                    1f to MaterialTheme.colorScheme.background,
+                )
+                else arrayOf(
+                    0.3f to Color.Transparent,
+                    1f to MaterialTheme.colorScheme.background,
+                )
+
+            FadingImageBox(
+                colorStops = colorStops,
+                verticalSpacing = 5.dp,
+                contentPadding = PaddingValues(0.dp),
+                image = { AlbumArt(imageBitmap = albumArt?.fullImage) },
+            )
+
+            VolumeSlider(
+                volume = volume.toFloat(),
+                shape = MaterialTheme.shapes.medium.copy(topStart = CornerSize(0.dp), topEnd = CornerSize(0.dp)),
+                padding = PaddingValues(top = 15.dp),
+                onVolumeChange = { viewModel.setVolume(it.toInt()) },
+            )
+            CoverScreenSongTechInfo(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 10.dp),
+                bitrate = bitrate,
+                audioFormat = audioFormat,
+            )
+
+            Column(modifier = Modifier.align(Alignment.BottomCenter)) {
+                CoverScreenSongInfoTexts(currentSong, onGotoAlbumClick, onGotoArtistClick)
+                CoverScreenFilterChips(viewModel)
+
+                PlayerControls(
+                    playerState = playerState,
+                    onPreviousClick = { viewModel.previousOrRestart() },
+                    onPlayPauseClick = { viewModel.playOrPause() },
+                    onStopClick = { viewModel.stop() },
+                    onNextClick = { viewModel.next() },
+                    onForwardClick = { viewModel.seekRelative(10.0) },
+                    onReverseClick = { viewModel.seekRelative(-10.0) },
+                )
+                SongProgressSlider(
+                    modifier = Modifier.height(IntrinsicSize.Min),
+                    elapsed = elapsed ?: 0.0,
+                    duration = duration ?: 0.0,
+                    playerState = playerState,
+                    shape = MaterialTheme.shapes.medium.copy(
+                        bottomEnd = CornerSize(0.dp),
+                        bottomStart = CornerSize(0.dp),
+                    ),
+                    onManualChange = { viewModel.seek(it) },
+                )
+            }
+        }
+    }
+}
+
 @Composable
 fun CoverScreenSongInfoTexts(
     song: MPDSong?,
@@ -96,13 +204,11 @@ fun CoverScreenSongInfoTexts(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CoverScreenSongTechInfo(
+    modifier: Modifier = Modifier,
     bitrate: Int?,
     audioFormat: MPDAudioFormat?,
 ) {
-    Row(
-        horizontalArrangement = Arrangement.SpaceBetween,
-        modifier = Modifier.fillMaxWidth()
-    ) {
+    Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = modifier) {
         bitrate?.let { Badge { Text(stringResource(R.string.x_kbps, it)) } }
         audioFormat?.let { Badge { Text(it.toString()) } }
     }
@@ -163,104 +269,5 @@ fun CoverScreenFilterChips(
             label = { Text(stringResource(R.string.stream)) },
             leadingIcon = { Icon(Icons.Sharp.Headphones, null) }
         )
-    }
-}
-
-@OptIn(ExperimentalMaterialApi::class)
-@Composable
-fun CoverScreen(
-    modifier: Modifier = Modifier,
-    viewModel: CurrentSongViewModel = hiltViewModel(),
-    onGotoAlbumClick: (MPDAlbum) -> Unit,
-    onGotoArtistClick: (String) -> Unit,
-    onDismiss: () -> Unit,
-) {
-    val albumArt by viewModel.currentSongAlbumArt.collectAsStateWithLifecycle()
-    val audioFormat by viewModel.currentAudioFormat.collectAsStateWithLifecycle()
-    val bitrate by viewModel.currentBitrate.collectAsStateWithLifecycle()
-    val currentSong by viewModel.currentSong.collectAsStateWithLifecycle()
-    val duration by viewModel.currentSongDuration.collectAsStateWithLifecycle()
-    val elapsed by viewModel.currentSongElapsed.collectAsStateWithLifecycle()
-    val playerState by viewModel.playerState.collectAsStateWithLifecycle()
-    val volume by viewModel.volume.collectAsStateWithLifecycle()
-
-    val density = LocalDensity.current
-    val screenHeightDp = LocalContext.current.resources.configuration.screenHeightDp.dp
-    val screenHeightPx = with(density) { screenHeightDp.toPx() }
-    val anchors = mapOf(0f to "show", screenHeightPx to "hide")
-    val landscape = isInLandscapeMode()
-
-    val swipeableState = rememberSwipeableState(
-        initialValue = "show",
-        confirmStateChange = {
-            if (it == "hide") onDismiss()
-            true
-        }
-    )
-
-    Box(
-        modifier = modifier
-            .swipeable(
-                state = swipeableState,
-                anchors = anchors,
-                orientation = Orientation.Vertical,
-                thresholds = { _, _ -> FractionalThreshold(0.8f) },
-                resistance = ResistanceConfig(0f, 0f, 0f),
-            )
-            .fillMaxHeight()
-    ) {
-        Box(
-            modifier = Modifier
-                .offset { IntOffset(0, swipeableState.offset.value.roundToInt()) }
-                .fillMaxHeight()
-                .background(MaterialTheme.colorScheme.background)
-        ) {
-            val colorStops =
-                if (landscape) arrayOf(
-                    0f to MaterialTheme.colorScheme.background.copy(alpha = 0.5f),
-                    1f to MaterialTheme.colorScheme.background,
-                )
-                else arrayOf(
-                    0.5f to Color.Transparent,
-                    1f to MaterialTheme.colorScheme.background,
-                )
-
-            FadingImageBox(
-                colorStops = colorStops,
-                verticalSpacing = 5.dp,
-                contentPadding = PaddingValues(0.dp),
-                image = { AlbumArt(imageBitmap = albumArt?.fullImage) },
-            )
-
-            Column {
-                VolumeSlider(
-                    volume = volume.toFloat(),
-                    onVolumeChange = { viewModel.setVolume(it.toInt()) },
-                )
-                CoverScreenSongTechInfo(bitrate, audioFormat)
-            }
-
-            Column(modifier = Modifier.align(Alignment.BottomCenter)) {
-                CoverScreenSongInfoTexts(currentSong, onGotoAlbumClick, onGotoArtistClick)
-                CoverScreenFilterChips(viewModel)
-
-                PlayerControls(
-                    playerState = playerState,
-                    onPreviousClick = { viewModel.previousOrRestart() },
-                    onPlayPauseClick = { viewModel.playOrPause() },
-                    onStopClick = { viewModel.stop() },
-                    onNextClick = { viewModel.next() },
-                    onForwardClick = { viewModel.seekRelative(10.0) },
-                    onReverseClick = { viewModel.seekRelative(-10.0) },
-                )
-                SongProgressSlider(
-                    modifier = Modifier.height(IntrinsicSize.Min),
-                    elapsed = elapsed ?: 0.0,
-                    duration = duration ?: 0.0,
-                    playerState = playerState,
-                    onManualChange = { viewModel.seek(it) },
-                )
-            }
-        }
     }
 }
