@@ -61,6 +61,9 @@ class MPDPlaylistEngine(
     fun addAlbumToStoredPlaylist(album: MPDAlbum, playlistName: String, onFinish: (MPDMapResponse) -> Unit) =
         repo.client.enqueue("searchaddpl", listOf(playlistName, album.searchFilter.toString()), onFinish)
 
+    fun addSongToStoredPlaylist(song: MPDSong, playlistName: String, onFinish: ((MPDMapResponse) -> Unit)? = null) =
+        repo.client.enqueue("playlistadd", listOf(playlistName, song.filename), onFinish)
+
     fun createDynamicPlaylist(filter: DynamicPlaylistFilter, shuffle: Boolean) {
         val playlist = DynamicPlaylist(filter, shuffle)
         _dynamicPlaylists.value = _dynamicPlaylists.value.toMutableList().apply { add(playlist) }

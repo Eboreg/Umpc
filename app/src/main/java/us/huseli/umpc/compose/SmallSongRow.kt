@@ -109,6 +109,7 @@ fun SmallSongRow(
     showYear: Boolean = true,
     onPlayPauseClick: () -> Unit,
     onEnqueueClick: () -> Unit,
+    onAddToPlaylistClick: () -> Unit,
     onGotoAlbumClick: (() -> Unit)? = null,
     onGotoArtistClick: (() -> Unit)? = null,
 ) {
@@ -129,6 +130,7 @@ fun SmallSongRow(
                     onClick = { isExpanded = false },
                     onPlayPauseClick = onPlayPauseClick,
                     onEnqueueClick = onEnqueueClick,
+                    onAddToPlaylistClick = onAddToPlaylistClick,
                     onGotoArtistClick = onGotoArtistClick,
                     onGotoAlbumClick = onGotoAlbumClick,
                 )

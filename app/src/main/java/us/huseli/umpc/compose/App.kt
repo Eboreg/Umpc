@@ -59,6 +59,7 @@ import us.huseli.umpc.compose.utils.MessageFlash
 import us.huseli.umpc.compose.utils.ResponsiveScaffold
 import us.huseli.umpc.data.MPDAlbum
 import us.huseli.umpc.data.MPDPlaylist
+import us.huseli.umpc.data.MPDSong
 import us.huseli.umpc.getActivity
 import us.huseli.umpc.viewmodels.LibraryViewModel
 import us.huseli.umpc.viewmodels.MPDViewModel
@@ -85,9 +86,11 @@ fun App(
     val showVolumeFlash by viewModel.showVolumeFlash.collectAsStateWithLifecycle()
     val volume by viewModel.volume.collectAsStateWithLifecycle()
     val loadingDynamicPlaylist by viewModel.loadingDynamicPlaylist.collectAsStateWithLifecycle()
+    val playlists by viewModel.storedPlaylists.collectAsStateWithLifecycle()
 
     var activeScreen by rememberSaveable { mutableStateOf(ContentScreen.NONE) }
     var isCoverShown by rememberSaveable { mutableStateOf(false) }
+    var songToAddToPlaylist by rememberSaveable { mutableStateOf<MPDSong?>(null) }
 
     val onGotoAlbumClick: (MPDAlbum) -> Unit = {
         navController.navigate(AlbumDestination.route(it))
@@ -97,6 +100,10 @@ fun App(
     val onGotoArtistClick: (String) -> Unit = {
         navController.navigate(ArtistDestination.route(it))
         isCoverShown = false
+    }
+
+    val onAddSongToPlaylistClick: (MPDSong) -> Unit = {
+        songToAddToPlaylist = it
     }
 
     fun navigate(route: String, navOptions: NavOptions? = null) {
@@ -152,6 +159,23 @@ fun App(
         }
     }
 
+    songToAddToPlaylist?.let { song ->
+        val successMessage = stringResource(R.string.song_was_added_to_playlist)
+
+        AddToPlaylistDialog(
+            title = "\"${song.title}\"",
+            playlists = playlists,
+            onConfirm = { playlistName ->
+                viewModel.addSongToStoredPlaylist(song, playlistName) { response ->
+                    if (response.isSuccess) viewModel.addMessage(successMessage)
+                    else response.error?.let { viewModel.addMessage(it) }
+                }
+                songToAddToPlaylist = null
+            },
+            onCancel = { songToAddToPlaylist = null },
+        )
+    }
+
     ResponsiveScaffold(
         activeScreen = activeScreen,
         onMenuItemClick = {
@@ -186,6 +210,7 @@ fun App(
                     viewModel = queueViewModel,
                     onGotoAlbumClick = onGotoAlbumClick,
                     onGotoArtistClick = onGotoArtistClick,
+                    onAddSongToPlaylistClick = onAddSongToPlaylistClick,
                 )
             }
 
@@ -214,6 +239,7 @@ fun App(
                     viewModel = searchViewModel,
                     onGotoAlbumClick = onGotoAlbumClick,
                     onGotoArtistClick = onGotoArtistClick,
+                    onAddSongToPlaylistClick = onAddSongToPlaylistClick,
                 )
             }
 
@@ -221,7 +247,10 @@ fun App(
                 route = AlbumDestination.routeTemplate,
                 arguments = AlbumDestination.arguments,
             ) {
-                AlbumScreen(onGotoArtistClick = onGotoArtistClick)
+                AlbumScreen(
+                    onGotoArtistClick = onGotoArtistClick,
+                    onAddSongToPlaylistClick = onAddSongToPlaylistClick,
+                )
             }
 
             composable(
@@ -246,7 +275,8 @@ fun App(
                     onPlaylistDeleted = { navigate(PlaylistListDestination.route) },
                     onPlaylistRenamed = { newName ->
                         navigate(PlaylistDetailsDestination.route(MPDPlaylist(newName)))
-                    }
+                    },
+                    onAddSongToPlaylistClick = onAddSongToPlaylistClick,
                 )
             }
         }

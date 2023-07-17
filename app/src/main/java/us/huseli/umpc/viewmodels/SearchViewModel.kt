@@ -20,6 +20,18 @@ class SearchViewModel @Inject constructor(repo: MPDRepository) : BaseViewModel(r
     val isSearching = _isSearching.asStateFlow()
     val listState = LazyListState()
 
+    fun addAllToPlaylist(playlistName: String) {
+        _songSearchResults.value.forEach { song ->
+            repo.engines.playlist.addSongToStoredPlaylist(song, playlistName)
+        }
+    }
+
+    fun enqueueAll() {
+        _songSearchResults.value.forEach { song ->
+            repo.engines.control.enqueueSongLast(song)
+        }
+    }
+
     fun setSongSearchTerm(value: TextFieldValue) {
         _songSearchTerm.value = value
         if (value.text.length >= 3) {

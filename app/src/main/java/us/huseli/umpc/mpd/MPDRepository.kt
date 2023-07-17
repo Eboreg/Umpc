@@ -8,7 +8,6 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import us.huseli.umpc.LoggerInterface
@@ -70,6 +69,7 @@ class MPDRepository @Inject constructor(
     private val _currentBitrate = MutableStateFlow<Int?>(null)
     private val _outputs = MutableStateFlow<List<MPDOutput>>(emptyList())
     private val _playerState = MutableStateFlow(PlayerState.STOP)
+    private val _queue = MutableStateFlow<List<MPDSong>>(emptyList())
     private val _randomState = MutableStateFlow(false)
     private val _repeatState = MutableStateFlow(false)
     private val _volume = MutableStateFlow(100)
@@ -93,7 +93,7 @@ class MPDRepository @Inject constructor(
     val albums = _albums.asStateFlow()
     val outputs = _outputs.asStateFlow()
     val playerState = _playerState.asStateFlow()
-    val queue = context.queueDataStore.data.map { it.toNative() }
+    val queue = _queue.asStateFlow()
     val randomState = _randomState.asStateFlow()
     val repeatState = _repeatState.asStateFlow()
     val volume = _volume.asStateFlow()
@@ -106,6 +106,12 @@ class MPDRepository @Inject constructor(
             message = MessageEngine(this),
             playlist = MPDPlaylistEngine(this, context, ioScope),
         )
+
+        ioScope.launch {
+            context.queueDataStore.data.collect {
+                _queue.value = it.toNative()
+            }
+        }
 
         ioScope.launch {
             engines.settings.credentials.collect { credentials ->

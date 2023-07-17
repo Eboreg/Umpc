@@ -19,14 +19,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import us.huseli.umpc.R
-import us.huseli.umpc.data.MPDAlbum
 import us.huseli.umpc.data.MPDPlaylist
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AddAlbumToPlaylistDialog(
+fun AddToPlaylistDialog(
     modifier: Modifier = Modifier,
-    album: MPDAlbum,
+    title: String,
     playlists: List<MPDPlaylist>,
     onConfirm: (String) -> Unit,
     onCancel: () -> Unit,
@@ -54,7 +53,7 @@ fun AddAlbumToPlaylistDialog(
         },
         text = {
             Column {
-                Text(stringResource(R.string.add_x_to_playlist, album.name))
+                Text(stringResource(R.string.add_x_to_playlist, title))
                 ExposedDropdownMenuBox(
                     expanded = isDropdownExpanded,
                     onExpandedChange = { isDropdownExpanded = !isDropdownExpanded },

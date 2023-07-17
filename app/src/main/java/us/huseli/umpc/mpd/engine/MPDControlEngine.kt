@@ -19,12 +19,11 @@ class MPDControlEngine(private val repo: MPDRepository) {
     }
 
     fun enqueueAlbumNextAndPlay(album: MPDAlbum) {
-        val position = if (repo.currentSongId.value != null) 0 else null
+        val addPosition = if (repo.currentSongPosition.value != null) 0 else null
+        val firstSongPosition = repo.currentSongPosition.value?.plus(1) ?: repo.queue.value.size
 
-        repo.client.enqueue(album.searchFilter.findadd(position)) { response ->
-            if (response.isSuccess) {
-                repo.currentSongPosition.value?.let { playSongPosition(it + 1) } ?: kotlin.run { playSongPosition(0) }
-            }
+        repo.client.enqueue(album.searchFilter.findadd(addPosition)) { response ->
+            if (response.isSuccess) playSongPosition(firstSongPosition)
         }
     }
 

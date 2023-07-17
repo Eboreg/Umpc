@@ -3,7 +3,9 @@ package us.huseli.umpc.viewmodels
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import us.huseli.umpc.data.MPDSong
 import us.huseli.umpc.mpd.MPDRepository
+import us.huseli.umpc.mpd.response.MPDMapResponse
 import javax.inject.Inject
 
 @HiltViewModel
@@ -14,6 +16,9 @@ class MPDViewModel @Inject constructor(repo: MPDRepository) : BaseViewModel(repo
     val message = repo.engines.message.message
     val showVolumeFlash = _showVolumeFlash.asStateFlow()
     val loadingDynamicPlaylist = repo.engines.playlist.loadingDynamicPlaylist
+
+    fun addSongToStoredPlaylist(song: MPDSong, playlistName: String, onFinish: (MPDMapResponse) -> Unit) =
+        repo.engines.playlist.addSongToStoredPlaylist(song, playlistName, onFinish)
 
     fun clearError() = repo.engines.message.clearError()
     fun clearMessage() = repo.engines.message.clearMessage()

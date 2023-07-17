@@ -13,7 +13,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.sharp.PlayArrow
 import androidx.compose.material.icons.sharp.PlaylistAdd
-import androidx.compose.material.icons.sharp.QueueMusic
+import androidx.compose.material.icons.sharp.PlaylistPlay
 import androidx.compose.material3.Divider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -30,38 +30,15 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import us.huseli.umpc.R
-import us.huseli.umpc.compose.AddAlbumToPlaylistDialog
+import us.huseli.umpc.compose.AddToPlaylistDialog
 import us.huseli.umpc.compose.AlbumArt
 import us.huseli.umpc.compose.SmallSongRow
 import us.huseli.umpc.compose.utils.FadingImageBox
 import us.huseli.umpc.compose.utils.SmallOutlinedButton
 import us.huseli.umpc.data.MPDAlbum
+import us.huseli.umpc.data.MPDSong
 import us.huseli.umpc.isInLandscapeMode
 import us.huseli.umpc.viewmodels.AlbumViewModel
-
-@Composable
-fun AlbumScreenMetaButtons(
-    album: MPDAlbum,
-    onEnqueueClick: (MPDAlbum) -> Unit,
-    onPlayClick: (MPDAlbum) -> Unit,
-    onAddToPlaylistClick: (MPDAlbum) -> Unit,
-) {
-    SmallOutlinedButton(
-        onClick = { onEnqueueClick(album) },
-        leadingIcon = Icons.Sharp.QueueMusic,
-        text = stringResource(R.string.enqueue),
-    )
-    SmallOutlinedButton(
-        onClick = { onPlayClick(album) },
-        leadingIcon = Icons.Sharp.PlayArrow,
-        text = stringResource(R.string.play),
-    )
-    SmallOutlinedButton(
-        onClick = { onAddToPlaylistClick(album) },
-        leadingIcon = Icons.Sharp.PlaylistAdd,
-        text = stringResource(R.string.add_to_playlist),
-    )
-}
 
 @Composable
 fun AlbumScreenMeta(
@@ -89,11 +66,20 @@ fun AlbumScreenMeta(
         modifier = Modifier.clickable { onGotoArtistClick(album.artist) },
     )
     Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.padding(vertical = 10.dp)) {
-        AlbumScreenMetaButtons(
-            album = album,
-            onEnqueueClick = onEnqueueClick,
-            onPlayClick = onPlayClick,
-            onAddToPlaylistClick = onAddToPlaylistClick,
+        SmallOutlinedButton(
+            onClick = { onEnqueueClick(album) },
+            leadingIcon = Icons.Sharp.PlaylistPlay,
+            text = stringResource(R.string.enqueue),
+        )
+        SmallOutlinedButton(
+            onClick = { onPlayClick(album) },
+            leadingIcon = Icons.Sharp.PlayArrow,
+            text = stringResource(R.string.play),
+        )
+        SmallOutlinedButton(
+            onClick = { onAddToPlaylistClick(album) },
+            leadingIcon = Icons.Sharp.PlaylistAdd,
+            text = stringResource(R.string.add_to_playlist),
         )
     }
 }
@@ -103,6 +89,7 @@ fun AlbumScreen(
     modifier: Modifier = Modifier,
     viewModel: AlbumViewModel = hiltViewModel(),
     onGotoArtistClick: (String) -> Unit,
+    onAddSongToPlaylistClick: (MPDSong) -> Unit,
 ) {
     val albumArt by viewModel.albumArt.collectAsStateWithLifecycle()
     val albumWithSongs by viewModel.albumWithSongs.collectAsStateWithLifecycle()
@@ -114,8 +101,8 @@ fun AlbumScreen(
     if (isAddToPlaylistDialogOpen) {
         val successMessage = stringResource(R.string.album_was_added_to_playlist)
 
-        AddAlbumToPlaylistDialog(
-            album = viewModel.album,
+        AddToPlaylistDialog(
+            title = "\"${viewModel.album.name}\"",
             playlists = playlists,
             onConfirm = {
                 viewModel.addToPlaylist(it) { response ->
@@ -178,6 +165,7 @@ fun AlbumScreen(
                 onEnqueueClick = { viewModel.enqueueSong(song) },
                 onPlayPauseClick = { viewModel.playOrPauseSong(song) },
                 onGotoArtistClick = { onGotoArtistClick(song.artist) },
+                onAddToPlaylistClick = { onAddSongToPlaylistClick(song) },
             )
         }
     }

@@ -49,9 +49,10 @@ import org.burnoutcrew.reorderable.rememberReorderableLazyListState
 import org.burnoutcrew.reorderable.reorderable
 import us.huseli.umpc.R
 import us.huseli.umpc.compose.LargeSongRow
-import us.huseli.umpc.compose.utils.ListWithScrollbar
+import us.huseli.umpc.compose.utils.ListWithNumericBar
 import us.huseli.umpc.compose.utils.SmallOutlinedButton
 import us.huseli.umpc.data.MPDAlbum
+import us.huseli.umpc.data.MPDSong
 import us.huseli.umpc.formatDuration
 import us.huseli.umpc.isInLandscapeMode
 import us.huseli.umpc.viewmodels.QueueViewModel
@@ -64,9 +65,10 @@ fun QueueScreen(
     viewModel: QueueViewModel = hiltViewModel(),
     onGotoAlbumClick: (MPDAlbum) -> Unit,
     onGotoArtistClick: (String) -> Unit,
+    onAddSongToPlaylistClick: (MPDSong) -> Unit,
 ) {
     val activeDynamicPlaylist by viewModel.activeDynamicPlaylist.collectAsStateWithLifecycle()
-    val queue by viewModel.queue.collectAsStateWithLifecycle(emptyList())
+    val queue by viewModel.queue.collectAsStateWithLifecycle()
     val currentSongPosition by viewModel.currentSongPosition.collectAsStateWithLifecycle()
     val currentSongId by viewModel.currentSongId.collectAsStateWithLifecycle()
     val playerState by viewModel.playerState.collectAsStateWithLifecycle()
@@ -114,6 +116,12 @@ fun QueueScreen(
                             horizontalArrangement = Arrangement.SpaceAround,
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
+                            if (currentSongPosition != null) {
+                                SmallOutlinedButton(
+                                    onClick = { scrollToCurrent() },
+                                    text = stringResource(R.string.scroll_to_current_song),
+                                )
+                            }
                             if (activeDynamicPlaylist == null) {
                                 SmallOutlinedButton(
                                     onClick = { viewModel.clearQueue { viewModel.addMessage(queueClearedMsg) } },
@@ -159,10 +167,10 @@ fun QueueScreen(
             }
         }
 
-        ListWithScrollbar(
+        ListWithNumericBar(
             modifier = modifier.fillMaxWidth(),
-            listSize = localQueue.size,
             listState = viewModel.listState,
+            listSize = localQueue.size,
         ) {
             LazyColumn(modifier = Modifier.reorderable(reorderableState), state = viewModel.listState) {
                 itemsIndexed(localQueue, key = { _, song -> song.id!! }) { index, song ->
@@ -188,10 +196,10 @@ fun QueueScreen(
                             onEnqueueClick = { viewModel.enqueueSong(song) },
                             onGotoAlbumClick = { onGotoAlbumClick(song.album) },
                             onGotoArtistClick = { onGotoArtistClick(song.artist) },
+                            onAddToPlaylistClick = { onAddSongToPlaylistClick(song) },
                             artist = song.artist,
                             album = song.album.name,
                             albumArt = albumArt,
-                            showEnqueueButton = false,
                             albumArtModifier = Modifier.detectReorder(reorderableState),
                             position = index + 1,
                         )

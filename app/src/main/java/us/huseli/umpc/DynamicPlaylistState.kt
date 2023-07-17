@@ -34,7 +34,7 @@ class DynamicPlaylistState(
 
         songPositionListener = ioScope.launch {
             repo.currentSongPosition.filterNotNull().collect { position ->
-                val filesToAdd = (DYNAMIC_PLAYLIST_CHUNK_SIZE / 2) - repo.queue.first().size + position + 1
+                val filesToAdd = (DYNAMIC_PLAYLIST_CHUNK_SIZE / 2) - repo.queue.value.size + position + 1
                 if (filesToAdd > 0) refillMPDQueue(currentOffset, filesToAdd)
             }
         }

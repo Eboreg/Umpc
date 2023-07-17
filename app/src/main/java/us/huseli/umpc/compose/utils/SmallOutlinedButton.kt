@@ -28,7 +28,7 @@ fun SmallOutlinedButton(
         contentPadding = PaddingValues(horizontal = 10.dp, vertical = 0.dp),
         content = {
             leadingIcon?.let {
-                Icon(it, null, modifier = Modifier.size(30.dp).padding(end = 10.dp))
+                Icon(it, null, modifier = Modifier.size(30.dp).padding(end = 5.dp))
             }
             Text(text, style = MaterialTheme.typography.bodySmall)
         },

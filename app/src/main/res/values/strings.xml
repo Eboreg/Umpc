@@ -76,6 +76,14 @@
     <string name="total_time_colon">Total time: %1$s</string>
     <string name="value">Value</string>
     <string name="x_kbps">%1$d Kbps</string>
+    <string name="scroll_to_current_song">Scroll to current song</string>
+    <string name="enqueue_all">Enqueue all</string>
+    <string name="add_all_to_playlist">Add all to playlist</string>
+    <string name="enqueuing_all_search_results">Enqueuing all search results.</string>
+    <string name="search_results">search results</string>
+    <string name="adding_all_search_results_to_playlist">Adding all search results to playlist.</string>
+    <string name="song">song</string>
+    <string name="song_was_added_to_playlist">Song was added to playlist.</string>
     <plurals name="x_albums">
         <item quantity="one">1 album</item>
         <item quantity="other">%1$d albums</item>
@@ -83,5 +91,9 @@
     <plurals name="x_songs">
         <item quantity="one">1 song</item>
         <item quantity="other">%1$d songs</item>
+    </plurals>
+    <plurals name="x_songs_found">
+        <item quantity="one">1 song found.</item>
+        <item quantity="other">%1$d songs found.</item>
     </plurals>
 </resources>

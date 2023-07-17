@@ -14,6 +14,7 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -26,21 +27,33 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
-import us.huseli.umpc.prune
+import kotlin.math.roundToInt
 
 @Composable
-fun <T> ListWithAlphabetBar(
+fun ListWithNumericBar(
     modifier: Modifier = Modifier,
     scope: CoroutineScope = rememberCoroutineScope(),
-    characters: Collection<Char>,
     listState: LazyListState,
     minItems: Int = 50,
     barWidth: Dp = 30.dp,
-    items: List<T>,
-    selector: (T) -> String,
+    listSize: Int,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     var maxHeightDp by remember { mutableStateOf(0.dp) }
+    var itemIndices by remember { mutableStateOf<List<Int>>(emptyList()) }
+
+    LaunchedEffect(maxHeightDp, listSize) {
+        val maxIndices = (maxHeightDp / 30.dp).toInt()
+        val maxValue = listSize - 1
+        val increment = maxValue.toFloat() / (maxIndices - 1)
+        val tempIndices = mutableListOf<Int>()
+
+        for (i in 0 until maxIndices) {
+            val index = (i * increment).roundToInt()
+            if (!tempIndices.contains(index)) tempIndices.add(index)
+        }
+        itemIndices = tempIndices
+    }
 
     BoxWithConstraints(modifier = modifier) {
         maxHeightDp = maxHeight
@@ -49,30 +62,18 @@ fun <T> ListWithAlphabetBar(
                 content()
             }
 
-            if (characters.isNotEmpty() && items.size >= minItems) {
-                val maxCharacters = (maxHeightDp / 30.dp).toInt()
-                val displayedCharacters = characters.prune(maxCharacters)
-
+            if (itemIndices.isNotEmpty() && listSize >= minItems) {
                 Box(modifier = Modifier.width(barWidth).fillMaxHeight()) {
-                    displayedCharacters.forEachIndexed { index, char ->
+                    itemIndices.forEachIndexed { index, itemIndex ->
                         Box(
                             modifier = Modifier
-                                .offset(0.dp, maxHeightDp * (index.toFloat() / displayedCharacters.size))
+                                .offset(0.dp, maxHeightDp * (index.toFloat() / itemIndices.size))
                                 .size(width = barWidth, height = 30.dp)
-                                .clickable {
-                                    scope.launch {
-                                        if (char == '#') listState.scrollToItem(0)
-                                        else {
-                                            items.indexOfFirst { selector(it).startsWith(char, true) }
-                                                .takeIf { it > -1 }
-                                                ?.also { pos -> listState.scrollToItem(pos) }
-                                        }
-                                    }
-                                },
+                                .clickable { scope.launch { listState.scrollToItem(itemIndex) } },
                             contentAlignment = Alignment.Center,
                         ) {
                             Text(
-                                text = char.toString(),
+                                text = (itemIndex + 1).toString(),
                                 textAlign = TextAlign.Center,
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.outline,

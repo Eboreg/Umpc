@@ -13,7 +13,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.sharp.Delete
 import androidx.compose.material.icons.sharp.Edit
 import androidx.compose.material.icons.sharp.PlayArrow
-import androidx.compose.material.icons.sharp.QueueMusic
+import androidx.compose.material.icons.sharp.PlaylistPlay
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Divider
 import androidx.compose.material3.Icon
@@ -55,6 +55,7 @@ fun StoredPlaylistScreen(
     listState: LazyListState = rememberLazyListState(),
     onGotoAlbumClick: (MPDAlbum) -> Unit,
     onGotoArtistClick: (String) -> Unit,
+    onAddSongToPlaylistClick: (MPDSong) -> Unit,
     onPlaylistDeleted: () -> Unit,
     onPlaylistRenamed: (String) -> Unit,
 ) {
@@ -128,7 +129,7 @@ fun StoredPlaylistScreen(
                                     else response.error?.let { error -> viewModel.addMessage(error) }
                                 }
                             },
-                            content = { Icon(Icons.Sharp.QueueMusic, stringResource(R.string.enqueue)) },
+                            content = { Icon(Icons.Sharp.PlaylistPlay, stringResource(R.string.enqueue)) },
                         )
                         IconButton(
                             onClick = { viewModel.play() },
@@ -161,6 +162,7 @@ fun StoredPlaylistScreen(
                     onEnqueueClick = { viewModel.enqueueSong(song) },
                     onGotoArtistClick = { onGotoArtistClick(song.artist) },
                     onGotoAlbumClick = { onGotoAlbumClick(song.album) },
+                    onAddToPlaylistClick = { onAddSongToPlaylistClick(song) },
                 )
             }
         }
@@ -224,6 +226,7 @@ fun StoredPlaylistSongRow(
     onEnqueueClick: () -> Unit,
     onGotoAlbumClick: () -> Unit,
     onGotoArtistClick: () -> Unit,
+    onAddToPlaylistClick: () -> Unit,
     albumArt: ImageBitmap?,
 ) {
     LargeSongRow(
@@ -235,6 +238,7 @@ fun StoredPlaylistSongRow(
         onEnqueueClick = onEnqueueClick,
         onGotoAlbumClick = onGotoAlbumClick,
         onGotoArtistClick = onGotoArtistClick,
+        onAddToPlaylistClick = onAddToPlaylistClick,
         artist = song.artist,
         album = song.album.name,
         albumArt = albumArt,

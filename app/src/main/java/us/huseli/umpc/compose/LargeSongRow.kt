@@ -12,7 +12,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.sharp.MusicNote
 import androidx.compose.material.icons.sharp.Pause
 import androidx.compose.material.icons.sharp.PlayArrow
-import androidx.compose.material.icons.sharp.QueueMusic
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalAbsoluteTonalElevation
@@ -89,10 +88,8 @@ fun LargeSongRowContent(
     discNumber: Int? = null,
     artist: String? = null,
     album: String? = null,
-    showEnqueueButton: Boolean = true,
     highlight: String? = null,
     onPlayPauseClick: () -> Unit,
-    onEnqueueClick: () -> Unit,
 ) {
     val titleRow =
         if (discNumber != null && position != null) "${discNumber}-${position}. ${song.title}"
@@ -146,11 +143,6 @@ fun LargeSongRowContent(
             modifier = Modifier.width(IntrinsicSize.Min),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            if (showEnqueueButton) {
-                IconButton(onClick = onEnqueueClick) {
-                    Icon(Icons.Sharp.QueueMusic, stringResource(R.string.enqueue))
-                }
-            }
             IconButton(onClick = onPlayPauseClick) {
                 if (isCurrentSong && playerState == PlayerState.PLAY)
                     Icon(Icons.Sharp.Pause, stringResource(R.string.pause))
@@ -173,10 +165,10 @@ fun LargeSongRow(
     discNumber: Int? = null,
     artist: String? = null,
     album: String? = null,
-    showEnqueueButton: Boolean = true,
     highlight: String? = null,
     onPlayPauseClick: () -> Unit,
     onEnqueueClick: () -> Unit,
+    onAddToPlaylistClick: () -> Unit,
     onGotoAlbumClick: (() -> Unit)? = null,
     onGotoArtistClick: (() -> Unit)? = null,
 ) {
@@ -197,6 +189,7 @@ fun LargeSongRow(
                     onClick = { isExpanded = false },
                     onPlayPauseClick = onPlayPauseClick,
                     onEnqueueClick = onEnqueueClick,
+                    onAddToPlaylistClick = onAddToPlaylistClick,
                     onGotoArtistClick = onGotoArtistClick,
                     onGotoAlbumClick = onGotoAlbumClick,
                     albumArt = albumArt,
@@ -214,10 +207,8 @@ fun LargeSongRow(
                     discNumber = discNumber,
                     artist = artist,
                     album = album,
-                    showEnqueueButton = showEnqueueButton,
                     highlight = highlight,
                     onPlayPauseClick = onPlayPauseClick,
-                    onEnqueueClick = onEnqueueClick,
                 )
             }
         }

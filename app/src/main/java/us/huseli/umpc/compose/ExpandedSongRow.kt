@@ -14,7 +14,8 @@ import androidx.compose.material.icons.sharp.InterpreterMode
 import androidx.compose.material.icons.sharp.MusicNote
 import androidx.compose.material.icons.sharp.Pause
 import androidx.compose.material.icons.sharp.PlayArrow
-import androidx.compose.material.icons.sharp.QueueMusic
+import androidx.compose.material.icons.sharp.PlaylistAdd
+import androidx.compose.material.icons.sharp.PlaylistPlay
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalAbsoluteTonalElevation
@@ -50,6 +51,7 @@ fun ExpandedSongRow(
     onClick: () -> Unit,
     onPlayPauseClick: () -> Unit,
     onEnqueueClick: () -> Unit,
+    onAddToPlaylistClick: () -> Unit,
     onGotoAlbumClick: (() -> Unit)? = null,
     onGotoArtistClick: (() -> Unit)? = null,
 ) {
@@ -120,7 +122,10 @@ fun ExpandedSongRow(
                             }
                         }
                         IconButton(onClick = onEnqueueClick) {
-                            Icon(Icons.Sharp.QueueMusic, stringResource(R.string.enqueue))
+                            Icon(Icons.Sharp.PlaylistPlay, stringResource(R.string.enqueue))
+                        }
+                        IconButton(onClick = onAddToPlaylistClick) {
+                            Icon(Icons.Sharp.PlaylistAdd, stringResource(R.string.add_to_playlist))
                         }
                         IconButton(onClick = onPlayPauseClick) {
                             if (isCurrentSong && playerState == PlayerState.PLAY)
