@@ -9,6 +9,7 @@ import com.google.gson.reflect.TypeToken
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 import us.huseli.umpc.Constants.PREF_ACTIVE_DYNAMIC_PLAYLIST
 import us.huseli.umpc.Constants.PREF_DYNAMIC_PLAYLISTS
 import us.huseli.umpc.DynamicPlaylistState
@@ -139,18 +140,21 @@ class MPDPlaylistEngine(
         val playlist = gson.fromJson(preferences.getString(PREF_ACTIVE_DYNAMIC_PLAYLIST, null), dynamicPlaylistType)
 
         _activeDynamicPlaylist.value = playlist
-        dynamicPlaylistState =
-            if (playlist != null) {
-                _loadingDynamicPlaylist.value = true
-                DynamicPlaylistState(
-                    context = context,
-                    playlist = playlist,
-                    repo = repo,
-                    ioScope = ioScope,
-                    replaceCurrentQueue = replaceCurrentQueue,
-                    playOnLoad = playOnLoad
-                ) { _loadingDynamicPlaylist.value = false }
-            } else null
+        ioScope.launch {
+            dynamicPlaylistState?.close()
+            dynamicPlaylistState =
+                if (playlist != null) {
+                    _loadingDynamicPlaylist.value = true
+                    DynamicPlaylistState(
+                        context = context,
+                        playlist = playlist,
+                        repo = repo,
+                        ioScope = ioScope,
+                        replaceCurrentQueue = replaceCurrentQueue,
+                        playOnLoad = playOnLoad
+                    ) { _loadingDynamicPlaylist.value = false }
+                } else null
+        }
     }
 
     private fun loadDynamicPlaylists() {

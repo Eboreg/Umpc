@@ -3,6 +3,7 @@ package us.huseli.umpc
 import android.content.Context
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
@@ -12,10 +13,10 @@ import kotlinx.coroutines.sync.withLock
 import us.huseli.umpc.Constants.DYNAMIC_PLAYLIST_CHUNK_SIZE
 import us.huseli.umpc.data.DynamicPlaylist
 import us.huseli.umpc.data.dynamicPlaylistDataStore
+import us.huseli.umpc.data.queueDataStore
 import us.huseli.umpc.data.toNative
 import us.huseli.umpc.mpd.MPDRepository
 import us.huseli.umpc.mpd.OnMPDChangeListener
-import java.io.Closeable
 import kotlin.math.max
 import kotlin.math.min
 
@@ -27,7 +28,7 @@ class DynamicPlaylistState(
     replaceCurrentQueue: Boolean,
     playOnLoad: Boolean,
     onLoaded: (() -> Unit)? = null,
-) : OnMPDChangeListener, Closeable, LoggerInterface {
+) : OnMPDChangeListener, LoggerInterface {
     private val mutex = Mutex()
     private var songPositionListener: Job? = null
     private var currentOffset = 0
@@ -40,14 +41,16 @@ class DynamicPlaylistState(
                 if (shouldLoadFilenamesFromPDB(playlist)) {
                     log("DYNAMICPLAYLISTSTATE: should load filenames from PDB. currentOffset=$currentOffset, replaceCurrentQueue=$replaceCurrentQueue, playOnLoad=$playOnLoad")
                     loadFilenamesFromMPD { filenames ->
-                        val filesToAdd = min(DYNAMIC_PLAYLIST_CHUNK_SIZE, filenames.size)
-                        saveFilenamesToDisk(filenames)
-                        fillMPDQueue(
-                            filenames = filenames.subList(0, filesToAdd),
-                            replaceCurrentQueue = replaceCurrentQueue,
-                            playOnLoad = playOnLoad,
-                        )
-                        updateCurrentOffset(currentOffset + filesToAdd)
+                        ioScope.launch {
+                            val filesToAdd = min(DYNAMIC_PLAYLIST_CHUNK_SIZE, filenames.size)
+                            saveFilenamesToDisk(filenames)
+                            fillMPDQueue(
+                                filenames = filenames.subList(0, filesToAdd),
+                                replaceCurrentQueue = replaceCurrentQueue,
+                                playOnLoad = playOnLoad,
+                            )
+                            updateCurrentOffset(currentOffset + filesToAdd)
+                        }
                     }
                 } else {
                     currentOffset =
@@ -55,13 +58,13 @@ class DynamicPlaylistState(
                         else min(loadCurrentOffsetFromDisk(), loadFilenamesCountFromDisk())
                     val length =
                         if (replaceCurrentQueue) DYNAMIC_PLAYLIST_CHUNK_SIZE
-                        else max(DYNAMIC_PLAYLIST_CHUNK_SIZE - repo.queue.value.size, 0)
+                        else max(DYNAMIC_PLAYLIST_CHUNK_SIZE - getQueue().songsCount, 0)
 
                     log("DYNAMICPLAYLISTSTATE: should load filenames from disk. length=$length, currentOffset=$currentOffset, replaceCurrentQueue=$replaceCurrentQueue, playOnLoad=$playOnLoad")
 
                     loadFilenamesFromDisk(currentOffset, length).also { filenames ->
                         val queueFilenames =
-                            if (!replaceCurrentQueue) repo.queue.value.map { it.filename }
+                            if (!replaceCurrentQueue) getQueue().songsList.map { it.filename }
                             else emptyList()
                         val filteredFilenames = filenames - queueFilenames.toSet()
 
@@ -83,8 +86,8 @@ class DynamicPlaylistState(
         songPositionListener = ioScope.launch {
             repo.currentSongPosition.filterNotNull().distinctUntilChanged().collect { position ->
                 mutex.withLock {
-                    val filesToAdd = (DYNAMIC_PLAYLIST_CHUNK_SIZE / 2) - repo.queue.value.size + position + 1
-                    log("DYNAMICPLAYLISTSTATE: current song position changed. position=$position, queue size=${repo.queue.value.size}, filesToAdd=$filesToAdd, currentOffset=$currentOffset, replaceCurrentQueue=$replaceCurrentQueue, playOnLoad=$playOnLoad")
+                    val filesToAdd = (DYNAMIC_PLAYLIST_CHUNK_SIZE / 2) - getQueue().songsCount + position + 1
+                    log("DYNAMICPLAYLISTSTATE: current song position changed. position=$position, queue size=${getQueue().songsCount}, filesToAdd=$filesToAdd, currentOffset=$currentOffset, replaceCurrentQueue=$replaceCurrentQueue, playOnLoad=$playOnLoad")
                     if (filesToAdd > 0) {
                         loadFilenamesFromDisk(currentOffset, filesToAdd).also { filenames ->
                             fillMPDQueue(filenames = filenames)
@@ -96,13 +99,13 @@ class DynamicPlaylistState(
         }
     }
 
-    private fun fillMPDQueue(
+    private suspend fun fillMPDQueue(
         filenames: List<String>,
         replaceCurrentQueue: Boolean = false,
         playOnLoad: Boolean = false,
     ) {
         var isPlayCalled = false
-        val firstPosition = if (replaceCurrentQueue) 0 else repo.queue.value.size + 1
+        val firstPosition = if (replaceCurrentQueue) 0 else getQueue().songsCount + 1
 
         log("DYNAMICPLAYLISTSTATE: fill MPD queue. filenames.size=${filenames.size}, firstPosition=$firstPosition, currentOffset=$currentOffset, replaceCurrentQueue=$replaceCurrentQueue, playOnLoad=$playOnLoad")
         if (replaceCurrentQueue) repo.engines.control.clearQueue()
@@ -117,6 +120,8 @@ class DynamicPlaylistState(
             }
         }
     }
+
+    private suspend fun getQueue() = context.queueDataStore.data.first()
 
     private suspend fun loadCurrentOffsetFromDisk(): Int = context.dynamicPlaylistDataStore.data.first().currentOffset
 
@@ -163,22 +168,24 @@ class DynamicPlaylistState(
         }
     }
 
-    override fun close() {
-        songPositionListener?.cancel()
+    suspend fun close() {
+        songPositionListener?.cancelAndJoin()
     }
 
     override fun onMPDChanged(subsystems: List<String>) {
         if (subsystems.contains("database")) {
             loadFilenamesFromMPD { filenames ->
-                saveFilenamesToDisk(filenames)
-                val filesToAdd =
-                    (DYNAMIC_PLAYLIST_CHUNK_SIZE / 2) -
-                    repo.queue.value.size +
-                    (repo.currentSongPosition.value ?: 0) + 1
+                ioScope.launch {
+                    saveFilenamesToDisk(filenames)
+                    val filesToAdd =
+                        (DYNAMIC_PLAYLIST_CHUNK_SIZE / 2) -
+                        getQueue().songsCount +
+                        (repo.currentSongPosition.value ?: 0) + 1
 
-                if (filesToAdd > 0) {
-                    fillMPDQueue(filenames.subList(0, filesToAdd))
-                    updateCurrentOffset(filesToAdd)
+                    if (filesToAdd > 0) {
+                        fillMPDQueue(filenames.subList(0, filesToAdd))
+                        updateCurrentOffset(filesToAdd)
+                    }
                 }
             }
         }

@@ -3,6 +3,7 @@ package us.huseli.umpc.viewmodels
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import us.huseli.umpc.mpd.MPDRepository
 import javax.inject.Inject
@@ -14,10 +15,12 @@ class CurrentSongViewModel @Inject constructor(repo: MPDRepository) : BaseViewMo
     val currentSongElapsed = repo.currentSongElapsed
     val currentBitrate = repo.currentBitrate
     val currentAudioFormat = repo.currentAudioFormat
+    val isDynamicPlaylistActive = repo.engines.playlist.activeDynamicPlaylist.map { it != null }
     val randomState = repo.randomState
     val repeatState = repo.repeatState
     val streamingUrl = repo.engines.settings.streamingUrl.asStateFlow()
 
+    fun deactivateDynamicPlaylist() = repo.engines.playlist.deactivateDynamicPlaylist()
     fun next() = repo.engines.control.next()
     fun playOrPause() = repo.engines.control.playOrPause()
     fun previousOrRestart() =

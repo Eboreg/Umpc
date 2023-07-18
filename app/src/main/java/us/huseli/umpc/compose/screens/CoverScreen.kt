@@ -54,6 +54,7 @@ import us.huseli.umpc.compose.PlayerControls
 import us.huseli.umpc.compose.SongProgressSlider
 import us.huseli.umpc.compose.VolumeSlider
 import us.huseli.umpc.compose.utils.FadingImageBox
+import us.huseli.umpc.compose.utils.SmallOutlinedButton
 import us.huseli.umpc.data.MPDAlbum
 import us.huseli.umpc.data.MPDAudioFormat
 import us.huseli.umpc.data.MPDSong
@@ -76,6 +77,7 @@ fun CoverScreen(
     val currentSong by viewModel.currentSong.collectAsStateWithLifecycle()
     val duration by viewModel.currentSongDuration.collectAsStateWithLifecycle()
     val elapsed by viewModel.currentSongElapsed.collectAsStateWithLifecycle()
+    val isDynamicPlaylistActive by viewModel.isDynamicPlaylistActive.collectAsStateWithLifecycle(false)
     val playerState by viewModel.playerState.collectAsStateWithLifecycle()
     val volume by viewModel.volume.collectAsStateWithLifecycle()
 
@@ -99,7 +101,7 @@ fun CoverScreen(
                 state = swipeableState,
                 anchors = anchors,
                 orientation = Orientation.Vertical,
-                thresholds = { _, _ -> FractionalThreshold(0.8f) },
+                thresholds = { _, _ -> FractionalThreshold(0.5f) },
                 resistance = ResistanceConfig(0f, 0f, 0f),
             )
             .fillMaxHeight()
@@ -137,11 +139,12 @@ fun CoverScreen(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 10.dp),
                 bitrate = bitrate,
                 audioFormat = audioFormat,
+                isDynamicPlaylistActive = isDynamicPlaylistActive,
             )
 
             Column(modifier = Modifier.align(Alignment.BottomCenter)) {
                 CoverScreenSongInfoTexts(currentSong, onGotoAlbumClick, onGotoArtistClick)
-                CoverScreenFilterChips(viewModel)
+                CoverScreenButtons(viewModel)
 
                 PlayerControls(
                     playerState = playerState,
@@ -178,7 +181,7 @@ fun CoverScreenSongInfoTexts(
         Column(
             modifier = Modifier.padding(10.dp).fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(10.dp),
+            verticalArrangement = Arrangement.spacedBy(5.dp),
         ) {
             Text(
                 text = song.title,
@@ -207,21 +210,22 @@ fun CoverScreenSongTechInfo(
     modifier: Modifier = Modifier,
     bitrate: Int?,
     audioFormat: MPDAudioFormat?,
+    isDynamicPlaylistActive: Boolean,
 ) {
     Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = modifier) {
         bitrate?.let { Badge { Text(stringResource(R.string.x_kbps, it)) } }
+        if (isDynamicPlaylistActive) Badge { Text(stringResource(R.string.dynamic_playlist)) }
         audioFormat?.let { Badge { Text(it.toString()) } }
     }
 }
 
 @OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
-fun CoverScreenFilterChips(
-    viewModel: CurrentSongViewModel = hiltViewModel(),
-) {
-    val repeatState by viewModel.repeatState.collectAsStateWithLifecycle()
-    val randomState by viewModel.randomState.collectAsStateWithLifecycle()
+fun CoverScreenButtons(viewModel: CurrentSongViewModel = hiltViewModel()) {
+    val isDynamicPlaylistActive by viewModel.isDynamicPlaylistActive.collectAsStateWithLifecycle(false)
     val isStreaming by viewModel.isStreaming.collectAsStateWithLifecycle()
+    val randomState by viewModel.randomState.collectAsStateWithLifecycle()
+    val repeatState by viewModel.repeatState.collectAsStateWithLifecycle()
     val streamingUrl by viewModel.streamingUrl.collectAsStateWithLifecycle()
 
     val streamingStarted =
@@ -269,5 +273,13 @@ fun CoverScreenFilterChips(
             label = { Text(stringResource(R.string.stream)) },
             leadingIcon = { Icon(Icons.Sharp.Headphones, null) }
         )
+        if (isDynamicPlaylistActive) {
+            SmallOutlinedButton(
+                onClick = { viewModel.deactivateDynamicPlaylist() },
+                text = stringResource(R.string.deactivate_dynamic_playlist),
+                height = 32.dp,
+                textStyle = MaterialTheme.typography.bodyMedium,
+            )
+        }
     }
 }

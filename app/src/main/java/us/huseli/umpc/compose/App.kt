@@ -63,6 +63,7 @@ import us.huseli.umpc.data.MPDSong
 import us.huseli.umpc.getActivity
 import us.huseli.umpc.viewmodels.LibraryViewModel
 import us.huseli.umpc.viewmodels.MPDViewModel
+import us.huseli.umpc.viewmodels.PlaylistListViewModel
 import us.huseli.umpc.viewmodels.QueueViewModel
 import us.huseli.umpc.viewmodels.SearchViewModel
 
@@ -75,6 +76,7 @@ fun App(
     searchViewModel: SearchViewModel = hiltViewModel(),
     libraryViewModel: LibraryViewModel = hiltViewModel(),
     queueViewModel: QueueViewModel = hiltViewModel(),
+    playlistViewModel: PlaylistListViewModel = hiltViewModel(),
 ) {
     val onBackPressedDispatcher = LocalOnBackPressedDispatcherOwner.current?.onBackPressedDispatcher
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -262,7 +264,10 @@ fun App(
 
             composable(route = PlaylistListDestination.route) {
                 activeScreen = ContentScreen.PLAYLISTS
-                PlaylistListScreen(onGotoStoredPlaylistClick = { navigate(PlaylistDetailsDestination.route(it)) })
+                PlaylistListScreen(
+                    viewModel = playlistViewModel,
+                    onGotoStoredPlaylistClick = { navigate(PlaylistDetailsDestination.route(it)) }
+                )
             }
 
             composable(

@@ -12,6 +12,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 @Composable
@@ -20,17 +22,19 @@ fun SmallOutlinedButton(
     onClick: () -> Unit,
     leadingIcon: ImageVector? = null,
     text: String,
+    height: Dp = 25.dp,
+    textStyle: TextStyle = MaterialTheme.typography.bodySmall,
 ) {
     OutlinedButton(
-        modifier = modifier.height(25.dp),
+        modifier = modifier.height(height),
         onClick = onClick,
         shape = ShapeDefaults.ExtraSmall,
         contentPadding = PaddingValues(horizontal = 10.dp, vertical = 0.dp),
         content = {
             leadingIcon?.let {
-                Icon(it, null, modifier = Modifier.size(30.dp).padding(end = 5.dp))
+                Icon(imageVector = it, contentDescription = null, modifier = Modifier.size(height).padding(end = 5.dp))
             }
-            Text(text, style = MaterialTheme.typography.bodySmall)
+            Text(text = text, style = textStyle)
         },
     )
 }
