@@ -3,6 +3,7 @@ package us.huseli.umpc.compose.utils
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -17,6 +18,8 @@ import us.huseli.umpc.isInLandscapeMode
 @Composable
 fun SubMenuScreen(
     modifier: Modifier = Modifier,
+    landscapeMenuPadding: PaddingValues = PaddingValues(10.dp),
+    portraitMenuPadding: PaddingValues = PaddingValues(10.dp),
     menu: @Composable () -> Unit,
     content: @Composable ColumnScope.() -> Unit,
 ) {
@@ -24,7 +27,7 @@ fun SubMenuScreen(
         Row(modifier = modifier) {
             Surface(tonalElevation = 2.dp, modifier = Modifier.fillMaxHeight()) {
                 Column(
-                    modifier = Modifier.fillMaxHeight().padding(10.dp),
+                    modifier = Modifier.fillMaxHeight().padding(landscapeMenuPadding),
                     verticalArrangement = Arrangement.SpaceAround,
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
@@ -39,7 +42,7 @@ fun SubMenuScreen(
         Column(modifier = modifier) {
             Surface(tonalElevation = 2.dp, modifier = Modifier.fillMaxWidth()) {
                 Row(
-                    modifier = Modifier.fillMaxWidth().padding(10.dp),
+                    modifier = Modifier.fillMaxWidth().padding(portraitMenuPadding),
                     horizontalArrangement = Arrangement.SpaceAround,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {

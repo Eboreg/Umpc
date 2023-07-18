@@ -5,6 +5,7 @@ import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
 import us.huseli.umpc.mpd.MPDFilter
 import us.huseli.umpc.mpd.mpdFilter
+import us.huseli.umpc.proto.DynamicPlaylistProto
 
 @Parcelize
 data class DynamicPlaylistFilter(
@@ -40,4 +41,26 @@ data class DynamicPlaylistFilter(
         }
 
     override fun toString() = "${key.displayName} ${comparator.displayName} \"$value\""
+
+    fun toProto(): DynamicPlaylistProto.Filter = DynamicPlaylistProto.Filter
+        .newBuilder()
+        .setKey(
+            when (key) {
+                Key.ARTIST -> DynamicPlaylistProto.Key.ARTIST
+                Key.ALBUM_ARTIST -> DynamicPlaylistProto.Key.ALBUM_ARTIST
+                Key.ALBUM -> DynamicPlaylistProto.Key.ALBUM
+                Key.SONG_TITLE -> DynamicPlaylistProto.Key.SONG_TITLE
+                Key.FILENAME -> DynamicPlaylistProto.Key.FILENAME
+            }
+        )
+        .setComparator(
+            when (comparator) {
+                Comparator.EQUALS -> DynamicPlaylistProto.Comparator.EQUALS
+                Comparator.NOT_EQUALS -> DynamicPlaylistProto.Comparator.NOT_EQUALS
+                Comparator.CONTAINS -> DynamicPlaylistProto.Comparator.CONTAINS
+                Comparator.NOT_CONTAINS -> DynamicPlaylistProto.Comparator.NOT_CONTAINS
+            }
+        )
+        .setValue(value)
+        .build()
 }

@@ -37,7 +37,6 @@
     <string name="mute_volume">Mute volume</string>
     <string name="new_name">New name</string>
     <string name="next">Next</string>
-    <string name="no_songs_were_found">No songs were found.</string>
     <string name="ok">OK</string>
     <string name="or_enter_the_name_of_a_new_playlist">Or enter the name of a new playlist:</string>
     <string name="outputs">Outputs</string>
@@ -80,9 +79,7 @@
     <string name="enqueue_all">Enqueue all</string>
     <string name="add_all_to_playlist">Add all to playlist</string>
     <string name="enqueuing_all_search_results">Enqueuing all search results.</string>
-    <string name="search_results">search results</string>
     <string name="adding_all_search_results_to_playlist">Adding all search results to playlist.</string>
-    <string name="song">song</string>
     <string name="song_was_added_to_playlist">Song was added to playlist.</string>
     <plurals name="x_albums">
         <item quantity="one">1 album</item>

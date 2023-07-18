@@ -1,6 +1,7 @@
 package us.huseli.umpc.mpd.engine
 
 import androidx.annotation.IntRange
+import us.huseli.umpc.LoggerInterface
 import us.huseli.umpc.PlayerState
 import us.huseli.umpc.data.MPDAlbum
 import us.huseli.umpc.data.MPDSong
@@ -9,7 +10,7 @@ import us.huseli.umpc.mpd.response.MPDMapResponse
 import kotlin.math.max
 import kotlin.math.min
 
-class MPDControlEngine(private val repo: MPDRepository) {
+class MPDControlEngine(private val repo: MPDRepository) : LoggerInterface {
     fun clearQueue(onFinish: ((MPDMapResponse) -> Unit)? = null) {
         repo.client.enqueue("clear", onFinish = onFinish)
     }
@@ -31,6 +32,7 @@ class MPDControlEngine(private val repo: MPDRepository) {
         enqueueSongLast(song.filename, onFinish)
 
     fun enqueueSongLast(filename: String, onFinish: ((MPDMapResponse) -> Unit)? = null) {
+        log("ENQUEUESONGLAST $filename")
         repo.client.enqueue("add", filename, onFinish)
     }
 

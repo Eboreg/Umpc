@@ -4,8 +4,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
@@ -34,8 +34,11 @@ class MPDClientException(
 open class MPDClient(private val ioScope: CoroutineScope) : LoggerInterface {
     enum class State { STARTED, PREPARED, READY, RUNNING, ERROR }
 
-    private val commandQueue = MutableSharedFlow<MPDBaseCommand<*>>(replay = 20)
+    // private val commandQueue = MutableSharedFlow<MPDBaseCommand<*>>(replay = 100)
+    private val nextCommand = MutableStateFlow<MPDBaseCommand<*>?>(null)
+    private var commandQueue = listOf<MPDBaseCommand<*>>()
     private val commandMutex = Mutex()
+    private val commandQueueMutex = Mutex()
     private var credentials: MPDCredentials? = null
     private val wantedTagTypes = listOf(
         "Artist",
@@ -68,8 +71,13 @@ open class MPDClient(private val ioScope: CoroutineScope) : LoggerInterface {
 
     fun <RT : MPDBaseResponse> enqueue(command: MPDBaseCommand<RT>) {
         ioScope.launch {
-            log("ENQUEUE $command, commandQueue.replayCache=${commandQueue.replayCache}")
-            commandQueue.emit(command)
+            commandQueueMutex.withLock {
+                if (!commandQueue.contains(command) && nextCommand.value != command) {
+                    log("ENQUEUE $command, commandQueue=${commandQueue}")
+                    if (nextCommand.value == null) nextCommand.value = command
+                    else commandQueue = commandQueue.toMutableList().apply { add(command) }
+                }
+            }
         }
     }
 
@@ -91,7 +99,17 @@ open class MPDClient(private val ioScope: CoroutineScope) : LoggerInterface {
             while (isActive) {
                 when (state.value) {
                     State.PREPARED -> connect(failSilently = true)
-                    State.READY -> commandQueue.collect { command -> runCommand(command) }
+                    State.READY -> {
+                        nextCommand.filterNotNull().collect { command ->
+                            runCommand(command)
+                            commandQueueMutex.withLock {
+                                commandQueue = commandQueue.toMutableList().apply {
+                                    nextCommand.value = removeFirstOrNull()
+                                }
+                            }
+                        }
+                        // commandQueue.collect { command -> runCommand(command) }
+                    }
                     else -> {}
                 }
                 delay(100)

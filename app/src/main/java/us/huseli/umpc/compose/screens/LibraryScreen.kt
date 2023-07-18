@@ -29,6 +29,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.layout.onPlaced
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
@@ -44,6 +45,7 @@ import us.huseli.umpc.compose.utils.SubMenuScreen
 import us.huseli.umpc.data.MPDAlbum
 import us.huseli.umpc.data.MPDAlbumWithSongs
 import us.huseli.umpc.viewmodels.LibraryViewModel
+import kotlin.math.roundToInt
 
 @Composable
 fun LibraryScreen(
@@ -97,47 +99,52 @@ fun LibraryScreen(
             )
         }
 
-        if (grouping == LibraryGrouping.ARTIST) {
-            val artists by viewModel.artists.collectAsStateWithLifecycle()
-            val artistLeadingChars by viewModel.artistLeadingChars.collectAsStateWithLifecycle(emptyList())
+        when (grouping) {
+            LibraryGrouping.ARTIST -> {
+                val artists by viewModel.artists.collectAsStateWithLifecycle()
+                val artistLeadingChars by viewModel.artistLeadingChars.collectAsStateWithLifecycle(emptyList())
 
-            ListWithAlphabetBar(
-                modifier = Modifier.fillMaxWidth(),
-                characters = artistLeadingChars,
-                listState = viewModel.artistListState,
-                items = artists,
-                selector = { it.name },
-            ) {
-                LazyColumn(state = viewModel.artistListState, modifier = Modifier.fillMaxWidth()) {
-                    items(artists, key = { it.name }) { artist ->
-                        ArtistRow(
-                            artist = artist,
-                            padding = PaddingValues(10.dp),
-                            onGotoArtistClick = { onGotoArtistClick(artist.name) }
-                        )
-                        Divider()
+                ListWithAlphabetBar(
+                    modifier = Modifier.fillMaxWidth(),
+                    characters = artistLeadingChars,
+                    listState = viewModel.artistListState,
+                    items = artists,
+                    selector = { it.name },
+                    minItems = (LocalConfiguration.current.screenHeightDp * 0.042).roundToInt(),
+                ) {
+                    LazyColumn(state = viewModel.artistListState, modifier = Modifier.fillMaxWidth()) {
+                        items(artists, key = { it.name }) { artist ->
+                            ArtistRow(
+                                artist = artist,
+                                padding = PaddingValues(10.dp),
+                                onGotoArtistClick = { onGotoArtistClick(artist.name) }
+                            )
+                            Divider()
+                        }
                     }
                 }
             }
-        } else {
-            val albums by viewModel.albums.collectAsStateWithLifecycle()
-            val albumLeadingChars by viewModel.albumLeadingChars.collectAsStateWithLifecycle(emptyList())
+            LibraryGrouping.ALBUM -> {
+                val albums by viewModel.albums.collectAsStateWithLifecycle()
+                val albumLeadingChars by viewModel.albumLeadingChars.collectAsStateWithLifecycle(emptyList())
 
-            ListWithAlphabetBar(
-                modifier = Modifier.fillMaxWidth(),
-                characters = albumLeadingChars,
-                listState = viewModel.albumListState,
-                items = albums,
-                selector = { it.name },
-            ) {
-                LazyColumn(state = viewModel.albumListState) {
-                    items(albums, key = { it.hashCode() }) { album ->
-                        LibraryScreenAlbumRow(
-                            viewModel = viewModel,
-                            album = album,
-                            onGotoAlbumClick = onGotoAlbumClick,
-                        )
-                        Divider()
+                ListWithAlphabetBar(
+                    modifier = Modifier.fillMaxWidth(),
+                    characters = albumLeadingChars,
+                    listState = viewModel.albumListState,
+                    items = albums,
+                    selector = { it.name },
+                    minItems = (LocalConfiguration.current.screenHeightDp * 0.042).roundToInt(),
+                ) {
+                    LazyColumn(state = viewModel.albumListState) {
+                        items(albums, key = { it.hashCode() }) { album ->
+                            LibraryScreenAlbumRow(
+                                viewModel = viewModel,
+                                album = album,
+                                onGotoAlbumClick = onGotoAlbumClick,
+                            )
+                            Divider()
+                        }
                     }
                 }
             }

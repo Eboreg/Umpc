@@ -34,7 +34,7 @@ fun ListWithNumericBar(
     modifier: Modifier = Modifier,
     scope: CoroutineScope = rememberCoroutineScope(),
     listState: LazyListState,
-    minItems: Int = 50,
+    minItems: Int = 30,
     barWidth: Dp = 30.dp,
     listSize: Int,
     content: @Composable ColumnScope.() -> Unit,

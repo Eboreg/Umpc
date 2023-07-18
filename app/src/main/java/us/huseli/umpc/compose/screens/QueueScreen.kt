@@ -36,6 +36,7 @@ import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -51,14 +52,15 @@ import us.huseli.umpc.R
 import us.huseli.umpc.compose.LargeSongRow
 import us.huseli.umpc.compose.utils.ListWithNumericBar
 import us.huseli.umpc.compose.utils.SmallOutlinedButton
+import us.huseli.umpc.data.DynamicPlaylist
 import us.huseli.umpc.data.MPDAlbum
 import us.huseli.umpc.data.MPDSong
 import us.huseli.umpc.formatDuration
 import us.huseli.umpc.isInLandscapeMode
 import us.huseli.umpc.viewmodels.QueueViewModel
 import kotlin.math.max
+import kotlin.math.roundToInt
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun QueueScreen(
     modifier: Modifier = Modifier,
@@ -101,76 +103,23 @@ fun QueueScreen(
     }
 
     Column(modifier = modifier.fillMaxWidth()) {
-        Surface(
-            tonalElevation = 2.dp,
-            modifier = Modifier.fillMaxWidth().clickable { isSubmenuExpanded = !isSubmenuExpanded }
-        ) {
-            Box {
-                Column(modifier = modifier.fillMaxWidth()) {
-                    if (isSubmenuExpanded) {
-                        FlowRow(
-                            modifier = Modifier.fillMaxWidth()
-                                .padding(horizontal = 10.dp)
-                                .padding(top = if (isInLandscapeMode()) 10.dp else 0.dp)
-                                .padding(bottom = 10.dp),
-                            horizontalArrangement = Arrangement.SpaceAround,
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            if (currentSongPosition != null) {
-                                SmallOutlinedButton(
-                                    onClick = { scrollToCurrent() },
-                                    text = stringResource(R.string.scroll_to_current_song),
-                                )
-                            }
-                            if (activeDynamicPlaylist == null) {
-                                SmallOutlinedButton(
-                                    onClick = { viewModel.clearQueue { viewModel.addMessage(queueClearedMsg) } },
-                                    text = stringResource(R.string.clear_queue),
-                                )
-                            }
-                            if (activeDynamicPlaylist != null) {
-                                SmallOutlinedButton(
-                                    onClick = { viewModel.deactivateDynamicPlaylist() },
-                                    text = stringResource(R.string.deactivate_dynamic_playlist),
-                                )
-                            }
-                        }
-                    }
-                    FlowRow(
-                        modifier = Modifier.fillMaxWidth()
-                            .padding(horizontal = 10.dp)
-                            .padding(top = if (isInLandscapeMode()) 10.dp else 0.dp)
-                            .padding(bottom = 16.dp),
-                        horizontalArrangement = Arrangement.SpaceAround,
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Badge { Text(pluralStringResource(R.plurals.x_songs, localQueue.size, localQueue.size)) }
-                        if (activeDynamicPlaylist != null) {
-                            Badge {
-                                Text(
-                                    if (isSubmenuExpanded) stringResource(
-                                        R.string.active_dynamic_playlist_x,
-                                        activeDynamicPlaylist.toString()
-                                    )
-                                    else stringResource(R.string.dynamic_playlist)
-                                )
-                            }
-                        }
-                        Badge { Text(totalDuration.formatDuration()) }
-                    }
-                }
-                Icon(
-                    imageVector = if (isSubmenuExpanded) Icons.Sharp.ExpandLess else Icons.Sharp.ExpandMore,
-                    contentDescription = null,
-                    modifier = Modifier.height(16.dp).align(Alignment.BottomCenter),
-                )
-            }
-        }
+        QueueScreenSubMenu(
+            isSubmenuExpanded = isSubmenuExpanded,
+            currentSongPosition = currentSongPosition,
+            activeDynamicPlaylist = activeDynamicPlaylist,
+            queueSize = localQueue.size,
+            totalDuration = totalDuration,
+            onToggleExpandedClick = { isSubmenuExpanded = !isSubmenuExpanded },
+            onScrollToCurrentClick = scrollToCurrent,
+            onClearQueueClick = { viewModel.clearQueue { viewModel.addMessage(queueClearedMsg) } },
+            onDeactivateDynamicPlaylistClick = { viewModel.deactivateDynamicPlaylist() },
+        )
 
         ListWithNumericBar(
             modifier = modifier.fillMaxWidth(),
             listState = viewModel.listState,
             listSize = localQueue.size,
+            minItems = (LocalConfiguration.current.screenHeightDp * 0.028).roundToInt(),
         ) {
             LazyColumn(modifier = Modifier.reorderable(reorderableState), state = viewModel.listState) {
                 itemsIndexed(localQueue, key = { _, song -> song.id!! }) { index, song ->
@@ -206,6 +155,87 @@ fun QueueScreen(
                     }
                 }
             }
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
+@Composable
+fun QueueScreenSubMenu(
+    modifier: Modifier = Modifier,
+    isSubmenuExpanded: Boolean,
+    currentSongPosition: Int?,
+    activeDynamicPlaylist: DynamicPlaylist?,
+    queueSize: Int,
+    totalDuration: Double,
+    onToggleExpandedClick: () -> Unit,
+    onScrollToCurrentClick: () -> Unit,
+    onClearQueueClick: () -> Unit,
+    onDeactivateDynamicPlaylistClick: () -> Unit,
+) {
+    Surface(
+        tonalElevation = 2.dp,
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onToggleExpandedClick)
+    ) {
+        Box {
+            Column(modifier = modifier.fillMaxWidth()) {
+                if (isSubmenuExpanded) {
+                    FlowRow(
+                        modifier = Modifier.fillMaxWidth()
+                            .padding(horizontal = 10.dp)
+                            .padding(top = if (isInLandscapeMode()) 10.dp else 0.dp)
+                            .padding(bottom = 10.dp),
+                        horizontalArrangement = Arrangement.SpaceAround,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        if (currentSongPosition != null) {
+                            SmallOutlinedButton(
+                                onClick = onScrollToCurrentClick,
+                                text = stringResource(R.string.scroll_to_current_song),
+                            )
+                        }
+                        if (activeDynamicPlaylist == null) {
+                            SmallOutlinedButton(
+                                onClick = onClearQueueClick,
+                                text = stringResource(R.string.clear_queue),
+                            )
+                        }
+                        if (activeDynamicPlaylist != null) {
+                            SmallOutlinedButton(
+                                onClick = onDeactivateDynamicPlaylistClick,
+                                text = stringResource(R.string.deactivate_dynamic_playlist),
+                            )
+                        }
+                    }
+                }
+                FlowRow(
+                    modifier = Modifier.fillMaxWidth()
+                        .padding(horizontal = 10.dp)
+                        .padding(top = if (isInLandscapeMode()) 10.dp else 0.dp)
+                        .padding(bottom = 16.dp),
+                    horizontalArrangement = Arrangement.SpaceAround,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Badge { Text(pluralStringResource(R.plurals.x_songs, queueSize, queueSize)) }
+                    if (activeDynamicPlaylist != null) {
+                        Badge {
+                            Text(
+                                if (isSubmenuExpanded) stringResource(
+                                    R.string.active_dynamic_playlist_x,
+                                    activeDynamicPlaylist.toString()
+                                )
+                                else stringResource(R.string.dynamic_playlist)
+                            )
+                        }
+                    }
+                    Badge { Text(totalDuration.formatDuration()) }
+                }
+            }
+            Icon(
+                imageVector = if (isSubmenuExpanded) Icons.Sharp.ExpandLess else Icons.Sharp.ExpandMore,
+                contentDescription = null,
+                modifier = Modifier.height(16.dp).align(Alignment.BottomCenter),
+            )
         }
     }
 }

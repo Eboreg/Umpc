@@ -46,7 +46,7 @@ class MPDPlaylistEngine(
         repo.registerOnMPDChangeListener(this)
         preferences.registerOnSharedPreferenceChangeListener(this)
         loadDynamicPlaylists()
-        loadActiveDynamicPlaylist(playOnLoad = false)
+        loadActiveDynamicPlaylist(playOnLoad = false, replaceCurrentQueue = false)
     }
 
     fun activateDynamicPlaylist(playlist: DynamicPlaylist) {
@@ -135,16 +135,21 @@ class MPDPlaylistEngine(
         }
     }
 
-    private fun loadActiveDynamicPlaylist(playOnLoad: Boolean) {
+    private fun loadActiveDynamicPlaylist(playOnLoad: Boolean, replaceCurrentQueue: Boolean) {
         val playlist = gson.fromJson(preferences.getString(PREF_ACTIVE_DYNAMIC_PLAYLIST, null), dynamicPlaylistType)
 
         _activeDynamicPlaylist.value = playlist
         dynamicPlaylistState =
             if (playlist != null) {
                 _loadingDynamicPlaylist.value = true
-                DynamicPlaylistState(context, playlist, repo, ioScope, playOnLoad) {
-                    _loadingDynamicPlaylist.value = false
-                }
+                DynamicPlaylistState(
+                    context = context,
+                    playlist = playlist,
+                    repo = repo,
+                    ioScope = ioScope,
+                    replaceCurrentQueue = replaceCurrentQueue,
+                    playOnLoad = playOnLoad
+                ) { _loadingDynamicPlaylist.value = false }
             } else null
     }
 
@@ -174,7 +179,7 @@ class MPDPlaylistEngine(
     override fun onSharedPreferenceChanged(sharedPreferences: SharedPreferences?, key: String?) {
         when (key) {
             PREF_DYNAMIC_PLAYLISTS -> loadDynamicPlaylists()
-            PREF_ACTIVE_DYNAMIC_PLAYLIST -> loadActiveDynamicPlaylist(playOnLoad = true)
+            PREF_ACTIVE_DYNAMIC_PLAYLIST -> loadActiveDynamicPlaylist(playOnLoad = true, replaceCurrentQueue = true)
         }
     }
 }

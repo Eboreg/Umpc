@@ -34,7 +34,7 @@ fun <T> ListWithAlphabetBar(
     scope: CoroutineScope = rememberCoroutineScope(),
     characters: Collection<Char>,
     listState: LazyListState,
-    minItems: Int = 50,
+    minItems: Int = 30,
     barWidth: Dp = 30.dp,
     items: List<T>,
     selector: (T) -> String,

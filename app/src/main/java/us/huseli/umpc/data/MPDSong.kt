@@ -71,4 +71,4 @@ fun Iterable<MPDSong>.sorted(): List<MPDSong> =
 fun Iterable<MPDSong>.groupByAlbum(): List<MPDAlbumWithSongs> =
     this.groupBy { it.album }.map { MPDAlbumWithSongs(it.key, it.value.sorted()) }
 
-fun Iterable<MPDSong>.toProto(): List<MPDSongProto> = this.mapNotNull { it.toProto() }
+fun Iterable<MPDSong>.toNative(): List<MPDSongProto> = this.mapNotNull { it.toProto() }

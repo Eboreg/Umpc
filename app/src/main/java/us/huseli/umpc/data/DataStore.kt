@@ -42,3 +42,27 @@ fun MPDSongProto.toNative(): MPDSong = MPDSong(
 )
 
 fun QueueProto.toNative(): List<MPDSong> = this.songsList.map { it.toNative() }
+
+fun DynamicPlaylistProto.Filter.toNative(): DynamicPlaylistFilter = DynamicPlaylistFilter(
+    key = when (this.key) {
+        DynamicPlaylistProto.Key.ARTIST -> DynamicPlaylistFilter.Key.ARTIST
+        DynamicPlaylistProto.Key.ALBUM_ARTIST -> DynamicPlaylistFilter.Key.ALBUM_ARTIST
+        DynamicPlaylistProto.Key.ALBUM -> DynamicPlaylistFilter.Key.ALBUM
+        DynamicPlaylistProto.Key.SONG_TITLE -> DynamicPlaylistFilter.Key.SONG_TITLE
+        DynamicPlaylistProto.Key.FILENAME -> DynamicPlaylistFilter.Key.FILENAME
+        else -> throw Exception("Unrecognised key")
+    },
+    value = this.value,
+    comparator = when (this.comparator) {
+        DynamicPlaylistProto.Comparator.EQUALS -> DynamicPlaylistFilter.Comparator.EQUALS
+        DynamicPlaylistProto.Comparator.NOT_EQUALS -> DynamicPlaylistFilter.Comparator.NOT_EQUALS
+        DynamicPlaylistProto.Comparator.CONTAINS -> DynamicPlaylistFilter.Comparator.CONTAINS
+        DynamicPlaylistProto.Comparator.NOT_CONTAINS -> DynamicPlaylistFilter.Comparator.NOT_CONTAINS
+        else -> throw Exception("Unrecognised comparator")
+    },
+)
+
+fun DynamicPlaylistProto.toNative(): DynamicPlaylist = DynamicPlaylist(
+    filter = this.filter.toNative(),
+    shuffle = this.shuffle,
+)

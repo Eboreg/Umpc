@@ -23,7 +23,33 @@ message MPDSongProto {
 }
 
 message DynamicPlaylistProto {
-    repeated string filenames = 1;
+    enum Key {
+        UNDEFINED_KEY = 0;
+        ARTIST = 1;
+        ALBUM_ARTIST = 2;
+        ALBUM = 3;
+        SONG_TITLE = 4;
+        FILENAME = 5;
+    }
+
+    enum Comparator {
+        UNDEFINED_COMPARATOR = 0;
+        EQUALS = 1;
+        NOT_EQUALS = 2;
+        CONTAINS = 3;
+        NOT_CONTAINS = 4;
+    }
+
+    message Filter {
+        Key key = 1;
+        string value = 2;
+        Comparator comparator = 3;
+    }
+
+    Filter filter = 1;
+    bool shuffle = 2;
+    int32 current_offset = 3;
+    repeated string filenames = 4;
 }
 
 message QueueProto {
