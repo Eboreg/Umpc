@@ -124,6 +124,9 @@ dependencies {
     // Datastore (Proto):
     implementation("androidx.datastore:datastore:1.0.0")
     implementation("com.google.protobuf:protobuf-javalite:3.23.4")
+
+    // MediaButtonReceiver:
+    implementation("androidx.media:media:1.6.0")
 }
 
 protobuf {

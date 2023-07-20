@@ -50,7 +50,7 @@ class MPDControlEngine(private val repo: MPDRepository) : LoggerInterface {
 
     fun next() = repo.client.enqueue("next")
 
-    private fun pause() = repo.client.enqueue("pause 1")
+    fun pause() = repo.client.enqueue("pause 1")
 
     fun play(position: Int? = null) = playSongPosition(position ?: repo.currentSongPosition.value ?: 0)
 

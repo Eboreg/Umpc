@@ -1,5 +1,6 @@
 package us.huseli.umpc.compose
 
+import android.content.Intent
 import android.os.Looper
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
@@ -39,6 +40,7 @@ import us.huseli.umpc.BuildConfig
 import us.huseli.umpc.ContentScreen
 import us.huseli.umpc.DebugDestination
 import us.huseli.umpc.LibraryDestination
+import us.huseli.umpc.MediaService
 import us.huseli.umpc.PlaylistDetailsDestination
 import us.huseli.umpc.PlaylistListDestination
 import us.huseli.umpc.QueueDestination
@@ -159,6 +161,10 @@ fun App(
             snackbarHostState.showSnackbar(it)
             viewModel.clearMessage()
         }
+    }
+
+    LaunchedEffect(Unit) {
+        context.startService(Intent(context, MediaService::class.java))
     }
 
     songToAddToPlaylist?.let { song ->
