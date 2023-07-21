@@ -13,7 +13,6 @@ data class DynamicPlaylistFilter(
     val value: String = "",
     val comparator: Comparator = Comparator.EQUALS,
 ) : Parcelable {
-    @Suppress("unused")
     enum class Key(val displayName: String, val mpdTag: String) {
         ARTIST("Artist", "artist"),
         ALBUM_ARTIST("Album artist", "albumartist"),

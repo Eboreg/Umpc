@@ -14,9 +14,11 @@ import kotlinx.coroutines.withContext
 import us.huseli.umpc.LoggerInterface
 import us.huseli.umpc.data.MPDCredentials
 import us.huseli.umpc.mpd.command.MPDBaseCommand
+import us.huseli.umpc.mpd.command.MPDBatchMapCommand
 import us.huseli.umpc.mpd.command.MPDMapCommand
 import us.huseli.umpc.mpd.command.MPDMultiMapCommand
 import us.huseli.umpc.mpd.response.MPDBaseResponse
+import us.huseli.umpc.mpd.response.MPDBatchMapResponse
 import us.huseli.umpc.mpd.response.MPDMapResponse
 import us.huseli.umpc.mpd.response.MPDMultiMapResponse
 import java.io.BufferedReader
@@ -80,6 +82,12 @@ open class MPDClient(private val ioScope: CoroutineScope) : LoggerInterface {
             }
         }
     }
+
+    fun enqueueBatch(
+        commands: Collection<MPDMapCommand>,
+        successCriteria: MPDBatchMapCommand.SuccessCriteria = MPDBatchMapCommand.SuccessCriteria.ANY_SUCCEEDED,
+        onFinish: ((MPDBatchMapResponse) -> Unit)? = null,
+    ) = enqueue(MPDBatchMapCommand(commands = commands, successCriteria = successCriteria, onFinish = onFinish))
 
     fun enqueueMultiMap(command: String, onFinish: ((MPDMultiMapResponse) -> Unit)? = null) =
         enqueue(MPDMultiMapCommand(command, onFinish = onFinish))

@@ -7,9 +7,8 @@ import us.huseli.umpc.mpd.response.MPDMapResponse
 import javax.inject.Inject
 
 @HiltViewModel
-class QueueViewModel @Inject constructor(repo: MPDRepository) : BaseViewModel(repo) {
+class QueueViewModel @Inject constructor(repo: MPDRepository) : SongSelectViewModel(repo) {
     val activeDynamicPlaylist = repo.engines.playlist.activeDynamicPlaylist
-    val currentSongId = repo.currentSongId
     val currentSongPosition = repo.currentSongPosition
     val queue = repo.queue
     val listState = LazyListState()

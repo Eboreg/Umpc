@@ -19,7 +19,7 @@ import us.huseli.umpc.isInLandscapeMode
 fun SubMenuScreen(
     modifier: Modifier = Modifier,
     landscapeMenuPadding: PaddingValues = PaddingValues(10.dp),
-    portraitMenuPadding: PaddingValues = PaddingValues(10.dp),
+    portraitMenuPadding: PaddingValues = PaddingValues(start = 10.dp, end = 10.dp, bottom = 10.dp),
     menu: @Composable () -> Unit,
     content: @Composable ColumnScope.() -> Unit,
 ) {

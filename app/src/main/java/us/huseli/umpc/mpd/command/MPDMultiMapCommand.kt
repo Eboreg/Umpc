@@ -5,13 +5,13 @@ import us.huseli.umpc.mpd.response.MPDMultiMapResponse
 import java.net.Socket
 
 class MPDMultiMapCommand(
-    command: String,
-    args: Collection<String> = emptyList(),
+    val command: String,
+    val args: Collection<String> = emptyList(),
     onFinish: ((MPDMultiMapResponse) -> Unit)? = null,
-) : MPDBaseCommand<MPDMultiMapResponse>(command, args, onFinish) {
+) : MPDBaseCommand<MPDMultiMapResponse>(onFinish) {
     override suspend fun getResponse(socket: Socket): MPDMultiMapResponse {
         return try {
-            withSocket(socket) { fillTextResponse(MPDMultiMapResponse()) }
+            withSocket(socket) { fillTextResponse(getCommand(command, args), MPDMultiMapResponse()) }
         } catch (e: Exception) {
             MPDMultiMapResponse().finish(
                 status = MPDBaseResponse.Status.ERROR_NET,
@@ -19,4 +19,11 @@ class MPDMultiMapCommand(
             )
         }
     }
+
+    override fun equals(other: Any?) =
+        other is MPDMultiMapCommand && other.command == command && other.args == args
+
+    override fun hashCode(): Int = 31 * command.hashCode() + args.hashCode()
+
+    override fun toString() = "${javaClass.simpleName}[${getCommand(command, args)}]"
 }

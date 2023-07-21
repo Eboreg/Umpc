@@ -1,7 +1,6 @@
 package us.huseli.umpc
 
 import android.app.PendingIntent
-import android.app.Service
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
@@ -17,6 +16,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import us.huseli.umpc.Constants.MEDIASERVICE_ROOT_ID
 import us.huseli.umpc.Constants.NOTIFICATION_CHANNEL_ID_NOW_PLAYING
 import us.huseli.umpc.Constants.NOTIFICATION_ID_NOW_PLAYING
@@ -30,6 +31,7 @@ class MediaService : MediaBrowserServiceCompat(), LoggerInterface {
     lateinit var repo: MPDRepository
     @Inject
     lateinit var ioScope: CoroutineScope
+    private val mutex = Mutex()
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         log("onStartCommand: intent=$intent, flags=$flags, startId=$startId")
@@ -119,33 +121,43 @@ class MediaService : MediaBrowserServiceCompat(), LoggerInterface {
     private fun startListeners() {
         ioScope.launch {
             repo.currentSong.filterNotNull().distinctUntilChanged().collect { song ->
-                notificationBuilder.setContentTitle(song.title)
-                notificationBuilder.setContentText("${song.artist} • ${song.album.name}")
-                val notification = notificationBuilder.build()
-                startForeground(NOTIFICATION_ID_NOW_PLAYING, notification)
+                mutex.withLock {
+                    notificationBuilder.setContentTitle(song.title)
+                    notificationBuilder.setContentText("${song.artist} • ${song.album.name}")
+                    val notification = notificationBuilder.build()
+                    startForeground(NOTIFICATION_ID_NOW_PLAYING, notification)
+                }
             }
         }
         ioScope.launch {
             repo.engines.image.currentSongAlbumArt.collect { albumArt ->
                 val bitmap = albumArt?.fullImage?.asAndroidBitmap()
                 log("bitmap: width=${bitmap?.width}, height=${bitmap?.height}")
-                notificationBuilder.setLargeIcon(bitmap)
-                startForeground(NOTIFICATION_ID_NOW_PLAYING, notificationBuilder.build())
+                mutex.withLock {
+                    notificationBuilder.setLargeIcon(bitmap)
+                    startForeground(NOTIFICATION_ID_NOW_PLAYING, notificationBuilder.build())
+                }
             }
         }
         ioScope.launch {
             repo.playerState.collect { playerState ->
                 when (playerState) {
                     PlayerState.PLAY -> {
-                        notificationBuilder.clearActions()
-                        getActions(true).forEach { notificationBuilder.addAction(it) }
-                        startForeground(NOTIFICATION_ID_NOW_PLAYING, notificationBuilder.build())
+                        mutex.withLock {
+                            notificationBuilder.clearActions()
+                            getActions(true).forEach { notificationBuilder.addAction(it) }
+                            startForeground(NOTIFICATION_ID_NOW_PLAYING, notificationBuilder.build())
+                        }
                     }
-                    PlayerState.STOP -> stopForeground(Service.STOP_FOREGROUND_REMOVE)
+                    PlayerState.STOP -> {
+                        // stopForeground(Service.STOP_FOREGROUND_REMOVE)
+                    }
                     PlayerState.PAUSE -> {
-                        notificationBuilder.clearActions()
-                        getActions(false).forEach { notificationBuilder.addAction(it) }
-                        startForeground(NOTIFICATION_ID_NOW_PLAYING, notificationBuilder.build())
+                        mutex.withLock {
+                            notificationBuilder.clearActions()
+                            getActions(false).forEach { notificationBuilder.addAction(it) }
+                            startForeground(NOTIFICATION_ID_NOW_PLAYING, notificationBuilder.build())
+                        }
                     }
                 }
             }

@@ -1,6 +1,5 @@
 package us.huseli.umpc.compose
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
@@ -48,7 +47,6 @@ fun ExpandedSongRow(
     showAlbumArt: Boolean = true,
     albumArt: ImageBitmap? = null,
     highlight: String? = null,
-    onClick: () -> Unit,
     onPlayPauseClick: () -> Unit,
     onEnqueueClick: () -> Unit,
     onAddToPlaylistClick: () -> Unit,
@@ -63,7 +61,7 @@ fun ExpandedSongRow(
 
     CompositionLocalProvider(LocalAbsoluteTonalElevation provides tonalElevation) {
         Surface {
-            Row(modifier = modifier.height(IntrinsicSize.Min).fillMaxWidth().clickable { onClick() }) {
+            Row(modifier = modifier.height(IntrinsicSize.Min).fillMaxWidth()) {
                 if (showAlbumArt) {
                     AlbumArt(
                         imageBitmap = albumArt,

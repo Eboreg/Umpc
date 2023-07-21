@@ -16,7 +16,7 @@ import javax.inject.Inject
 class StoredPlaylistViewModel @Inject constructor(
     repo: MPDRepository,
     savedStateHandle: SavedStateHandle,
-) : BaseViewModel(repo), OnMPDChangeListener {
+) : SongSelectViewModel(repo), OnMPDChangeListener {
     private val playlistName: String = savedStateHandle.get<String>(NAV_ARG_PLAYLIST)!!
     private val _songs = MutableStateFlow<List<MPDSong>>(emptyList())
 
@@ -33,6 +33,9 @@ class StoredPlaylistViewModel @Inject constructor(
 
     fun enqueue(onFinish: (MPDMapResponse) -> Unit) =
         repo.engines.playlist.enqueueStoredPlaylist(playlistName, onFinish)
+
+    fun moveSong(fromIdx: Int, toIdx: Int) =
+        repo.engines.playlist.moveSongInStoredPlaylist(playlistName, fromIdx, toIdx)
 
     fun play() = repo.engines.playlist.playStoredPlaylist(playlistName)
 

@@ -139,7 +139,9 @@ class DynamicPlaylistState(
     private fun loadFilenamesFromMPD(onFinish: (List<String>) -> Unit) =
         repo.client.enqueue(playlist.filter.mpdFilter.search()) { response ->
             if (response.isSuccess) {
-                onFinish(if (playlist.shuffle) response.extractFilenames().shuffled() else response.extractFilenames())
+                val filenames = response.extractFilenames()
+                onFinish(if (playlist.shuffle) filenames.shuffled() else filenames)
+                repo.engines.playlist.updateDynamicPlaylist(playlist, songCount = filenames.size)
             }
         }
 

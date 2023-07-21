@@ -5,10 +5,10 @@ import us.huseli.umpc.mpd.response.MPDBinaryResponse
 import java.net.Socket
 
 class MPDBinaryCommand(
-    command: String,
-    args: Collection<String> = emptyList(),
+    val command: String,
+    val args: Collection<String> = emptyList(),
     onFinish: ((MPDBinaryResponse) -> Unit)? = null,
-) : MPDBaseCommand<MPDBinaryResponse>(command, args, onFinish) {
+) : MPDBaseCommand<MPDBinaryResponse>(onFinish) {
     override suspend fun getResponse(socket: Socket): MPDBinaryResponse {
         return try {
             withSocket(socket) { getBinaryResponse() }
@@ -76,4 +76,11 @@ class MPDBinaryCommand(
         }
         return response.finish(status = MPDBaseResponse.Status.OK)
     }
+
+    override fun equals(other: Any?) =
+        other is MPDBinaryCommand && other.command == command && other.args == args
+
+    override fun hashCode(): Int = 31 * command.hashCode() + args.hashCode()
+
+    override fun toString() = "${javaClass.simpleName}[${getCommand(command, args)}]"
 }

@@ -28,7 +28,9 @@ data class MPDSong(
     @Transient
     val albumArtKey = AlbumArtKey(album.artist, album.name, filename)
 
-    override fun equals(other: Any?) = other is MPDSong && other.filename == filename
+    override fun equals(other: Any?) =
+        other is MPDSong && other.filename == filename && (id == null || other.id == id)
+
     override fun hashCode() = filename.hashCode()
 
     fun toProto(): MPDSongProto? {

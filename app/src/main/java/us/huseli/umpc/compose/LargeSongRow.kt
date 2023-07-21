@@ -1,6 +1,8 @@
 package us.huseli.umpc.compose
 
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.border
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
@@ -20,10 +22,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ImageBitmap
@@ -153,14 +151,17 @@ fun LargeSongRowContent(
 }
 
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun LargeSongRow(
     modifier: Modifier = Modifier,
+    albumArtModifier: Modifier = Modifier,
     song: MPDSong,
     isCurrentSong: Boolean,
     playerState: PlayerState?,
     albumArt: ImageBitmap?,
-    albumArtModifier: Modifier = Modifier,
+    isExpanded: Boolean,
+    isSelected: Boolean,
     position: Int? = null,
     discNumber: Int? = null,
     artist: String? = null,
@@ -171,12 +172,15 @@ fun LargeSongRow(
     onAddToPlaylistClick: () -> Unit,
     onGotoAlbumClick: (() -> Unit)? = null,
     onGotoArtistClick: (() -> Unit)? = null,
+    onClick: () -> Unit,
+    onLongClick: () -> Unit,
 ) {
-    var isExpanded by rememberSaveable { mutableStateOf(false) }
     val tonalElevation = LocalAbsoluteTonalElevation.current + if (isCurrentSong) 5.dp else 0.dp
+    var surfaceModifier = Modifier.combinedClickable(onClick = onClick, onLongClick = onLongClick)
+    if (isSelected) surfaceModifier = surfaceModifier.border(width = 3.dp, color = MaterialTheme.colorScheme.primary)
 
     CompositionLocalProvider(LocalAbsoluteTonalElevation provides tonalElevation) {
-        Surface {
+        Surface(modifier = surfaceModifier) {
             if (isExpanded) {
                 ExpandedSongRow(
                     modifier = modifier,
@@ -186,7 +190,6 @@ fun LargeSongRow(
                     position = position,
                     discNumber = discNumber,
                     showAlbumArt = true,
-                    onClick = { isExpanded = false },
                     onPlayPauseClick = onPlayPauseClick,
                     onEnqueueClick = onEnqueueClick,
                     onAddToPlaylistClick = onAddToPlaylistClick,
@@ -197,7 +200,7 @@ fun LargeSongRow(
                 )
             } else {
                 LargeSongRowContent(
-                    modifier = modifier.clickable { isExpanded = !isExpanded },
+                    modifier = modifier,
                     song = song,
                     isCurrentSong = isCurrentSong,
                     playerState = playerState,

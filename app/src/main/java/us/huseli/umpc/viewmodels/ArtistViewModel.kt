@@ -19,7 +19,7 @@ import javax.inject.Inject
 class ArtistViewModel @Inject constructor(
     repo: MPDRepository,
     savedStateHandle: SavedStateHandle,
-) : BaseViewModel(repo) {
+) : AlbumSelectViewModel(repo) {
     private val _albumArtistAlbums = MutableStateFlow<List<MPDAlbumWithSongs>>(emptyList())
     private val _nonAlbumArtistAlbums = MutableStateFlow<List<MPDAlbumWithSongs>>(emptyList())
     private val _artistSongs = combine(_albumArtistAlbums, _nonAlbumArtistAlbums) { aaa, naaa ->

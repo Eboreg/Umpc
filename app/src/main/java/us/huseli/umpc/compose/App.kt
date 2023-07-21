@@ -25,6 +25,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -106,18 +107,12 @@ fun App(
         isCoverShown = false
     }
 
-    val onAddSongToPlaylistClick: (MPDSong) -> Unit = {
-        songToAddToPlaylist = it
-    }
+    val onAddSongToPlaylistClick: (MPDSong) -> Unit = { songToAddToPlaylist = it }
 
     fun navigate(route: String, navOptions: NavOptions? = null) {
         if (Looper.myLooper() != Looper.getMainLooper()) {
-            context.getActivity()?.runOnUiThread {
-                navController.navigate(route, navOptions)
-            }
-        } else {
-            navController.navigate(route, navOptions)
-        }
+            context.getActivity()?.runOnUiThread { navController.navigate(route, navOptions) }
+        } else navController.navigate(route, navOptions)
     }
 
     /**
@@ -164,11 +159,11 @@ fun App(
     }
 
     LaunchedEffect(Unit) {
-        context.startService(Intent(context, MediaService::class.java))
+        context.startForegroundService(Intent(context, MediaService::class.java))
     }
 
     songToAddToPlaylist?.let { song ->
-        val successMessage = stringResource(R.string.song_was_added_to_playlist)
+        val successMessage = pluralStringResource(R.plurals.add_songs_playlist_success, 1, 1)
 
         AddToPlaylistDialog(
             title = "\"${song.title}\"",

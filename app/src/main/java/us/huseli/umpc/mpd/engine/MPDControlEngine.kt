@@ -6,18 +6,17 @@ import us.huseli.umpc.PlayerState
 import us.huseli.umpc.data.MPDAlbum
 import us.huseli.umpc.data.MPDSong
 import us.huseli.umpc.mpd.MPDRepository
+import us.huseli.umpc.mpd.command.MPDMapCommand
+import us.huseli.umpc.mpd.response.MPDBatchMapResponse
 import us.huseli.umpc.mpd.response.MPDMapResponse
 import kotlin.math.max
 import kotlin.math.min
 
 class MPDControlEngine(private val repo: MPDRepository) : LoggerInterface {
-    fun clearQueue(onFinish: ((MPDMapResponse) -> Unit)? = null) {
-        repo.client.enqueue("clear", onFinish = onFinish)
-    }
+    fun clearQueue(onFinish: ((MPDMapResponse) -> Unit)? = null) = repo.client.enqueue("clear", onFinish = onFinish)
 
-    fun enqueueAlbumLast(album: MPDAlbum, onFinish: (MPDMapResponse) -> Unit) {
+    fun enqueueAlbumLast(album: MPDAlbum, onFinish: (MPDMapResponse) -> Unit) =
         repo.client.enqueue(album.searchFilter.findadd(), onFinish = onFinish)
-    }
 
     fun enqueueAlbumNextAndPlay(album: MPDAlbum) {
         val addPosition = if (repo.currentSongPosition.value != null) 0 else null
@@ -31,10 +30,8 @@ class MPDControlEngine(private val repo: MPDRepository) : LoggerInterface {
     fun enqueueSongLast(song: MPDSong, onFinish: ((MPDMapResponse) -> Unit)? = null) =
         enqueueSongLast(song.filename, onFinish)
 
-    fun enqueueSongLast(filename: String, onFinish: ((MPDMapResponse) -> Unit)? = null) {
-        log("ENQUEUESONGLAST $filename")
+    fun enqueueSongLast(filename: String, onFinish: ((MPDMapResponse) -> Unit)? = null) =
         repo.client.enqueue("add", filename, onFinish)
-    }
 
     fun enqueueSongNextAndPlay(song: MPDSong) {
         val args =
@@ -45,6 +42,9 @@ class MPDControlEngine(private val repo: MPDRepository) : LoggerInterface {
             response.responseMap["Id"]?.get(0).let { repo.client.enqueue("playid $it") }
         }
     }
+
+    fun enqueueSongsLast(songs: List<MPDSong>, onFinish: ((MPDBatchMapResponse) -> Unit)? = null) =
+        repo.client.enqueueBatch(songs.map { MPDMapCommand("add", it.filename) }, onFinish = onFinish)
 
     fun moveSongInQueue(fromIdx: Int, toIdx: Int) = repo.client.enqueue("move $fromIdx $toIdx")
 

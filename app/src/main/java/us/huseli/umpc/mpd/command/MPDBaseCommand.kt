@@ -16,8 +16,8 @@ import kotlin.math.max
 import kotlin.math.min
 
 abstract class MPDBaseCommand<RT : MPDBaseResponse>(
-    val command: String,
-    val args: Collection<String> = emptyList(),
+    // val command: String,
+    // val args: Collection<String> = emptyList(),
     val onFinish: ((RT) -> Unit)? = null,
 ) : LoggerInterface {
     private val readBuffer = ByteArray(READ_BUFFER_SIZE)
@@ -47,11 +47,11 @@ abstract class MPDBaseCommand<RT : MPDBaseResponse>(
     /**************************************************************************
      * PROTECTED METHODS
      *************************************************************************/
-    protected suspend fun <RT : MPDBaseTextResponse> fillTextResponse(response: RT): RT {
+    protected suspend fun <RT : MPDBaseTextResponse> fillTextResponse(command: String, response: RT): RT {
         var line: String?
 
         try {
-            writeLine(getCommand(command, args))
+            writeLine(command)
         } catch (e: Exception) {
             return response.finish(status = MPDBaseResponse.Status.ERROR_NET, exception = e)
         }
@@ -74,6 +74,10 @@ abstract class MPDBaseCommand<RT : MPDBaseResponse>(
             } else return response.finish(status = MPDBaseResponse.Status.EMPTY_RESPONSE)
         }
     }
+
+    protected fun getCommand(command: String, args: Collection<String> = emptyList()) =
+        if (args.isEmpty()) command
+        else "$command ${args.joinToString(" ") { "\"${MPDFilterContext.escape(it)}\"" }}"
 
     protected suspend fun readBinary(size: Int): ByteArray {
         val data = ByteArray(size)
@@ -161,20 +165,5 @@ abstract class MPDBaseCommand<RT : MPDBaseResponse>(
             readBufferReadPos += dataToRead
             if (dataReady() == 0 && dataRead != size) fillReadBuffer()
         }
-    }
-
-    /**************************************************************************
-     * OVERRIDDEN METHODS
-     *************************************************************************/
-    override fun toString() = "${javaClass.simpleName}[${getCommand(command, args)}]"
-
-    override fun equals(other: Any?) = other is MPDBaseCommand<*> && other.command == command && other.args == args
-
-    override fun hashCode(): Int = 31 * command.hashCode() + args.hashCode()
-
-    companion object {
-        fun getCommand(command: String, args: Collection<String> = emptyList()) =
-            if (args.isEmpty()) command
-            else "$command ${args.joinToString(" ") { "\"${MPDFilterContext.escape(it)}\"" }}"
     }
 }

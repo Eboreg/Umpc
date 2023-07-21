@@ -8,6 +8,7 @@ import us.huseli.umpc.proto.DynamicPlaylistProto
 data class DynamicPlaylist(
     val filter: DynamicPlaylistFilter,
     val shuffle: Boolean = false,
+    val songCount: Int? = null,
 ) : Parcelable {
     override fun equals(other: Any?) =
         other is DynamicPlaylist && other.filter == filter && other.shuffle == shuffle
@@ -18,12 +19,12 @@ data class DynamicPlaylist(
     fun toProto(
         filenames: List<String> = emptyList(),
         currentOffset: Int = 0,
-    ): DynamicPlaylistProto =
-        DynamicPlaylistProto
-            .newBuilder()
-            .setFilter(filter.toProto())
-            .setShuffle(shuffle)
-            .setCurrentOffset(currentOffset)
-            .addAllFilenames(filenames)
-            .build()
+    ): DynamicPlaylistProto = DynamicPlaylistProto.newBuilder().let {
+        it.filter = filter.toProto()
+        it.shuffle = shuffle
+        it.currentOffset = currentOffset
+        it.clearFilenames()
+        it.addAllFilenames(filenames)
+        it.build()
+    }
 }

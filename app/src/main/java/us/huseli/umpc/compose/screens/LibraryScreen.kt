@@ -23,6 +23,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
@@ -36,10 +37,13 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import us.huseli.umpc.AddToPlaylistItemType
 import us.huseli.umpc.LibraryGrouping
 import us.huseli.umpc.R
 import us.huseli.umpc.compose.AlbumRow
 import us.huseli.umpc.compose.ArtistRow
+import us.huseli.umpc.compose.BatchAddToPlaylistDialog
+import us.huseli.umpc.compose.SelectedItemsSubMenu
 import us.huseli.umpc.compose.utils.ListWithAlphabetBar
 import us.huseli.umpc.compose.utils.SubMenuScreen
 import us.huseli.umpc.data.MPDAlbum
@@ -58,6 +62,23 @@ fun LibraryScreen(
     val searchTerm by viewModel.librarySearchTerm.collectAsStateWithLifecycle()
     val searchFocusRequester = remember { FocusRequester() }
     val isSearchActive by viewModel.isLibrarySearchActive.collectAsStateWithLifecycle(false)
+    val selectedAlbums by viewModel.selectedAlbums.collectAsStateWithLifecycle()
+    val enqueuedSelectedAlbumsMessage = stringResource(R.string.enqueued_all_selected_albums)
+    var isAddAlbumsToPlaylistDialogOpen by rememberSaveable { mutableStateOf(false) }
+    val playlists by viewModel.storedPlaylists.collectAsStateWithLifecycle()
+
+    if (isAddAlbumsToPlaylistDialogOpen) {
+        BatchAddToPlaylistDialog(
+            itemCount = selectedAlbums.size,
+            itemType = AddToPlaylistItemType.ALBUM,
+            playlists = playlists,
+            addFunction = { playlistName, onFinish ->
+                viewModel.addSelectedAlbumsToPlaylist(playlistName, onFinish)
+            },
+            addMessage = { viewModel.addMessage(it) },
+            closeDialog = { isAddAlbumsToPlaylistDialogOpen = false },
+        )
+    }
 
     SubMenuScreen(
         modifier = modifier,
@@ -71,6 +92,20 @@ fun LibraryScreen(
             )
         }
     ) {
+        if (selectedAlbums.isNotEmpty()) {
+            SelectedItemsSubMenu(
+                selectedItemCount = selectedAlbums.size,
+                pluralsResId = R.plurals.x_selected_albums,
+                padding = PaddingValues(start = 10.dp, end = 10.dp, bottom = 10.dp),
+                onDeselectAllClick = { viewModel.deselectAllAlbums() },
+                onEnqueueClick = {
+                    viewModel.enqueueSelectedAlbums()
+                    viewModel.addMessage(enqueuedSelectedAlbumsMessage)
+                },
+                onAddToPlaylistClick = { isAddAlbumsToPlaylistDialogOpen = true },
+            )
+        }
+
         if (isSearchActive) {
             OutlinedTextField(
                 modifier = Modifier
@@ -141,7 +176,12 @@ fun LibraryScreen(
                             LibraryScreenAlbumRow(
                                 viewModel = viewModel,
                                 album = album,
-                                onGotoAlbumClick = onGotoAlbumClick,
+                                isSelected = selectedAlbums.contains(album),
+                                onClick = {
+                                    if (selectedAlbums.isNotEmpty()) viewModel.toggleAlbumSelected(album)
+                                    else onGotoAlbumClick(album)
+                                },
+                                onLongClick = { viewModel.toggleAlbumSelected(album) },
                             )
                             Divider()
                         }
@@ -193,7 +233,9 @@ fun LibraryScreenSubMenu(
 fun LibraryScreenAlbumRow(
     viewModel: LibraryViewModel,
     album: MPDAlbum,
-    onGotoAlbumClick: (MPDAlbum) -> Unit,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+    onLongClick: () -> Unit,
 ) {
     var thumbnail by remember { mutableStateOf<ImageBitmap?>(null) }
     var albumWithSongs by remember { mutableStateOf(MPDAlbumWithSongs(album, emptyList())) }
@@ -210,6 +252,8 @@ fun LibraryScreenAlbumRow(
         album = albumWithSongs,
         thumbnail = thumbnail,
         showArtist = true,
-        onGotoAlbumClick = { onGotoAlbumClick(album) },
+        isSelected = isSelected,
+        onClick = onClick,
+        onLongClick = onLongClick,
     )
 }

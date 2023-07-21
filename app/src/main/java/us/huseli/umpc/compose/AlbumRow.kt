@@ -1,6 +1,8 @@
 package us.huseli.umpc.compose
 
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.border
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
@@ -22,27 +24,35 @@ import us.huseli.umpc.data.MPDAlbumWithSongs
 import us.huseli.umpc.formatDuration
 import us.huseli.umpc.toYearRangeString
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun AlbumRow(
     modifier: Modifier = Modifier,
     album: MPDAlbumWithSongs,
     thumbnail: ImageBitmap? = null,
     showArtist: Boolean = false,
-    onGotoAlbumClick: () -> Unit,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+    onLongClick: () -> Unit,
 ) {
+    var rowModifier = modifier
+        .combinedClickable(
+            onClick = onClick,
+            onLongClick = onLongClick,
+        )
+        .height(IntrinsicSize.Min)
+        .heightIn(min = 54.dp)
+    if (isSelected) rowModifier = rowModifier.border(width = 3.dp, color = MaterialTheme.colorScheme.primary)
+
     Row(
-        modifier = modifier
-            .padding(end = 10.dp)
-            .clickable { onGotoAlbumClick() }
-            .height(IntrinsicSize.Min)
-            .heightIn(min = 54.dp),
+        modifier = rowModifier,
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         AlbumArt(imageBitmap = thumbnail, forceSquare = true)
 
         Column(
-            modifier = Modifier.fillMaxHeight(),
+            modifier = Modifier.fillMaxHeight().padding(end = 10.dp),
             verticalArrangement = Arrangement.SpaceEvenly,
         ) {
             Row(

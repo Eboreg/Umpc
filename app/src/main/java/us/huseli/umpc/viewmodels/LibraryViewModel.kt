@@ -21,7 +21,7 @@ import us.huseli.umpc.mpd.MPDRepository
 import javax.inject.Inject
 
 @HiltViewModel
-class LibraryViewModel @Inject constructor(repo: MPDRepository) : BaseViewModel(repo) {
+class LibraryViewModel @Inject constructor(repo: MPDRepository) : AlbumSelectViewModel(repo) {
     private val _activeLibrarySearchType = MutableStateFlow(LibrarySearchType.NONE)
     private val _albums = MutableStateFlow<List<MPDAlbum>>(emptyList())
     private val _artists = MutableStateFlow<List<MPDArtistWithAlbums>>(emptyList())

@@ -5,9 +5,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.sharp.Delete
@@ -15,33 +13,30 @@ import androidx.compose.material.icons.sharp.Edit
 import androidx.compose.material.icons.sharp.PlayArrow
 import androidx.compose.material.icons.sharp.PlaylistPlay
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Divider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.ShapeDefaults
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import us.huseli.umpc.PlayerState
 import us.huseli.umpc.R
 import us.huseli.umpc.compose.DeletePlaylistDialog
-import us.huseli.umpc.compose.LargeSongRow
+import us.huseli.umpc.compose.LargeSongRowList
 import us.huseli.umpc.data.MPDAlbum
 import us.huseli.umpc.data.MPDPlaylist
 import us.huseli.umpc.data.MPDSong
@@ -59,9 +54,10 @@ fun StoredPlaylistScreen(
     onPlaylistDeleted: () -> Unit,
     onPlaylistRenamed: (String) -> Unit,
 ) {
+    val context = LocalContext.current
     val playlist by viewModel.playlist.collectAsStateWithLifecycle(null)
     val songs by viewModel.songs.collectAsStateWithLifecycle()
-    val currentSongFilename by viewModel.currentSongFilename.collectAsStateWithLifecycle(null)
+    val currentSong by viewModel.currentSong.collectAsStateWithLifecycle(null)
     val playerState by viewModel.playerState.collectAsStateWithLifecycle()
     var isRenameDialogOpen by rememberSaveable { mutableStateOf(false) }
     var isDeleteDialogOpen by rememberSaveable { mutableStateOf(false) }
@@ -101,72 +97,66 @@ fun StoredPlaylistScreen(
         }
     }
 
-    Column(modifier = modifier) {
-        playlist?.let {
-            val enqueuedMessage = stringResource(R.string.playlist_x_was_enqueued, it.name)
+    LargeSongRowList(
+        modifier = modifier,
+        viewModel = viewModel,
+        songs = songs,
+        listState = listState,
+        currentSong = currentSong,
+        playerState = playerState,
+        reorderable = true,
+        showSongPositions = true,
+        onMoveSong = { from, to -> viewModel.moveSong(from, to) },
+        onGotoAlbumClick = onGotoAlbumClick,
+        onGotoArtistClick = onGotoArtistClick,
+        onAddSongToPlaylistClick = onAddSongToPlaylistClick,
+        subMenu = {
+            playlist?.let {
+                Surface(tonalElevation = 2.dp, modifier = Modifier.fillMaxWidth()) {
+                    Column(modifier = Modifier.fillMaxWidth().padding(start = 10.dp).padding(vertical = 10.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                        ) {
+                            Text(it.name, style = MaterialTheme.typography.headlineMedium)
 
-            Column(modifier = Modifier.fillMaxWidth().padding(start = 10.dp).padding(vertical = 10.dp)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                ) {
-                    Text(it.name, style = MaterialTheme.typography.headlineMedium)
-
-                    Row {
-                        IconButton(
-                            onClick = { isRenameDialogOpen = true },
-                            content = { Icon(Icons.Sharp.Edit, stringResource(R.string.rename)) },
-                        )
-                        IconButton(
-                            onClick = { isDeleteDialogOpen = true },
-                            content = { Icon(Icons.Sharp.Delete, stringResource(R.string.delete)) },
-                        )
-                        IconButton(
-                            onClick = {
-                                viewModel.enqueue { response ->
-                                    if (response.isSuccess) viewModel.addMessage(enqueuedMessage)
-                                    else response.error?.let { error -> viewModel.addMessage(error) }
-                                }
-                            },
-                            content = { Icon(Icons.Sharp.PlaylistPlay, stringResource(R.string.enqueue)) },
-                        )
-                        IconButton(
-                            onClick = { viewModel.play() },
-                            content = { Icon(Icons.Sharp.PlayArrow, stringResource(R.string.play)) },
+                            Row {
+                                IconButton(
+                                    onClick = { isRenameDialogOpen = true },
+                                    content = { Icon(Icons.Sharp.Edit, stringResource(R.string.rename)) },
+                                )
+                                IconButton(
+                                    onClick = { isDeleteDialogOpen = true },
+                                    content = { Icon(Icons.Sharp.Delete, stringResource(R.string.delete)) },
+                                )
+                                IconButton(
+                                    onClick = {
+                                        viewModel.enqueue { response ->
+                                            if (response.isSuccess) viewModel.addMessage(
+                                                context.getString(R.string.playlist_x_was_enqueued, it.name)
+                                            )
+                                            else response.error?.let { error -> viewModel.addMessage(error) }
+                                        }
+                                    },
+                                    content = { Icon(Icons.Sharp.PlaylistPlay, stringResource(R.string.enqueue)) },
+                                )
+                                IconButton(
+                                    onClick = { viewModel.play() },
+                                    content = { Icon(Icons.Sharp.PlayArrow, stringResource(R.string.play)) },
+                                )
+                            }
+                        }
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(end = 10.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            content = { StoredPlaylistScreenMetaInfo(it, songs) },
                         )
                     }
                 }
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(end = 10.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    content = { StoredPlaylistScreenMetaInfo(it, songs) },
-                )
             }
         }
-        LazyColumn(state = listState) {
-            items(songs) { song ->
-                var albumArt by remember { mutableStateOf<ImageBitmap?>(null) }
-
-                LaunchedEffect(song) {
-                    viewModel.getAlbumArt(song) { albumArt = it.fullImage }
-                }
-
-                Divider()
-                StoredPlaylistSongRow(
-                    song = song,
-                    currentSongFilename = currentSongFilename,
-                    playerState = playerState,
-                    albumArt = albumArt,
-                    onPlayPauseClick = { viewModel.playOrPauseSong(song) },
-                    onEnqueueClick = { viewModel.enqueueSong(song) },
-                    onGotoArtistClick = { onGotoArtistClick(song.artist) },
-                    onGotoAlbumClick = { onGotoAlbumClick(song.album) },
-                    onAddToPlaylistClick = { onAddSongToPlaylistClick(song) },
-                )
-            }
-        }
-    }
+    )
 }
 
 @Composable
@@ -214,33 +204,4 @@ fun StoredPlaylistScreenMetaInfo(playlist: MPDPlaylist, songs: List<MPDSong>) {
             style = MaterialTheme.typography.bodySmall
         )
     }
-}
-
-@Composable
-fun StoredPlaylistSongRow(
-    modifier: Modifier = Modifier,
-    song: MPDSong,
-    currentSongFilename: String?,
-    playerState: PlayerState?,
-    onPlayPauseClick: () -> Unit,
-    onEnqueueClick: () -> Unit,
-    onGotoAlbumClick: () -> Unit,
-    onGotoArtistClick: () -> Unit,
-    onAddToPlaylistClick: () -> Unit,
-    albumArt: ImageBitmap?,
-) {
-    LargeSongRow(
-        modifier = modifier,
-        song = song,
-        isCurrentSong = currentSongFilename == song.filename,
-        playerState = playerState,
-        onPlayPauseClick = onPlayPauseClick,
-        onEnqueueClick = onEnqueueClick,
-        onGotoAlbumClick = onGotoAlbumClick,
-        onGotoArtistClick = onGotoArtistClick,
-        onAddToPlaylistClick = onAddToPlaylistClick,
-        artist = song.artist,
-        album = song.album.name,
-        albumArt = albumArt,
-    )
 }

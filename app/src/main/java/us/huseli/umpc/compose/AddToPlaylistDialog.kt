@@ -1,5 +1,6 @@
 package us.huseli.umpc.compose
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenuItem
@@ -17,9 +18,14 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
+import us.huseli.umpc.AddToPlaylistItemType
 import us.huseli.umpc.R
 import us.huseli.umpc.data.MPDPlaylist
+import us.huseli.umpc.mpd.response.MPDBatchMapResponse
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -52,7 +58,7 @@ fun AddToPlaylistDialog(
             TextButton(onClick = onCancel) { Text(stringResource(R.string.cancel)) }
         },
         text = {
-            Column {
+            Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
                 Text(stringResource(R.string.add_x_to_playlist, title))
                 ExposedDropdownMenuBox(
                     expanded = isDropdownExpanded,
@@ -94,5 +100,63 @@ fun AddToPlaylistDialog(
                 )
             }
         }
+    )
+}
+
+@Composable
+fun BatchAddToPlaylistDialog(
+    modifier: Modifier = Modifier,
+    itemType: AddToPlaylistItemType,
+    itemCount: Int,
+    playlists: List<MPDPlaylist>,
+    addFunction: (String, (MPDBatchMapResponse) -> Unit) -> Unit,
+    addMessage: (String) -> Unit,
+    closeDialog: () -> Unit,
+) {
+    val context = LocalContext.current
+
+    AddToPlaylistDialog(
+        modifier = modifier,
+        title = when (itemType) {
+            AddToPlaylistItemType.SONG -> pluralStringResource(R.plurals.x_songs, itemCount, itemCount)
+            AddToPlaylistItemType.ALBUM -> pluralStringResource(R.plurals.x_albums, itemCount, itemCount)
+        },
+        playlists = playlists,
+        onConfirm = {
+            addFunction(it) { response ->
+                if (response.successCount == 0 && response.errorCount > 0) addMessage(
+                    context.resources.getQuantityString(
+                        when (itemType) {
+                            AddToPlaylistItemType.SONG -> R.plurals.add_songs_playlist_fail
+                            AddToPlaylistItemType.ALBUM -> R.plurals.add_albums_playlist_fail
+                        },
+                        response.errorCount,
+                        response.errorCount
+                    )
+                )
+                else if (response.successCount > 0 && response.errorCount == 0) addMessage(
+                    context.resources.getQuantityString(
+                        when (itemType) {
+                            AddToPlaylistItemType.SONG -> R.plurals.add_songs_playlist_success
+                            AddToPlaylistItemType.ALBUM -> R.plurals.add_albums_playlist_success
+                        },
+                        response.successCount,
+                        response.successCount
+                    )
+                )
+                else addMessage(
+                    context.getString(
+                        when (itemType) {
+                            AddToPlaylistItemType.SONG -> R.string.add_songs_playlist_success_and_fail
+                            AddToPlaylistItemType.ALBUM -> R.string.add_albums_playlist_success_and_fail
+                        },
+                        response.successCount,
+                        response.errorCount
+                    )
+                )
+            }
+            closeDialog()
+        },
+        onCancel = closeDialog,
     )
 }

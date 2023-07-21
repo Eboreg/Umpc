@@ -14,6 +14,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.pluralStringResource
@@ -21,9 +24,12 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import us.huseli.umpc.AddToPlaylistItemType
 import us.huseli.umpc.R
 import us.huseli.umpc.compose.AlbumArtGrid
 import us.huseli.umpc.compose.AlbumRow
+import us.huseli.umpc.compose.BatchAddToPlaylistDialog
+import us.huseli.umpc.compose.SelectedItemsSubMenu
 import us.huseli.umpc.compose.utils.FadingImageBox
 import us.huseli.umpc.data.MPDAlbum
 import us.huseli.umpc.formatDuration
@@ -57,8 +63,38 @@ fun ArtistScreen(
     val albumArtMap by viewModel.albumArtMap.collectAsStateWithLifecycle()
     val songCount by viewModel.songCount.collectAsStateWithLifecycle(0)
     val totalDuration by viewModel.totalDuration.collectAsStateWithLifecycle(0.0)
+    val selectedAlbums by viewModel.selectedAlbums.collectAsStateWithLifecycle()
+    val enqueuedSelectedAlbumsMessage = stringResource(R.string.enqueued_all_selected_albums)
+    var isAddAlbumsToPlaylistDialogOpen by rememberSaveable { mutableStateOf(false) }
+    val playlists by viewModel.storedPlaylists.collectAsStateWithLifecycle()
+
+    if (isAddAlbumsToPlaylistDialogOpen) {
+        BatchAddToPlaylistDialog(
+            itemType = AddToPlaylistItemType.ALBUM,
+            itemCount = selectedAlbums.size,
+            playlists = playlists,
+            addFunction = { playlistName, onFinish ->
+                viewModel.addSelectedAlbumsToPlaylist(playlistName, onFinish)
+            },
+            addMessage = { viewModel.addMessage(it) },
+            closeDialog = { isAddAlbumsToPlaylistDialogOpen = false },
+        )
+    }
 
     Column(modifier = modifier.verticalScroll(state = rememberScrollState())) {
+        if (selectedAlbums.isNotEmpty()) {
+            SelectedItemsSubMenu(
+                pluralsResId = R.plurals.x_selected_albums,
+                selectedItemCount = selectedAlbums.size,
+                onEnqueueClick = {
+                    viewModel.enqueueSelectedAlbums()
+                    viewModel.addMessage(enqueuedSelectedAlbumsMessage)
+                },
+                onDeselectAllClick = { viewModel.deselectAllAlbums() },
+                onAddToPlaylistClick = { isAddAlbumsToPlaylistDialogOpen = true },
+            )
+        }
+
         if (isInLandscapeMode()) {
             Row(
                 modifier = Modifier.fillMaxWidth().height(140.dp),
@@ -109,7 +145,12 @@ fun ArtistScreen(
                     album = album,
                     thumbnail = albumArtMap[album.album.name]?.thumbnail,
                     showArtist = album.album.artist != viewModel.artist,
-                    onGotoAlbumClick = { onGotoAlbumClick(album.album) },
+                    isSelected = selectedAlbums.contains(album.album),
+                    onClick = {
+                        if (selectedAlbums.isNotEmpty()) viewModel.toggleAlbumSelected(album.album)
+                        else onGotoAlbumClick(album.album)
+                    },
+                    onLongClick = { viewModel.toggleAlbumSelected(album.album) },
                 )
             }
         }
@@ -125,7 +166,12 @@ fun ArtistScreen(
                     album = album,
                     thumbnail = albumArtMap[album.album.name]?.thumbnail,
                     showArtist = album.album.artist != viewModel.artist,
-                    onGotoAlbumClick = { onGotoAlbumClick(album.album) },
+                    isSelected = selectedAlbums.contains(album.album),
+                    onClick = {
+                        if (selectedAlbums.isNotEmpty()) viewModel.toggleAlbumSelected(album.album)
+                        else onGotoAlbumClick(album.album)
+                    },
+                    onLongClick = { viewModel.toggleAlbumSelected(album.album) },
                 )
             }
         }

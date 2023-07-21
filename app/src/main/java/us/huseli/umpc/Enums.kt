@@ -16,6 +16,8 @@ enum class LibrarySearchType { ARTIST, ALBUM, NONE }
 
 enum class PlaylistType { STORED, DYNAMIC }
 
+enum class AddToPlaylistItemType { SONG, ALBUM }
+
 fun String.toSingleState() = when (this) {
     "0" -> SingleState.OFF
     "1" -> SingleState.ON

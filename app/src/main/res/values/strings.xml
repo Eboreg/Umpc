@@ -1,7 +1,11 @@
 <resources>
+    <string name="about_dynamic_playlists">About dynamic playlists</string>
     <string name="active_dynamic_playlist_x">Active dynamic playlist: %1$s</string>
+    <string name="add_albums_playlist_success_and_fail">Added %1$d album(s) to playlist, but failed to add %2$d album(s).</string>
+    <string name="add_all_to_playlist">Add all to playlist</string>
+    <string name="add_songs_playlist_success_and_fail">Added %1$d song(s) to playlist, but failed to add %2$d song(s).</string>
     <string name="add_to_playlist">Add to playlist</string>
-    <string name="add_x_to_playlist">Add %1$s to playlist</string>
+    <string name="add_x_to_playlist">Add %1$s to playlist:</string>
     <string name="album_was_added_to_playlist">Album was added to playlist.</string>
     <string name="albums">Albums</string>
     <string name="all_locally_stored_album_art_was_cleared">All locally stored album art was cleared.</string>
@@ -19,10 +23,18 @@
     <string name="delete_playlist">Delete playlist</string>
     <string name="delete_playlist_question">Delete playlist?</string>
     <string name="delete_playlist_x">Delete playlist "%1$s"?</string>
+    <string name="deselect_all">Deselect all</string>
     <string name="dynamic_playlist">Dynamic playlist</string>
+    <string name="dynamic_playlist_help1">A dynamic playlist will, when activated, search the MPD database for a given criteria, and feed the first 20 matching songs into the play queue.</string>
+    <string name="dynamic_playlist_help2">As long as Umpc is running, and this dynamic playlist stays active, it will then continuously enqueue more matching songs whenever the playhead is nearing the end of the queue.</string>
+    <string name="dynamic_playlist_help3">To shuffle all songs in the database, create a dynamic playlist with comparator = "contains" and empty value.</string>
     <string name="dynamic_playlists">Dynamic playlists</string>
     <string name="edit_dynamic_playlist">Edit dynamic playlist</string>
     <string name="enqueue">Enqueue</string>
+    <string name="enqueue_all">Enqueue all</string>
+    <string name="enqueued_all_selected_albums">Enqueued all selected albums.</string>
+    <string name="enqueued_all_selected_songs">Enqueued all selected songs.</string>
+    <string name="enqueuing_all_search_results">Enqueuing all search results.</string>
     <string name="enter_at_least_3_characters">Enter at least 3 characters.</string>
     <string name="filter_by">Filter by</string>
     <string name="forward">Forward</string>
@@ -55,6 +67,7 @@
     <string name="repeat">Repeat</string>
     <string name="rewind">Rewind</string>
     <string name="save">Save</string>
+    <string name="scroll_to_current_song">Scroll to current song</string>
     <string name="search">Search</string>
     <string name="search_for_songs">Search for songs</string>
     <string name="select_a_playlist">Select a playlist</string>
@@ -75,15 +88,33 @@
     <string name="total_time_colon">Total time: %1$s</string>
     <string name="value">Value</string>
     <string name="x_kbps">%1$d Kbps</string>
-    <string name="scroll_to_current_song">Scroll to current song</string>
-    <string name="enqueue_all">Enqueue all</string>
-    <string name="add_all_to_playlist">Add all to playlist</string>
-    <string name="enqueuing_all_search_results">Enqueuing all search results.</string>
-    <string name="adding_all_search_results_to_playlist">Adding all search results to playlist.</string>
-    <string name="song_was_added_to_playlist">Song was added to playlist.</string>
+    <plurals name="add_albums_playlist_fail">
+        <item quantity="one">Failed to add album to playlist.</item>
+        <item quantity="other">Failed to add %1$d albums to playlist.</item>
+    </plurals>
+    <plurals name="add_albums_playlist_success">
+        <item quantity="one">Album was added to playlist.</item>
+        <item quantity="other">%1$d albums were added to playlist.</item>
+    </plurals>
+    <plurals name="add_songs_playlist_fail">
+        <item quantity="one">Failed to add song to playlist.</item>
+        <item quantity="other">Failed to add %1$d songs to playlist.</item>
+    </plurals>
+    <plurals name="add_songs_playlist_success">
+        <item quantity="one">Song was added to playlist.</item>
+        <item quantity="other">%1$d songs were added to playlist.</item>
+    </plurals>
     <plurals name="x_albums">
         <item quantity="one">1 album</item>
         <item quantity="other">%1$d albums</item>
+    </plurals>
+    <plurals name="x_selected_songs">
+        <item quantity="one">1 selected song</item>
+        <item quantity="other">%1$d selected songs</item>
+    </plurals>
+    <plurals name="x_selected_albums">
+        <item quantity="one">1 selected album</item>
+        <item quantity="other">%1$d selected albums</item>
     </plurals>
     <plurals name="x_songs">
         <item quantity="one">1 song</item>

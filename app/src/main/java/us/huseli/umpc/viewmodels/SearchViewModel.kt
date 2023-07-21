@@ -7,10 +7,11 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import us.huseli.umpc.data.MPDSong
 import us.huseli.umpc.mpd.MPDRepository
+import us.huseli.umpc.mpd.response.MPDBatchMapResponse
 import javax.inject.Inject
 
 @HiltViewModel
-class SearchViewModel @Inject constructor(repo: MPDRepository) : BaseViewModel(repo) {
+class SearchViewModel @Inject constructor(repo: MPDRepository) : SongSelectViewModel(repo) {
     private val _songSearchTerm = MutableStateFlow(TextFieldValue())
     private val _songSearchResults = MutableStateFlow<List<MPDSong>>(emptyList())
     private val _isSearching = MutableStateFlow(false)
@@ -20,11 +21,8 @@ class SearchViewModel @Inject constructor(repo: MPDRepository) : BaseViewModel(r
     val isSearching = _isSearching.asStateFlow()
     val listState = LazyListState()
 
-    fun addAllToPlaylist(playlistName: String) {
-        _songSearchResults.value.forEach { song ->
-            repo.engines.playlist.addSongToStoredPlaylist(song, playlistName)
-        }
-    }
+    fun addAllToPlaylist(playlistName: String, onFinish: (MPDBatchMapResponse) -> Unit) =
+        repo.engines.playlist.addSongsToStoredPlaylist(_songSearchResults.value, playlistName, onFinish)
 
     fun enqueueAll() {
         _songSearchResults.value.forEach { song ->

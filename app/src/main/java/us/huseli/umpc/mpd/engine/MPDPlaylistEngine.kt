@@ -14,6 +14,7 @@ import us.huseli.umpc.Constants.PREF_ACTIVE_DYNAMIC_PLAYLIST
 import us.huseli.umpc.Constants.PREF_DYNAMIC_PLAYLISTS
 import us.huseli.umpc.DynamicPlaylistState
 import us.huseli.umpc.InstantAdapter
+import us.huseli.umpc.LoggerInterface
 import us.huseli.umpc.data.DynamicPlaylist
 import us.huseli.umpc.data.DynamicPlaylistFilter
 import us.huseli.umpc.data.MPDAlbum
@@ -21,6 +22,8 @@ import us.huseli.umpc.data.MPDPlaylist
 import us.huseli.umpc.data.MPDSong
 import us.huseli.umpc.mpd.MPDRepository
 import us.huseli.umpc.mpd.OnMPDChangeListener
+import us.huseli.umpc.mpd.command.MPDMapCommand
+import us.huseli.umpc.mpd.response.MPDBatchMapResponse
 import us.huseli.umpc.mpd.response.MPDMapResponse
 import java.time.Instant
 
@@ -28,7 +31,7 @@ class MPDPlaylistEngine(
     private val repo: MPDRepository,
     private val context: Context,
     private val ioScope: CoroutineScope,
-) : OnMPDChangeListener, SharedPreferences.OnSharedPreferenceChangeListener {
+) : OnMPDChangeListener, SharedPreferences.OnSharedPreferenceChangeListener, LoggerInterface {
     private val dynamicPlaylistType = object : TypeToken<DynamicPlaylist>() {}
     private val preferences = PreferenceManager.getDefaultSharedPreferences(context)
     private var dynamicPlaylistState: DynamicPlaylistState? = null
@@ -62,8 +65,26 @@ class MPDPlaylistEngine(
     fun addAlbumToStoredPlaylist(album: MPDAlbum, playlistName: String, onFinish: (MPDMapResponse) -> Unit) =
         repo.client.enqueue("searchaddpl", listOf(playlistName, album.searchFilter.toString()), onFinish)
 
+    fun addAlbumsToStoredPlaylist(
+        albums: Collection<MPDAlbum>,
+        playlistName: String,
+        onFinish: (MPDBatchMapResponse) -> Unit,
+    ) = repo.client.enqueueBatch(
+        commands = albums.map { MPDMapCommand("searchaddpl", listOf(playlistName, it.searchFilter.toString())) },
+        onFinish = onFinish,
+    )
+
     fun addSongToStoredPlaylist(song: MPDSong, playlistName: String, onFinish: ((MPDMapResponse) -> Unit)? = null) =
         repo.client.enqueue("playlistadd", listOf(playlistName, song.filename), onFinish)
+
+    fun addSongsToStoredPlaylist(
+        songs: Collection<MPDSong>,
+        playlistName: String,
+        onFinish: (MPDBatchMapResponse) -> Unit,
+    ) = repo.client.enqueueBatch(
+        commands = songs.map { MPDMapCommand("playlistadd", listOf(playlistName, it.filename)) },
+        onFinish = onFinish,
+    )
 
     fun createDynamicPlaylist(filter: DynamicPlaylistFilter, shuffle: Boolean) {
         val playlist = DynamicPlaylist(filter, shuffle)
@@ -88,20 +109,21 @@ class MPDPlaylistEngine(
     fun deleteStoredPlaylist(playlistName: String, onFinish: (MPDMapResponse) -> Unit) =
         repo.client.enqueue("rm", playlistName, onFinish)
 
-    fun enqueueStoredPlaylist(playlistName: String, onFinish: (MPDMapResponse) -> Unit) {
-        /** Just puts stored playlist last in queue, nothing else. */
+    /** Just puts stored playlist last in queue, nothing else. */
+    fun enqueueStoredPlaylist(playlistName: String, onFinish: (MPDMapResponse) -> Unit) =
         repo.client.enqueue("load", playlistName, onFinish)
-    }
 
-    fun fetchStoredPlaylistSongs(playlistName: String, onFinish: (List<MPDSong>) -> Unit) {
+    fun fetchStoredPlaylistSongs(playlistName: String, onFinish: (List<MPDSong>) -> Unit) =
         repo.client.enqueueMultiMap("listplaylistinfo", playlistName) { response ->
             onFinish(response.extractSongs())
         }
+
+    fun loadStoredPlaylists() = repo.client.enqueueMultiMap("listplaylists") { response ->
+        _storedPlaylists.value = response.extractPlaylists().sortedBy { it.name.lowercase() }
     }
 
-    fun loadStoredPlaylists() {
-        fetchStoredPlaylists { _storedPlaylists.value = it }
-    }
+    fun moveSongInStoredPlaylist(playlistName: String, fromIdx: Int, toIdx: Int) =
+        repo.client.enqueue("playlistmove", listOf(playlistName, fromIdx.toString(), toIdx.toString()))
 
     fun playStoredPlaylist(playlistName: String) {
         /** Clears the queue, loads playlist into it, and plays from position 0. */
@@ -120,20 +142,21 @@ class MPDPlaylistEngine(
 
     fun updateDynamicPlaylist(
         playlist: DynamicPlaylist,
-        filter: DynamicPlaylistFilter,
-        shuffle: Boolean,
+        filter: DynamicPlaylistFilter? = null,
+        shuffle: Boolean? = null,
+        songCount: Int? = null,
     ) {
         _dynamicPlaylists.value = _dynamicPlaylists.value.toMutableList().apply {
             remove(playlist)
-            add(DynamicPlaylist(filter, shuffle))
+            add(
+                playlist.copy(
+                    filter = filter ?: playlist.filter,
+                    shuffle = shuffle ?: playlist.shuffle,
+                    songCount = songCount ?: playlist.songCount,
+                )
+            )
         }
         saveDynamicPlaylists()
-    }
-
-    private fun fetchStoredPlaylists(onFinish: (List<MPDPlaylist>) -> Unit) {
-        repo.client.enqueueMultiMap("listplaylists") { response ->
-            onFinish(response.extractPlaylists())
-        }
     }
 
     private fun loadActiveDynamicPlaylist(playOnLoad: Boolean, replaceCurrentQueue: Boolean) {
@@ -151,8 +174,9 @@ class MPDPlaylistEngine(
                         repo = repo,
                         ioScope = ioScope,
                         replaceCurrentQueue = replaceCurrentQueue,
-                        playOnLoad = playOnLoad
-                    ) { _loadingDynamicPlaylist.value = false }
+                        playOnLoad = playOnLoad,
+                        onLoaded = { _loadingDynamicPlaylist.value = false },
+                    )
                 } else null
         }
     }

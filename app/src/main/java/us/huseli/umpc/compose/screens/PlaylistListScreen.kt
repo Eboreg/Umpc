@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -14,6 +15,8 @@ import androidx.compose.material.icons.sharp.Delete
 import androidx.compose.material.icons.sharp.Done
 import androidx.compose.material.icons.sharp.Edit
 import androidx.compose.material.icons.sharp.PlayArrow
+import androidx.compose.material.icons.sharp.QuestionMark
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
@@ -21,8 +24,10 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedIconButton
 import androidx.compose.material3.ShapeDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -137,16 +142,31 @@ fun PlaylistListScreen(
             }
             PlaylistType.DYNAMIC -> {
                 val dynamicPlaylists by viewModel.dynamicPlaylists.collectAsStateWithLifecycle()
+                var isHelpDialogOpen by rememberSaveable { mutableStateOf(false) }
+
+                if (isHelpDialogOpen) DynamicPlaylistHelpDialog { isHelpDialogOpen = false }
 
                 Column(
                     modifier = modifier.fillMaxWidth().verticalScroll(dynamicPlaylistScrollState)
                 ) {
-                    FilledTonalButton(
-                        modifier = Modifier.padding(10.dp),
-                        onClick = { isCreateDynamicPlaylistDialogOpen = true },
-                        shape = ShapeDefaults.ExtraSmall,
-                        content = { Text(stringResource(R.string.create_dynamic_playlist)) },
-                    )
+                    Row(
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth().padding(10.dp),
+                    ) {
+                        OutlinedIconButton(
+                            onClick = { isHelpDialogOpen = true },
+                            content = {
+                                Icon(Icons.Sharp.QuestionMark, null, modifier = Modifier.size(20.dp))
+                            },
+                            modifier = Modifier.size(32.dp)
+                        )
+                        FilledTonalButton(
+                            onClick = { isCreateDynamicPlaylistDialogOpen = true },
+                            shape = ShapeDefaults.ExtraSmall,
+                            content = { Text(stringResource(R.string.create_dynamic_playlist)) },
+                        )
+                    }
                     dynamicPlaylists.forEach { playlist ->
                         DynamicPlaylistRow(
                             onEditClick = { editingDynamicPlaylist = playlist },
@@ -169,12 +189,21 @@ fun DynamicPlaylistRow(
     onDeleteClick: () -> Unit,
     onPlayClick: () -> Unit,
 ) {
+    Divider()
     Row(
         modifier = modifier.fillMaxWidth().padding(10.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(playlist.filter.toString())
+        if (playlist.songCount != null) {
+            Column {
+                Text(playlist.filter.toString())
+                Text(
+                    text = pluralStringResource(R.plurals.x_songs, playlist.songCount, playlist.songCount),
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            }
+        } else Text(playlist.filter.toString())
         Row {
             IconButton(onClick = onEditClick) {
                 Icon(Icons.Sharp.Edit, stringResource(R.string.edit_dynamic_playlist))
@@ -187,7 +216,6 @@ fun DynamicPlaylistRow(
             }
         }
     }
-    Divider()
 }
 
 @Composable
@@ -197,6 +225,7 @@ fun StoredPlaylistRow(
     songCount: Int?,
     onClick: () -> Unit,
 ) {
+    Divider()
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -215,5 +244,22 @@ fun StoredPlaylistRow(
             }
         }
     }
-    Divider()
+}
+
+@Composable
+fun DynamicPlaylistHelpDialog(modifier: Modifier = Modifier, onClose: () -> Unit) {
+    AlertDialog(
+        modifier = modifier,
+        onDismissRequest = onClose,
+        confirmButton = { TextButton(onClick = onClose, content = { Text(stringResource(R.string.ok)) }) },
+        title = { Text(stringResource(R.string.about_dynamic_playlists)) },
+        shape = ShapeDefaults.ExtraSmall,
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text(stringResource(R.string.dynamic_playlist_help1))
+                Text(stringResource(R.string.dynamic_playlist_help2))
+                Text(stringResource(R.string.dynamic_playlist_help3))
+            }
+        },
+    )
 }

@@ -20,7 +20,7 @@ import javax.inject.Inject
 class AlbumViewModel @Inject constructor(
     repo: MPDRepository,
     savedStateHandle: SavedStateHandle,
-) : BaseViewModel(repo) {
+) : SongSelectViewModel(repo) {
     private val albumArg: String = savedStateHandle.get<String>(NAV_ARG_ALBUM)!!
     private val artistArg: String = savedStateHandle.get<String>(NAV_ARG_ARTIST)!!
     private val _albumWithSongs = MutableStateFlow<MPDAlbumWithSongs?>(null)
@@ -45,7 +45,7 @@ class AlbumViewModel @Inject constructor(
         }
     }
 
-    fun addToPlaylist(playlistName: String, onFinish: (MPDMapResponse) -> Unit) {
+    fun addAlbumToPlaylist(playlistName: String, onFinish: (MPDMapResponse) -> Unit) {
         repo.engines.playlist.addAlbumToStoredPlaylist(album, playlistName, onFinish)
     }
 }
