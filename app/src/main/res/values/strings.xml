@@ -27,7 +27,7 @@
     <string name="dynamic_playlist">Dynamic playlist</string>
     <string name="dynamic_playlist_help1">A dynamic playlist will, when activated, search the MPD database for a given criteria, and feed the first 20 matching songs into the play queue.</string>
     <string name="dynamic_playlist_help2">As long as Umpc is running, and this dynamic playlist stays active, it will then continuously enqueue more matching songs whenever the playhead is nearing the end of the queue.</string>
-    <string name="dynamic_playlist_help3">To shuffle all songs in the database, create a dynamic playlist with comparator = "contains" and empty value.</string>
+    <string name="dynamic_playlist_help3">To shuffle all songs in the database, create a dynamic playlist with comparator = “contains” and empty value.</string>
     <string name="dynamic_playlists">Dynamic playlists</string>
     <string name="edit_dynamic_playlist">Edit dynamic playlist</string>
     <string name="enqueue">Enqueue</string>

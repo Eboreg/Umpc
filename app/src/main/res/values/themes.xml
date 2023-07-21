@@ -2,4 +2,9 @@
 <resources>
 
     <style name="Theme.Umpc" parent="android:Theme.Material.Light.NoActionBar" />
+
+    <style name="Theme.Umpc.Starting" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/splash_background</item>
+        <item name="postSplashScreenTheme">@style/Theme.Umpc</item>
+    </style>
 </resources>
