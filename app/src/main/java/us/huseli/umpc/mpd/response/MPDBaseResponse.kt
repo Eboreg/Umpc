@@ -25,8 +25,7 @@ abstract class MPDBaseResponse {
         return this as RT
     }
 
-    override fun toString() =
-        "${javaClass.simpleName}[status=$status, error=$error]"
+    override fun toString() = "${javaClass.simpleName}[status=$status, error=$error]"
 
     companion object {
         val responseRegex = Regex("^([^:]*): (.*)$")

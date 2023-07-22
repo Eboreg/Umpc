@@ -96,7 +96,6 @@ fun LibraryScreen(
             SelectedItemsSubMenu(
                 selectedItemCount = selectedAlbums.size,
                 pluralsResId = R.plurals.x_selected_albums,
-                padding = PaddingValues(start = 10.dp, end = 10.dp, bottom = 10.dp),
                 onDeselectAllClick = { viewModel.deselectAllAlbums() },
                 onEnqueueClick = {
                     viewModel.enqueueSelectedAlbums()

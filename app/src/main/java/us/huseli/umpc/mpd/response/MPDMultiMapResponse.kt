@@ -45,6 +45,11 @@ class MPDMultiMapResponse : MPDBaseTextResponse() {
     fun extractSongs(): List<MPDSong> =
         _responseMaps.mapNotNull { map -> map.mapValues { it.value.first() }.toMPDSong() }
 
+    fun extractSongsWithPosition(): List<MPDSong> =
+        _responseMaps.mapIndexedNotNull { index, map ->
+            map.mapValues { it.value.first() }.toMPDSong(position = index)
+        }
+
     override fun toString() =
         "${javaClass.simpleName}[status=$status, error=$error, responseMaps=$responseMaps]"
 }

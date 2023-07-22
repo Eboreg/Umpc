@@ -48,11 +48,14 @@ fun LargeSongRowList(
     playerState: PlayerState?,
     highlight: String? = null,
     reorderable: Boolean = false,
+    removable: Boolean = false,
     showSongPositions: Boolean = false,
     onGotoAlbumClick: (MPDAlbum) -> Unit,
     onGotoArtistClick: (String) -> Unit,
     onAddSongToPlaylistClick: (MPDSong) -> Unit,
     onMoveSong: ((Int, Int) -> Unit)? = null,
+    onRemoveSong: ((MPDSong) -> Unit)? = null,
+    onRemoveSelectedSongs: (() -> Unit)? = null,
     emptyListText: (@Composable () -> Unit)? = null,
     subMenu: (@Composable () -> Unit)? = null,
 ) {
@@ -64,7 +67,7 @@ fun LargeSongRowList(
     // Somehow, this setup makes it so the list can both be manually reordered
     // _and_ get updated when it's changed externally. Don't really understand
     // how, though.
-    val mutableSongs = remember { songs.toMutableStateList() }
+    val mutableSongs = remember(songs) { songs.toMutableStateList() }
     val reorderableState = rememberReorderableLazyListState(
         listState = listState,
         onMove = { from, to -> mutableSongs.add(to.index, mutableSongs.removeAt(from.index)) },
@@ -104,6 +107,7 @@ fun LargeSongRowList(
                 },
                 onDeselectAllClick = { viewModel.deselectAllSongs() },
                 onAddToPlaylistClick = { isAddToPlaylistDialogOpen = true },
+                onRemoveClick = onRemoveSelectedSongs,
             )
         }
 
@@ -120,10 +124,10 @@ fun LargeSongRowList(
                     state = listState,
                     modifier = if (reorderable) Modifier.reorderable(reorderableState) else Modifier,
                 ) {
-                    itemsIndexed(mutableSongs, key = { _, song -> song.id ?: song.filename }) { index, song ->
+                    itemsIndexed(mutableSongs, key = { _, song -> song.listKey }) { index, song ->
                         Divider()
 
-                        ReorderableItem(reorderableState, key = song.id ?: song.filename) { isDragging ->
+                        ReorderableItem(reorderableState, key = song.listKey) { isDragging ->
                             val rowModifier =
                                 if (isDragging)
                                     Modifier.border(1.dp, MaterialTheme.colorScheme.outline, ShapeDefaults.ExtraSmall)
@@ -142,22 +146,24 @@ fun LargeSongRowList(
                                 isSelected = selectedSongs.contains(song),
                                 isExpanded = isExpanded,
                                 playerState = playerState,
-                                onPlayPauseClick = { viewModel.playOrPauseSong(song) },
-                                onEnqueueClick = { viewModel.enqueueSong(song) },
-                                onGotoAlbumClick = { onGotoAlbumClick(song.album) },
-                                onGotoArtistClick = { onGotoArtistClick(song.artist) },
-                                onAddToPlaylistClick = { onAddSongToPlaylistClick(song) },
                                 artist = song.artist,
                                 album = song.album.name,
                                 albumArt = albumArt,
+                                albumArtModifier = if (reorderable) Modifier.detectReorder(reorderableState) else Modifier,
                                 highlight = highlight,
                                 position = if (showSongPositions) index + 1 else null,
+                                removable = removable,
                                 onClick = {
                                     if (selectedSongs.isNotEmpty()) viewModel.toggleSongSelected(song)
                                     else isExpanded = !isExpanded
                                 },
                                 onLongClick = { viewModel.toggleSongSelected(song) },
-                                albumArtModifier = if (reorderable) Modifier.detectReorder(reorderableState) else Modifier,
+                                onPlayPauseClick = { viewModel.playOrPauseSong(song) },
+                                onEnqueueClick = { viewModel.enqueueSong(song) },
+                                onGotoAlbumClick = { onGotoAlbumClick(song.album) },
+                                onGotoArtistClick = { onGotoArtistClick(song.artist) },
+                                onAddToPlaylistClick = { onAddSongToPlaylistClick(song) },
+                                onRemove = { onRemoveSong?.invoke(song) },
                             )
                         }
                     }

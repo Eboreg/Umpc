@@ -86,6 +86,17 @@ class MPDPlaylistEngine(
         onFinish = onFinish,
     )
 
+    fun addSongsWithPositionToStoredPlaylist(
+        songs: Collection<MPDSong>,
+        playlistName: String,
+        onFinish: (MPDBatchMapResponse) -> Unit,
+    ) = repo.client.enqueueBatch(
+        commands = songs.sortedBy { it.position }.map {
+            MPDMapCommand("playlistadd", listOf(playlistName, it.filename, it.position.toString()))
+        },
+        onFinish = onFinish,
+    )
+
     fun createDynamicPlaylist(filter: DynamicPlaylistFilter, shuffle: Boolean) {
         val playlist = DynamicPlaylist(filter, shuffle)
         _dynamicPlaylists.value = _dynamicPlaylists.value.toMutableList().apply { add(playlist) }
@@ -115,7 +126,7 @@ class MPDPlaylistEngine(
 
     fun fetchStoredPlaylistSongs(playlistName: String, onFinish: (List<MPDSong>) -> Unit) =
         repo.client.enqueueMultiMap("listplaylistinfo", playlistName) { response ->
-            onFinish(response.extractSongs())
+            onFinish(response.extractSongsWithPosition())
         }
 
     fun loadStoredPlaylists() = repo.client.enqueueMultiMap("listplaylists") { response ->
@@ -133,6 +144,28 @@ class MPDPlaylistEngine(
             }
         }
     }
+
+    fun removeSongFromStoredPlaylist(playlistName: String, song: MPDSong) =
+        song.position?.let { repo.client.enqueue("playlistdelete", listOf(playlistName, it.toString())) }
+
+    /**
+     * Problem: We want to remove songs on position 1 and 2. But after we
+     * remove song 1, song 2 has actually moved to position 1, so the command
+     * to remove it will remove the song that was originally on position 3!
+     * Solution: Remove them in descending position order. \o/
+     */
+    fun removeSongsFromStoredPlaylist(
+        playlistName: String,
+        songs: List<MPDSong>,
+        onFinish: ((MPDBatchMapResponse) -> Unit)? = null,
+    ) =
+        repo.client.enqueueBatch(
+            songs
+                .filter { it.position != null }
+                .sortedByDescending { it.position }
+                .map { MPDMapCommand("playlistdelete", listOf(playlistName, it.position.toString())) },
+            onFinish = onFinish,
+        )
 
     fun renameStoredPlaylist(name: String, newName: String, onFinish: (Boolean) -> Unit) {
         repo.client.enqueue("rename", listOf(name, newName)) { response ->

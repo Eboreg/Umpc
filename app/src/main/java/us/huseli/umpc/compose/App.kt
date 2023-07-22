@@ -11,8 +11,10 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -146,14 +148,26 @@ fun App(
 
     LaunchedEffect(error) {
         error?.let {
-            snackbarHostState.showSnackbar(it)
+            val result = snackbarHostState.showSnackbar(
+                message = it.message,
+                actionLabel = it.actionLabel,
+                withDismissAction = true,
+                duration = if (it.actionLabel != null) SnackbarDuration.Long else SnackbarDuration.Short,
+            )
+            if (result == SnackbarResult.ActionPerformed) it.onActionPerformed?.invoke()
             viewModel.clearError()
         }
     }
 
     LaunchedEffect(message) {
         message?.let {
-            snackbarHostState.showSnackbar(it)
+            val result = snackbarHostState.showSnackbar(
+                message = it.message,
+                actionLabel = it.actionLabel,
+                withDismissAction = true,
+                duration = if (it.actionLabel != null) SnackbarDuration.Long else SnackbarDuration.Short,
+            )
+            if (result == SnackbarResult.ActionPerformed) it.onActionPerformed?.invoke()
             viewModel.clearMessage()
         }
     }
@@ -183,9 +197,8 @@ fun App(
         activeScreen = activeScreen,
         onMenuItemClick = {
             when (it) {
-                ContentScreen.DEBUG -> navController.navigate(
-                    if (BuildConfig.DEBUG) DebugDestination.route else QueueDestination.route
-                )
+                ContentScreen.DEBUG ->
+                    navController.navigate(if (BuildConfig.DEBUG) DebugDestination.route else QueueDestination.route)
                 ContentScreen.QUEUE -> navController.navigate(QueueDestination.route)
                 ContentScreen.LIBRARY -> navController.navigate(LibraryDestination.route)
                 ContentScreen.SETTINGS -> navController.navigate(SettingsDestination.route)

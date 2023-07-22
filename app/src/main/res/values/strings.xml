@@ -86,8 +86,10 @@
     <string name="streaming_url">Streaming URL</string>
     <string name="the_queue_was_cleared">The queue was cleared.</string>
     <string name="total_time_colon">Total time: %1$s</string>
+    <string name="undo">Undo</string>
     <string name="value">Value</string>
     <string name="x_kbps">%1$d Kbps</string>
+    <string name="remove">Remove</string>
     <plurals name="add_albums_playlist_fail">
         <item quantity="one">Failed to add album to playlist.</item>
         <item quantity="other">Failed to add %1$d albums to playlist.</item>
@@ -103,6 +105,14 @@
     <plurals name="add_songs_playlist_success">
         <item quantity="one">Song was added to playlist.</item>
         <item quantity="other">%1$d songs were added to playlist.</item>
+    </plurals>
+    <plurals name="removed_x_songs_from_playlist">
+        <item quantity="one">Removed song from playlist.</item>
+        <item quantity="other">Removed %1$d songs from playlist.</item>
+    </plurals>
+    <plurals name="removed_x_songs_from_queue">
+        <item quantity="one">Removed song from queue.</item>
+        <item quantity="other">Removed %1$d songs from queue.</item>
     </plurals>
     <plurals name="x_albums">
         <item quantity="one">1 album</item>

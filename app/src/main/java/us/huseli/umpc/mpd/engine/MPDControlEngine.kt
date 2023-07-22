@@ -43,6 +43,14 @@ class MPDControlEngine(private val repo: MPDRepository) : LoggerInterface {
         }
     }
 
+    fun enqueueSongs(songs: List<MPDSong>, onFinish: ((MPDBatchMapResponse) -> Unit)? = null) =
+        repo.client.enqueueBatch(
+            songs
+                .filter { it.position != null }
+                .map { MPDMapCommand("add", listOf(it.filename, it.position.toString())) },
+            onFinish = onFinish,
+        )
+
     fun enqueueSongsLast(songs: List<MPDSong>, onFinish: ((MPDBatchMapResponse) -> Unit)? = null) =
         repo.client.enqueueBatch(songs.map { MPDMapCommand("add", it.filename) }, onFinish = onFinish)
 
@@ -67,6 +75,15 @@ class MPDControlEngine(private val repo: MPDRepository) : LoggerInterface {
     private fun playSongPosition(pos: Int) = repo.client.enqueue("play $pos")
 
     fun previous() = repo.client.enqueue("previous")
+
+    fun removeSongFromQueue(song: MPDSong) =
+        song.position?.let { repo.client.enqueue("delete $it") }
+
+    fun removeSongsFromQueue(songs: List<MPDSong>, onFinish: ((MPDBatchMapResponse) -> Unit)? = null) =
+        repo.client.enqueueBatch(
+            songs.filter { it.id != null }.map { MPDMapCommand("deleteid ${it.id}") },
+            onFinish = onFinish,
+        )
 
     private fun resume() = repo.client.enqueue("pause 0")
 

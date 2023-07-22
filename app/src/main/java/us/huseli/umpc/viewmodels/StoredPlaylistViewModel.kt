@@ -18,6 +18,7 @@ class StoredPlaylistViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
 ) : SongSelectViewModel(repo), OnMPDChangeListener {
     private val playlistName: String = savedStateHandle.get<String>(NAV_ARG_PLAYLIST)!!
+    private val _removedSongs = mutableListOf<MPDSong>()
     private val _songs = MutableStateFlow<List<MPDSong>>(emptyList())
 
     val songs = _songs.asStateFlow()
@@ -42,9 +43,24 @@ class StoredPlaylistViewModel @Inject constructor(
     fun rename(newName: String, onFinish: (Boolean) -> Unit) =
         repo.engines.playlist.renameStoredPlaylist(playlistName, newName, onFinish)
 
-    private fun loadSongs() {
-        repo.engines.playlist.fetchStoredPlaylistSongs(playlistName) { _songs.value = it }
+    private fun loadSongs() = repo.engines.playlist.fetchStoredPlaylistSongs(playlistName) { _songs.value = it }
+
+    fun removeSelectedSongs() {
+        _removedSongs.clear()
+        _removedSongs.addAll(selectedSongs.value)
+        repo.engines.playlist.removeSongsFromStoredPlaylist(playlistName, selectedSongs.value) { deselectAllSongs() }
     }
+
+    fun removeSong(song: MPDSong) {
+        _removedSongs.clear()
+        _removedSongs.add(song)
+        repo.engines.playlist.removeSongFromStoredPlaylist(playlistName, song)
+    }
+
+    fun undoRemoveSongs() =
+        repo.engines.playlist.addSongsWithPositionToStoredPlaylist(_removedSongs, playlistName) {
+            _removedSongs.clear()
+        }
 
     override fun onMPDChanged(subsystems: List<String>) {
         if (subsystems.contains("stored_playlist")) loadSongs()

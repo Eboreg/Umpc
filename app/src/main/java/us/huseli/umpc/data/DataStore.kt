@@ -38,7 +38,7 @@ fun MPDSongProto.toNative(): MPDSong = MPDSong(
     duration = duration.takeIf { it > 0 },
     year = year.takeIf { it > 0 },
     audioFormat = null,
-    queuePosition = queuePosition,
+    position = position,
 )
 
 fun QueueProto.toNative(): List<MPDSong> = this.songsList.map { it.toNative() }

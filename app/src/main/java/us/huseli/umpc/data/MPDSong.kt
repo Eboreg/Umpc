@@ -22,14 +22,21 @@ data class MPDSong(
     val duration: Double?,
     val year: Int?,
     val audioFormat: MPDAudioFormat?,
-    val queuePosition: Int?,
+    val position: Int?,
 ) : Parcelable {
     @IgnoredOnParcel
     @Transient
     val albumArtKey = AlbumArtKey(album.artist, album.name, filename)
 
+    @IgnoredOnParcel
+    @Transient
+    val listKey = id ?: position ?: filename
+
     override fun equals(other: Any?) =
-        other is MPDSong && other.filename == filename && (id == null || other.id == id)
+        other is MPDSong &&
+        other.filename == filename &&
+        (id == null || other.id == id) &&
+        (position == null || other.position == position)
 
     override fun hashCode() = filename.hashCode()
 
@@ -44,23 +51,24 @@ data class MPDSong(
         if (discNumber != null) builder.discNumber = discNumber
         if (duration != null) builder.duration = duration
         if (year != null) builder.year = year
+        if (position != null) builder.position = position
         return builder.build()
     }
 }
 
-fun Map<String, String>.toMPDSong() = try {
+fun Map<String, String>.toMPDSong(position: Int? = null) = try {
     MPDSong(
         filename = this["file"]!!,
         id = this["Id"]?.toInt(),
-        artist = this["Artist"]!!,
+        artist = this["Artist"] ?: "(Unknown)",
         title = (this["Title"] ?: Paths.get(this["file"]!!).nameWithoutExtension),
-        album = MPDAlbum((this["AlbumArtist"] ?: this["Artist"])!!, this["Album"]!!),
+        album = MPDAlbum(this["AlbumArtist"] ?: this["Artist"] ?: "(Unknown)", this["Album"] ?: "(Unknown)"),
         trackNumber = this["Track"]?.toInt(),
         discNumber = this["Disc"]?.toInt(),
         duration = this["duration"]?.toDouble(),
         year = this["Date"]?.parseYear(),
         audioFormat = this["Format"]?.toMPDAudioFormat(),
-        queuePosition = this["Pos"]?.toInt(),
+        position = position ?: this["Pos"]?.toInt(),
     )
 } catch (e: NullPointerException) {
     Logger.log("MPDSong", "$e, $this", Log.ERROR)
@@ -73,4 +81,4 @@ fun Iterable<MPDSong>.sorted(): List<MPDSong> =
 fun Iterable<MPDSong>.groupByAlbum(): List<MPDAlbumWithSongs> =
     this.groupBy { it.album }.map { MPDAlbumWithSongs(it.key, it.value.sorted()) }
 
-fun Iterable<MPDSong>.toNative(): List<MPDSongProto> = this.mapNotNull { it.toProto() }
+fun Iterable<MPDSong>.toProto(): List<MPDSongProto> = this.mapNotNull { it.toProto() }

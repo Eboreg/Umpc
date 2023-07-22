@@ -41,6 +41,7 @@ import us.huseli.umpc.data.MPDAlbum
 import us.huseli.umpc.data.MPDPlaylist
 import us.huseli.umpc.data.MPDSong
 import us.huseli.umpc.formatDateTime
+import us.huseli.umpc.mpd.engine.SnackbarMessage
 import us.huseli.umpc.viewmodels.StoredPlaylistViewModel
 
 @Composable
@@ -61,6 +62,20 @@ fun StoredPlaylistScreen(
     val playerState by viewModel.playerState.collectAsStateWithLifecycle()
     var isRenameDialogOpen by rememberSaveable { mutableStateOf(false) }
     var isDeleteDialogOpen by rememberSaveable { mutableStateOf(false) }
+
+    val addRemovedSongsMessage: (Int) -> Unit = { songCount ->
+        viewModel.addMessage(
+            SnackbarMessage(
+                message = context.resources.getQuantityString(
+                    R.plurals.removed_x_songs_from_playlist,
+                    songCount,
+                    songCount
+                ),
+                actionLabel = context.getString(R.string.undo),
+                onActionPerformed = { viewModel.undoRemoveSongs() },
+            )
+        )
+    }
 
     if (isRenameDialogOpen) {
         playlist?.let {
@@ -105,11 +120,21 @@ fun StoredPlaylistScreen(
         currentSong = currentSong,
         playerState = playerState,
         reorderable = true,
+        removable = true,
         showSongPositions = true,
         onMoveSong = { from, to -> viewModel.moveSong(from, to) },
         onGotoAlbumClick = onGotoAlbumClick,
         onGotoArtistClick = onGotoArtistClick,
         onAddSongToPlaylistClick = onAddSongToPlaylistClick,
+        onRemoveSong = { song ->
+            viewModel.removeSong(song)
+            addRemovedSongsMessage(1)
+        },
+        onRemoveSelectedSongs = {
+            val songCount = viewModel.selectedSongs.value.size
+            viewModel.removeSelectedSongs()
+            addRemovedSongsMessage(songCount)
+        },
         subMenu = {
             playlist?.let {
                 Surface(tonalElevation = 2.dp, modifier = Modifier.fillMaxWidth()) {

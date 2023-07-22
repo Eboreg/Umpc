@@ -26,6 +26,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -40,6 +41,7 @@ import us.huseli.umpc.data.MPDAlbum
 import us.huseli.umpc.data.MPDSong
 import us.huseli.umpc.formatDuration
 import us.huseli.umpc.isInLandscapeMode
+import us.huseli.umpc.mpd.engine.SnackbarMessage
 import us.huseli.umpc.viewmodels.QueueViewModel
 import kotlin.math.max
 
@@ -51,6 +53,7 @@ fun QueueScreen(
     onGotoArtistClick: (String) -> Unit,
     onAddSongToPlaylistClick: (MPDSong) -> Unit,
 ) {
+    val context = LocalContext.current
     val activeDynamicPlaylist by viewModel.activeDynamicPlaylist.collectAsStateWithLifecycle()
     val queue by viewModel.queue.collectAsStateWithLifecycle()
     val currentSong by viewModel.currentSong.collectAsStateWithLifecycle()
@@ -63,6 +66,20 @@ fun QueueScreen(
 
     val scrollToCurrent: () -> Unit = {
         scope.launch { currentSongPosition?.let { viewModel.listState.scrollToItem(max(0, it - 1)) } }
+    }
+
+    val addRemovedSongsMessage: (Int) -> Unit = { songCount ->
+        viewModel.addMessage(
+            SnackbarMessage(
+                message = context.resources.getQuantityString(
+                    R.plurals.removed_x_songs_from_queue,
+                    songCount,
+                    songCount
+                ),
+                actionLabel = context.getString(R.string.undo),
+                onActionPerformed = { viewModel.undoRemoveSongs() },
+            )
+        )
     }
 
     LaunchedEffect(queue) {
@@ -78,11 +95,21 @@ fun QueueScreen(
         currentSong = currentSong,
         playerState = playerState,
         reorderable = true,
+        removable = true,
         showSongPositions = true,
         onGotoArtistClick = onGotoArtistClick,
         onGotoAlbumClick = onGotoAlbumClick,
         onAddSongToPlaylistClick = onAddSongToPlaylistClick,
         onMoveSong = { from, to -> viewModel.moveSong(from, to) },
+        onRemoveSong = { song ->
+            viewModel.removeSong(song)
+            addRemovedSongsMessage(1)
+        },
+        onRemoveSelectedSongs = {
+            val songCount = viewModel.selectedSongs.value.size
+            viewModel.removeSelectedSongs()
+            addRemovedSongsMessage(songCount)
+        },
         subMenu = {
             QueueScreenSubMenu(
                 isSubmenuExpanded = isSubmenuExpanded,

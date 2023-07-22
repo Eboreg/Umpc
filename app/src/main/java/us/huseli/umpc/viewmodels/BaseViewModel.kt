@@ -10,6 +10,7 @@ import us.huseli.umpc.data.MPDAlbum
 import us.huseli.umpc.data.MPDAlbumArt
 import us.huseli.umpc.data.MPDSong
 import us.huseli.umpc.mpd.MPDRepository
+import us.huseli.umpc.mpd.engine.SnackbarMessage
 
 abstract class BaseViewModel(protected val repo: MPDRepository) : ViewModel() {
     val currentSong = repo.currentSong
@@ -20,6 +21,8 @@ abstract class BaseViewModel(protected val repo: MPDRepository) : ViewModel() {
     val volume = repo.volume
 
     fun addMessage(message: String) = repo.engines.message.addMessage(message)
+
+    fun addMessage(message: SnackbarMessage) = repo.engines.message.addMessage(message)
 
     fun enqueueAlbum(album: MPDAlbum) {
         repo.engines.control.enqueueAlbumLast(album) { response ->
