@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.Umpc.Starting.AppWidgetContainerParent" parent="@android:style/Theme.DeviceDefault.DayNight">
+        <item name="appWidgetRadius">4dp</item>
+        <item name="appWidgetInnerRadius">4dp</item>
+    </style>
+</resources>

@@ -1,12 +1,16 @@
 package us.huseli.umpc
 
 import android.app.PendingIntent
+import android.appwidget.AppWidgetManager
+import android.appwidget.AppWidgetProvider
+import android.content.ComponentName
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 import android.support.v4.media.MediaBrowserCompat
 import android.support.v4.media.session.PlaybackStateCompat
 import android.view.KeyEvent
+import android.widget.RemoteViews
 import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.core.app.NotificationCompat
 import androidx.media.MediaBrowserServiceCompat
@@ -33,19 +37,30 @@ class MediaService : MediaBrowserServiceCompat(), LoggerInterface {
     lateinit var ioScope: CoroutineScope
     private val mutex = Mutex()
 
-    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+    override fun onStartCommand(intent: Intent, flags: Int, startId: Int): Int {
         log("onStartCommand: intent=$intent, flags=$flags, startId=$startId")
+
+        val appWidgetManager = AppWidgetManager.getInstance(applicationContext)
+        val appWidgetIds = intent.getIntArrayExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS)
         val event = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            intent?.extras?.getParcelable("android.intent.extra.KEY_EVENT", KeyEvent::class.java)
+            intent.extras?.getParcelable("android.intent.extra.KEY_EVENT", KeyEvent::class.java)
         } else {
             @Suppress("DEPRECATION")
-            intent?.extras?.getParcelable("android.intent.extra.KEY_EVENT")
+            intent.extras?.getParcelable("android.intent.extra.KEY_EVENT")
         }
         when (event?.keyCode) {
             KeyEvent.KEYCODE_MEDIA_NEXT -> repo.engines.control.next()
             KeyEvent.KEYCODE_MEDIA_PREVIOUS -> repo.engines.control.previous()
             KeyEvent.KEYCODE_MEDIA_PLAY -> repo.engines.control.play()
             KeyEvent.KEYCODE_MEDIA_PAUSE -> repo.engines.control.pause()
+            KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE -> repo.engines.control.playOrPause()
+        }
+        appWidgetIds?.forEach { appWidgetId ->
+            val views = RemoteViews(applicationContext.packageName, R.layout.widget).apply {
+                setTextViewText(R.id.song, repo.currentSong.value?.title ?: "")
+                setTextViewText(R.id.artistAndAlbum, repo.currentSong.value?.let { "${it.artist} • ${it.album}" } ?: "")
+            }
+            appWidgetManager.updateAppWidget(appWidgetId, views)
         }
         return super.onStartCommand(intent, flags, startId)
     }
@@ -122,10 +137,17 @@ class MediaService : MediaBrowserServiceCompat(), LoggerInterface {
         ioScope.launch {
             repo.currentSong.filterNotNull().distinctUntilChanged().collect { song ->
                 mutex.withLock {
+                    val appWidgetManager = AppWidgetManager.getInstance(applicationContext)
+                    val componentName = ComponentName(applicationContext, AppWidgetProvider::class.java)
+                    val views = RemoteViews(applicationContext.packageName, R.layout.widget).apply {
+                        setTextViewText(R.id.song, song?.title ?: "")
+                        setTextViewText(R.id.artistAndAlbum, song?.let { "${it.artist} • ${it.album}" } ?: "")
+                    }
+
                     notificationBuilder.setContentTitle(song.title)
                     notificationBuilder.setContentText("${song.artist} • ${song.album.name}")
-                    val notification = notificationBuilder.build()
-                    startForeground(NOTIFICATION_ID_NOW_PLAYING, notification)
+                    appWidgetManager.updateAppWidget(componentName, views)
+                    startForeground(NOTIFICATION_ID_NOW_PLAYING, notificationBuilder.build())
                 }
             }
         }

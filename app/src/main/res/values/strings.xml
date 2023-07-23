@@ -10,6 +10,7 @@
     <string name="albums">Albums</string>
     <string name="all_locally_stored_album_art_was_cleared">All locally stored album art was cleared.</string>
     <string name="app_name">Umpc</string>
+    <string name="app_widget_description">The currently playing song on MPD, plus some controls.</string>
     <string name="appears_on">Appears on</string>
     <string name="cancel">Cancel</string>
     <string name="clear_album_art_cache">Clear album art cache</string>
