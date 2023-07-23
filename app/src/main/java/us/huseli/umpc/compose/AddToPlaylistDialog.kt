@@ -112,6 +112,7 @@ fun BatchAddToPlaylistDialog(
     playlists: List<MPDPlaylist>,
     addFunction: (String, (MPDBatchMapResponse) -> Unit) -> Unit,
     addMessage: (SnackbarMessage) -> Unit,
+    addError: (SnackbarMessage) -> Unit,
     onGotoPlaylistClick: (String) -> Unit,
     closeDialog: () -> Unit,
 ) {
@@ -126,7 +127,7 @@ fun BatchAddToPlaylistDialog(
         playlists = playlists,
         onConfirm = {
             addFunction(it) { response ->
-                if (response.successCount == 0 && response.errorCount > 0) addMessage(
+                if (response.successCount == 0 && response.errorCount > 0) addError(
                     SnackbarMessage(
                         message = context.resources.getQuantityString(
                             when (itemType) {

@@ -93,6 +93,7 @@ fun LargeSongRowList(
                 viewModel.addSelectedSongsToPlaylist(playlistName, onFinish)
             },
             addMessage = { viewModel.addMessage(it) },
+            addError = { viewModel.addError(it) },
             closeDialog = { isAddToPlaylistDialogOpen = false },
             onGotoPlaylistClick = onGotoPlaylistClick,
         )
@@ -114,7 +115,7 @@ fun LargeSongRowList(
                                 onActionPerformed = onGotoQueueClick,
                             )
                         )
-                        else viewModel.addMessage(
+                        else viewModel.addError(
                             context.resources.getQuantityString(
                                 R.plurals.could_not_enqueue_songs,
                                 viewModel.selectedSongs.value.size,
@@ -186,7 +187,7 @@ fun LargeSongRowList(
                                                 onActionPerformed = onGotoQueueClick,
                                             )
                                         )
-                                        else viewModel.addMessage(
+                                        else viewModel.addError(
                                             context.resources.getQuantityString(
                                                 R.plurals.could_not_enqueue_songs,
                                                 1,

@@ -17,9 +17,13 @@ class MessageEngine(private val repo: MPDRepository) {
     val error = _error.asStateFlow()
     val message = _message.asStateFlow()
 
-    fun setError(message: String?) {
+    fun addError(message: String?) {
         if (message != null) _error.value = SnackbarMessage(message)
         else _error.value = null
+    }
+
+    fun addError(message: SnackbarMessage) {
+        _error.value = message
     }
 
     fun addMessage(message: String) {

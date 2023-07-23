@@ -10,12 +10,16 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import us.huseli.umpc.mpd.engine.SnackbarMessage
+import us.huseli.umpc.viewmodels.MPDViewModel
 
 @Composable
 fun ColorSample(modifier: Modifier = Modifier, name: String, color: Color) {
@@ -29,8 +33,18 @@ fun ColorSample(modifier: Modifier = Modifier, name: String, color: Color) {
 }
 
 @Composable
-fun DebugScreen(modifier: Modifier = Modifier) {
+fun DebugScreen(modifier: Modifier = Modifier, viewModel: MPDViewModel = hiltViewModel()) {
     Column(modifier = modifier.verticalScroll(rememberScrollState())) {
+        Row {
+            OutlinedButton(
+                onClick = { viewModel.addMessage(SnackbarMessage(message = "Message", actionLabel = "Action")) },
+                content = { Text("Show message") },
+            )
+            OutlinedButton(
+                onClick = { viewModel.addError(SnackbarMessage(message = "Error", actionLabel = "Action")) },
+                content = { Text("Show error") },
+            )
+        }
         Row {
             ColorSample(Modifier.weight(0.5f), "background", MaterialTheme.colorScheme.background)
             ColorSample(Modifier.weight(0.5f), "error", MaterialTheme.colorScheme.error)

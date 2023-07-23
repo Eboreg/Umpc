@@ -73,7 +73,7 @@ fun AlbumScreen(
                     onActionPerformed = onGotoQueueClick,
                 )
             )
-            else viewModel.addMessage(
+            else viewModel.addError(
                 context.resources.getQuantityString(
                     R.plurals.could_not_enqueue_albums,
                     1,
@@ -96,7 +96,7 @@ fun AlbumScreen(
                             onActionPerformed = { onGotoPlaylistClick(it) },
                         )
                     )
-                    else response.error?.let { error -> viewModel.addMessage(error) }
+                    else response.error?.let { error -> viewModel.addError(error) }
                 }
                 isAddAlbumToPlaylistDialogOpen = false
             },
@@ -113,6 +113,7 @@ fun AlbumScreen(
                 viewModel.addSelectedSongsToPlaylist(playlistName, onFinish)
             },
             addMessage = { viewModel.addMessage(it) },
+            addError = { viewModel.addError(it) },
             closeDialog = { isAddSongsToPlaylistDialogOpen = false },
             onGotoPlaylistClick = onGotoPlaylistClick,
         )
@@ -131,7 +132,7 @@ fun AlbumScreen(
                             onActionPerformed = onGotoQueueClick,
                         )
                     )
-                    else viewModel.addMessage(
+                    else viewModel.addError(
                         context.resources.getQuantityString(
                             R.plurals.could_not_enqueue_songs,
                             selectedSongs.size,
@@ -209,7 +210,7 @@ fun AlbumScreen(
                                     onActionPerformed = onGotoQueueClick,
                                 )
                             )
-                            else viewModel.addMessage(
+                            else viewModel.addError(
                                 context.resources.getQuantityString(
                                     R.plurals.could_not_enqueue_songs,
                                     1,

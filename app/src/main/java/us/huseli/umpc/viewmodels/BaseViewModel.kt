@@ -21,6 +21,10 @@ abstract class BaseViewModel(protected val repo: MPDRepository) : ViewModel() {
     val storedPlaylists = repo.engines.playlist.storedPlaylists
     val volume = repo.volume
 
+    fun addError(message: String) = repo.engines.message.addError(message)
+
+    fun addError(message: SnackbarMessage) = repo.engines.message.addError(message)
+
     fun addMessage(message: String) = repo.engines.message.addMessage(message)
 
     fun addMessage(message: SnackbarMessage) = repo.engines.message.addMessage(message)

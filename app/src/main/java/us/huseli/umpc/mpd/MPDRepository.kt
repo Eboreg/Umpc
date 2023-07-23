@@ -130,7 +130,7 @@ class MPDRepository @Inject constructor(
                     engines.playlist.loadStoredPlaylists()
                     watch()
                 } catch (e: MPDClientException) {
-                    engines.message.setError(e.message)
+                    engines.message.addError(e.message)
                     log(e.clientClass, e.message, Log.ERROR)
                 }
             }
@@ -330,7 +330,7 @@ class MPDRepository @Inject constructor(
                 // status.consume?.let { _consumeState.value = it }
                 status.playerState?.let { _playerState.value = it }
 
-                engines.message.setError(status.error)
+                engines.message.addError(status.error)
                 _currentSongElapsed.value = status.currentSongElapsed
                 _currentSongDuration.value = status.currentSongDuration
                 _currentSongId.value = status.currentSongId

@@ -80,6 +80,7 @@ fun LibraryScreen(
                 viewModel.addSelectedAlbumsToPlaylist(playlistName, onFinish)
             },
             addMessage = { viewModel.addMessage(it) },
+            addError = { viewModel.addError(it) },
             closeDialog = { isAddAlbumsToPlaylistDialogOpen = false },
             onGotoPlaylistClick = onGotoPlaylistClick,
         )
@@ -111,7 +112,7 @@ fun LibraryScreen(
                                 onActionPerformed = onGotoQueueClick,
                             )
                         )
-                        else viewModel.addMessage(
+                        else viewModel.addError(
                             context.resources.getQuantityString(
                                 R.plurals.could_not_enqueue_albums,
                                 viewModel.selectedAlbums.value.size,

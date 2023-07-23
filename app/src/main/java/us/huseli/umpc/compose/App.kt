@@ -11,6 +11,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Snackbar
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -75,6 +77,7 @@ import us.huseli.umpc.viewmodels.SearchViewModel
 fun App(
     modifier: Modifier = Modifier,
     snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
+    errorSnackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
     navController: NavHostController = rememberNavController(),
     viewModel: MPDViewModel = hiltViewModel(),
     searchViewModel: SearchViewModel = hiltViewModel(),
@@ -157,7 +160,7 @@ fun App(
 
     LaunchedEffect(error) {
         error?.let {
-            val result = snackbarHostState.showSnackbar(
+            val result = errorSnackbarHostState.showSnackbar(
                 message = it.message,
                 actionLabel = it.actionLabel,
                 withDismissAction = true,
@@ -194,7 +197,7 @@ fun App(
                     if (response.isSuccess) viewModel.addMessage(
                         context.resources.getQuantityString(R.plurals.add_songs_playlist_success, 1, 1)
                     )
-                    else response.error?.let { viewModel.addMessage(it) }
+                    else response.error?.let { viewModel.addError(it) }
                 }
                 songToAddToPlaylist = null
             },
@@ -217,7 +220,18 @@ fun App(
             }
             isCoverShown = false
         },
-        snackbarHost = { SnackbarHost(snackbarHostState) },
+        snackbarHost = {
+            SnackbarHost(snackbarHostState)
+            SnackbarHost(errorSnackbarHostState) { data ->
+                Snackbar(
+                    snackbarData = data,
+                    containerColor = MaterialTheme.colorScheme.errorContainer,
+                    contentColor = MaterialTheme.colorScheme.onErrorContainer,
+                    actionColor = MaterialTheme.colorScheme.error,
+                    dismissActionContentColor = MaterialTheme.colorScheme.error,
+                )
+            }
+        },
         bottomBar = {
             if (!isCoverShown && currentSong != null) {
                 BottomBar(onSurfaceClick = { isCoverShown = true })

@@ -100,7 +100,7 @@ fun StoredPlaylistScreen(
                             viewModel.addMessage(context.getString(R.string.playlist_was_deleted))
                             onPlaylistDeleted()
                         } else {
-                            response.error?.let { error -> viewModel.addMessage(error) }
+                            response.error?.let { error -> viewModel.addError(error) }
                         }
                     }
                 },
@@ -167,7 +167,7 @@ fun StoredPlaylistScreen(
                                                     onActionPerformed = { onGotoPlaylistClick(it.name) },
                                                 )
                                             )
-                                            else viewModel.addMessage(
+                                            else viewModel.addError(
                                                 context.getString(
                                                     R.string.could_not_enqueue_playlist,
                                                     response.error ?: context.getString(R.string.unknown_error),

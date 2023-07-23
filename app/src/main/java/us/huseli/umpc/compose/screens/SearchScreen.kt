@@ -75,6 +75,7 @@ fun SearchScreen(
                 viewModel.addAllToPlaylist(playlistName, onFinish)
             },
             addMessage = { viewModel.addMessage(it) },
+            addError = { viewModel.addError(it) },
             closeDialog = { isAddToPlaylistDialogOpen = false },
             onGotoPlaylistClick = onGotoPlaylistClick,
         )
@@ -147,7 +148,7 @@ fun SearchScreen(
                                                 onActionPerformed = onGotoQueueClick,
                                             )
                                         )
-                                        else viewModel.addMessage(
+                                        else viewModel.addError(
                                             context.getString(
                                                 R.string.could_not_enqueue_search_results,
                                                 response.error ?: context.getString(R.string.unknown_error)

@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <item android:height="240dp" android:width="240dp">
+    <item
+        android:height="240dp"
+        android:width="240dp">
         <color android:color="@color/ic_launcher_background" />
     </item>
     <item
