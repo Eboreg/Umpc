@@ -1,3 +1,5 @@
+@file:Suppress("PropertyName")
+
 package us.huseli.umpc.ui.theme
 
 import androidx.compose.ui.graphics.Color

@@ -2,7 +2,6 @@ package us.huseli.umpc
 
 import android.app.PendingIntent
 import android.appwidget.AppWidgetManager
-import android.appwidget.AppWidgetProvider
 import android.content.ComponentName
 import android.content.Intent
 import android.os.Build
@@ -17,8 +16,6 @@ import androidx.media.MediaBrowserServiceCompat
 import androidx.media.session.MediaButtonReceiver
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -54,6 +51,7 @@ class MediaService : MediaBrowserServiceCompat(), LoggerInterface {
             KeyEvent.KEYCODE_MEDIA_PLAY -> repo.engines.control.play()
             KeyEvent.KEYCODE_MEDIA_PAUSE -> repo.engines.control.pause()
             KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE -> repo.engines.control.playOrPause()
+            KeyEvent.KEYCODE_MEDIA_STOP -> repo.engines.control.stop()
         }
         appWidgetIds?.forEach { appWidgetId ->
             val views = RemoteViews(applicationContext.packageName, R.layout.widget).apply {
@@ -133,21 +131,75 @@ class MediaService : MediaBrowserServiceCompat(), LoggerInterface {
         return actions
     }
 
+    private fun updateWidget() {
+        val context = this
+        val bitmap = repo.engines.image.currentSongAlbumArt.value?.fullImage?.asAndroidBitmap()
+        val appWidgetManager = AppWidgetManager.getInstance(context)
+        val componentName = ComponentName(context, WidgetProvider::class.java)
+        val pendingIntent: PendingIntent = PendingIntent.getActivity(
+            context,
+            0,
+            Intent(context, MainActivity::class.java),
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+        val views = RemoteViews(context.packageName, R.layout.widget).apply {
+            if (bitmap != null) setImageViewBitmap(R.id.albumArt, bitmap)
+            else setImageViewResource(R.id.albumArt, R.mipmap.ic_launcher)
+            setOnClickPendingIntent(R.id.albumArt, pendingIntent)
+            setTextViewText(R.id.song, repo.currentSong.value?.title ?: "")
+            setTextViewText(
+                R.id.artistAndAlbum,
+                repo.currentSong.value?.let { "${it.artist} • ${it.album.name}" } ?: ""
+            )
+            setOnClickPendingIntent(
+                R.id.playOrPause,
+                MediaButtonReceiver.buildMediaButtonPendingIntent(context, PlaybackStateCompat.ACTION_PLAY_PAUSE),
+            )
+            if (repo.playerState.value != PlayerState.STOP) {
+                setOnClickPendingIntent(
+                    R.id.previous,
+                    MediaButtonReceiver.buildMediaButtonPendingIntent(
+                        context,
+                        PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS
+                    ),
+                )
+                setOnClickPendingIntent(
+                    R.id.stop,
+                    MediaButtonReceiver.buildMediaButtonPendingIntent(context, PlaybackStateCompat.ACTION_STOP),
+                )
+                setOnClickPendingIntent(
+                    R.id.next,
+                    MediaButtonReceiver.buildMediaButtonPendingIntent(context, PlaybackStateCompat.ACTION_SKIP_TO_NEXT),
+                )
+                setBoolean(R.id.previous, "setEnabled", true)
+                setBoolean(R.id.stop, "setEnabled", true)
+                setBoolean(R.id.next, "setEnabled", true)
+            } else {
+                setBoolean(R.id.previous, "setEnabled", false)
+                setBoolean(R.id.stop, "setEnabled", false)
+                setBoolean(R.id.next, "setEnabled", false)
+            }
+            setImageViewResource(
+                R.id.playOrPause,
+                when (repo.playerState.value) {
+                    PlayerState.PLAY -> R.drawable.ic_pause
+                    else -> R.drawable.ic_play
+                }
+            )
+        }
+        appWidgetManager.updateAppWidget(componentName, views)
+    }
+
     private fun startListeners() {
         ioScope.launch {
-            repo.currentSong.filterNotNull().distinctUntilChanged().collect { song ->
+            repo.currentSong.collect { song ->
                 mutex.withLock {
-                    val appWidgetManager = AppWidgetManager.getInstance(applicationContext)
-                    val componentName = ComponentName(applicationContext, AppWidgetProvider::class.java)
-                    val views = RemoteViews(applicationContext.packageName, R.layout.widget).apply {
-                        setTextViewText(R.id.song, song?.title ?: "")
-                        setTextViewText(R.id.artistAndAlbum, song?.let { "${it.artist} • ${it.album}" } ?: "")
+                    updateWidget()
+                    if (song != null) {
+                        notificationBuilder.setContentTitle(song.title)
+                        notificationBuilder.setContentText("${song.artist} • ${song.album.name}")
+                        startForeground(NOTIFICATION_ID_NOW_PLAYING, notificationBuilder.build())
                     }
-
-                    notificationBuilder.setContentTitle(song.title)
-                    notificationBuilder.setContentText("${song.artist} • ${song.album.name}")
-                    appWidgetManager.updateAppWidget(componentName, views)
-                    startForeground(NOTIFICATION_ID_NOW_PLAYING, notificationBuilder.build())
                 }
             }
         }
@@ -156,6 +208,7 @@ class MediaService : MediaBrowserServiceCompat(), LoggerInterface {
                 val bitmap = albumArt?.fullImage?.asAndroidBitmap()
                 log("bitmap: width=${bitmap?.width}, height=${bitmap?.height}")
                 mutex.withLock {
+                    updateWidget()
                     notificationBuilder.setLargeIcon(bitmap)
                     startForeground(NOTIFICATION_ID_NOW_PLAYING, notificationBuilder.build())
                 }
@@ -163,19 +216,18 @@ class MediaService : MediaBrowserServiceCompat(), LoggerInterface {
         }
         ioScope.launch {
             repo.playerState.collect { playerState ->
-                when (playerState) {
-                    PlayerState.PLAY -> {
-                        mutex.withLock {
+                mutex.withLock {
+                    updateWidget()
+                    when (playerState) {
+                        PlayerState.PLAY -> {
                             notificationBuilder.clearActions()
                             getActions(true).forEach { notificationBuilder.addAction(it) }
                             startForeground(NOTIFICATION_ID_NOW_PLAYING, notificationBuilder.build())
                         }
-                    }
-                    PlayerState.STOP -> {
-                        // stopForeground(Service.STOP_FOREGROUND_REMOVE)
-                    }
-                    PlayerState.PAUSE -> {
-                        mutex.withLock {
+                        PlayerState.STOP -> {
+                            // stopForeground(Service.STOP_FOREGROUND_REMOVE)
+                        }
+                        PlayerState.PAUSE -> {
                             notificationBuilder.clearActions()
                             getActions(false).forEach { notificationBuilder.addAction(it) }
                             startForeground(NOTIFICATION_ID_NOW_PLAYING, notificationBuilder.build())

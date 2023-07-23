@@ -63,6 +63,7 @@
     <string name="port">Port</string>
     <string name="previous">Previous</string>
     <string name="queue">Queue</string>
+    <string name="remove">Remove</string>
     <string name="rename">Rename</string>
     <string name="rename_playlist">Rename playlist</string>
     <string name="repeat">Repeat</string>
@@ -90,7 +91,6 @@
     <string name="undo">Undo</string>
     <string name="value">Value</string>
     <string name="x_kbps">%1$d Kbps</string>
-    <string name="remove">Remove</string>
     <plurals name="add_albums_playlist_fail">
         <item quantity="one">Failed to add album to playlist.</item>
         <item quantity="other">Failed to add %1$d albums to playlist.</item>
