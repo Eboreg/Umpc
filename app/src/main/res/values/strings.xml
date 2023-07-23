@@ -16,6 +16,8 @@
     <string name="clear_album_art_cache">Clear album art cache</string>
     <string name="clear_queue">Clear queue</string>
     <string name="comparator">Comparator</string>
+    <string name="could_not_enqueue_playlist">Could not enqueue playlist: %1$s.</string>
+    <string name="could_not_enqueue_search_results">Could not enqueue search results: %1$s.</string>
     <string name="create_dynamic_playlist">Create dynamic playlist</string>
     <string name="deactivate_dynamic_playlist">Deactivate dynamic playlist</string>
     <string name="debug">Debug</string>
@@ -33,14 +35,16 @@
     <string name="edit_dynamic_playlist">Edit dynamic playlist</string>
     <string name="enqueue">Enqueue</string>
     <string name="enqueue_all">Enqueue all</string>
+    <string name="enqueued_all_search_results">Enqueued all search results.</string>
     <string name="enqueued_all_selected_albums">Enqueued all selected albums.</string>
     <string name="enqueued_all_selected_songs">Enqueued all selected songs.</string>
-    <string name="enqueuing_all_search_results">Enqueuing all search results.</string>
     <string name="enter_at_least_3_characters">Enter at least 3 characters.</string>
     <string name="filter_by">Filter by</string>
     <string name="forward">Forward</string>
     <string name="go_to_album">Go to album</string>
     <string name="go_to_artist">Go to artist</string>
+    <string name="go_to_playlist">Go to playlist</string>
+    <string name="go_to_queue">Go to queue</string>
     <string name="group_by_album">Group by album</string>
     <string name="group_by_artist">Group by artist</string>
     <string name="hostname">Hostname</string>
@@ -86,9 +90,12 @@
     <string name="streaming_started">Streaming started.</string>
     <string name="streaming_stopped">Streaming stopped.</string>
     <string name="streaming_url">Streaming URL</string>
+    <string name="the_album_was_enqueued">The album was enqueued.</string>
     <string name="the_queue_was_cleared">The queue was cleared.</string>
+    <string name="the_song_was_enqueued">The song was enqueued.</string>
     <string name="total_time_colon">Total time: %1$s</string>
     <string name="undo">Undo</string>
+    <string name="unknown_error">Unknown error</string>
     <string name="value">Value</string>
     <string name="x_kbps">%1$d Kbps</string>
     <plurals name="add_albums_playlist_fail">
@@ -106,6 +113,14 @@
     <plurals name="add_songs_playlist_success">
         <item quantity="one">Song was added to playlist.</item>
         <item quantity="other">%1$d songs were added to playlist.</item>
+    </plurals>
+    <plurals name="could_not_enqueue_albums">
+        <item quantity="one">Could not enqueue album: %1$s.</item>
+        <item quantity="other">Could not enqueue albums: %1$s.</item>
+    </plurals>
+    <plurals name="could_not_enqueue_songs">
+        <item quantity="one">Could not enqueue song: %1$s.</item>
+        <item quantity="other">Could not enqueue songs: %1$s.</item>
     </plurals>
     <plurals name="removed_x_songs_from_playlist">
         <item quantity="one">Removed song from playlist.</item>

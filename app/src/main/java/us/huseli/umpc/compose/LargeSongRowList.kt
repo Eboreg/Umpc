@@ -35,6 +35,7 @@ import us.huseli.umpc.R
 import us.huseli.umpc.compose.utils.ListWithNumericBar
 import us.huseli.umpc.data.MPDAlbum
 import us.huseli.umpc.data.MPDSong
+import us.huseli.umpc.mpd.engine.SnackbarMessage
 import us.huseli.umpc.viewmodels.SongSelectViewModel
 import kotlin.math.roundToInt
 
@@ -52,6 +53,8 @@ fun LargeSongRowList(
     showSongPositions: Boolean = false,
     onGotoAlbumClick: (MPDAlbum) -> Unit,
     onGotoArtistClick: (String) -> Unit,
+    onGotoPlaylistClick: (String) -> Unit,
+    onGotoQueueClick: () -> Unit,
     onAddSongToPlaylistClick: (MPDSong) -> Unit,
     onMoveSong: ((Int, Int) -> Unit)? = null,
     onRemoveSong: ((MPDSong) -> Unit)? = null,
@@ -67,7 +70,7 @@ fun LargeSongRowList(
     // Somehow, this setup makes it so the list can both be manually reordered
     // _and_ get updated when it's changed externally. Don't really understand
     // how, though.
-    val mutableSongs = remember(songs) { songs.toMutableStateList() }
+    val mutableSongs = remember { songs.toMutableStateList() }
     val reorderableState = rememberReorderableLazyListState(
         listState = listState,
         onMove = { from, to -> mutableSongs.add(to.index, mutableSongs.removeAt(from.index)) },
@@ -91,6 +94,7 @@ fun LargeSongRowList(
             },
             addMessage = { viewModel.addMessage(it) },
             closeDialog = { isAddToPlaylistDialogOpen = false },
+            onGotoPlaylistClick = onGotoPlaylistClick,
         )
     }
 
@@ -102,8 +106,22 @@ fun LargeSongRowList(
                 pluralsResId = R.plurals.x_selected_songs,
                 selectedItemCount = selectedSongs.size,
                 onEnqueueClick = {
-                    viewModel.enqueueSelectedSongs()
-                    viewModel.addMessage(context.getString(R.string.enqueued_all_selected_songs))
+                    viewModel.enqueueSelectedSongs { response ->
+                        if (response.isSuccess) viewModel.addMessage(
+                            SnackbarMessage(
+                                message = context.getString(R.string.enqueued_all_selected_songs),
+                                actionLabel = context.getString(R.string.go_to_queue),
+                                onActionPerformed = onGotoQueueClick,
+                            )
+                        )
+                        else viewModel.addMessage(
+                            context.resources.getQuantityString(
+                                R.plurals.could_not_enqueue_songs,
+                                viewModel.selectedSongs.value.size,
+                                response.error ?: context.getString(R.string.unknown_error),
+                            )
+                        )
+                    }
                 },
                 onDeselectAllClick = { viewModel.deselectAllSongs() },
                 onAddToPlaylistClick = { isAddToPlaylistDialogOpen = true },
@@ -159,7 +177,24 @@ fun LargeSongRowList(
                                 },
                                 onLongClick = { viewModel.toggleSongSelected(song) },
                                 onPlayPauseClick = { viewModel.playOrPauseSong(song) },
-                                onEnqueueClick = { viewModel.enqueueSong(song) },
+                                onEnqueueClick = {
+                                    viewModel.enqueueSong(song) { response ->
+                                        if (response.isSuccess) viewModel.addMessage(
+                                            SnackbarMessage(
+                                                message = context.getString(R.string.the_song_was_enqueued),
+                                                actionLabel = context.getString(R.string.go_to_queue),
+                                                onActionPerformed = onGotoQueueClick,
+                                            )
+                                        )
+                                        else viewModel.addMessage(
+                                            context.resources.getQuantityString(
+                                                R.plurals.could_not_enqueue_songs,
+                                                1,
+                                                response.error ?: context.getString(R.string.unknown_error),
+                                            )
+                                        )
+                                    }
+                                },
                                 onGotoAlbumClick = { onGotoAlbumClick(song.album) },
                                 onGotoArtistClick = { onGotoArtistClick(song.artist) },
                                 onAddToPlaylistClick = { onAddSongToPlaylistClick(song) },

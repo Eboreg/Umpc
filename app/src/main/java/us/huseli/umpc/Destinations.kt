@@ -36,6 +36,7 @@ object PlaylistDetailsDestination {
     )
 
     fun route(playlist: MPDPlaylist) = "playlist/${playlist.name}"
+    fun route(playlistName: String) = "playlist/$playlistName"
 }
 
 object LibraryDestination : Destination("library")

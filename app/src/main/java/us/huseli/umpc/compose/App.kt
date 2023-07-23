@@ -27,7 +27,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
-import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -111,6 +110,16 @@ fun App(
 
     val onAddSongToPlaylistClick: (MPDSong) -> Unit = { songToAddToPlaylist = it }
 
+    val onGotoPlaylistClick: (String) -> Unit = {
+        navController.navigate(PlaylistDetailsDestination.route(it))
+        isCoverShown = false
+    }
+
+    val onGotoQueueClick: () -> Unit = {
+        navController.navigate(QueueDestination.route)
+        isCoverShown = false
+    }
+
     fun navigate(route: String, navOptions: NavOptions? = null) {
         if (Looper.myLooper() != Looper.getMainLooper()) {
             context.getActivity()?.runOnUiThread { navController.navigate(route, navOptions) }
@@ -177,14 +186,14 @@ fun App(
     }
 
     songToAddToPlaylist?.let { song ->
-        val successMessage = pluralStringResource(R.plurals.add_songs_playlist_success, 1, 1)
-
         AddToPlaylistDialog(
             title = "\"${song.title}\"",
             playlists = playlists,
             onConfirm = { playlistName ->
                 viewModel.addSongToStoredPlaylist(song, playlistName) { response ->
-                    if (response.isSuccess) viewModel.addMessage(successMessage)
+                    if (response.isSuccess) viewModel.addMessage(
+                        context.resources.getQuantityString(R.plurals.add_songs_playlist_success, 1, 1)
+                    )
                     else response.error?.let { viewModel.addMessage(it) }
                 }
                 songToAddToPlaylist = null
@@ -227,6 +236,8 @@ fun App(
                     onGotoAlbumClick = onGotoAlbumClick,
                     onGotoArtistClick = onGotoArtistClick,
                     onAddSongToPlaylistClick = onAddSongToPlaylistClick,
+                    onGotoPlaylistClick = onGotoPlaylistClick,
+                    onGotoQueueClick = onGotoQueueClick,
                 )
             }
 
@@ -236,6 +247,8 @@ fun App(
                     viewModel = libraryViewModel,
                     onGotoAlbumClick = onGotoAlbumClick,
                     onGotoArtistClick = onGotoArtistClick,
+                    onGotoPlaylistClick = onGotoPlaylistClick,
+                    onGotoQueueClick = onGotoQueueClick,
                 )
             }
 
@@ -256,6 +269,8 @@ fun App(
                     onGotoAlbumClick = onGotoAlbumClick,
                     onGotoArtistClick = onGotoArtistClick,
                     onAddSongToPlaylistClick = onAddSongToPlaylistClick,
+                    onGotoPlaylistClick = onGotoPlaylistClick,
+                    onGotoQueueClick = onGotoQueueClick,
                 )
             }
 
@@ -266,6 +281,8 @@ fun App(
                 AlbumScreen(
                     onGotoArtistClick = onGotoArtistClick,
                     onAddSongToPlaylistClick = onAddSongToPlaylistClick,
+                    onGotoPlaylistClick = onGotoPlaylistClick,
+                    onGotoQueueClick = onGotoQueueClick,
                 )
             }
 
@@ -273,7 +290,11 @@ fun App(
                 route = ArtistDestination.routeTemplate,
                 arguments = ArtistDestination.arguments
             ) {
-                ArtistScreen(onGotoAlbumClick = onGotoAlbumClick)
+                ArtistScreen(
+                    onGotoAlbumClick = onGotoAlbumClick,
+                    onGotoPlaylistClick = onGotoPlaylistClick,
+                    onGotoQueueClick = onGotoQueueClick,
+                )
             }
 
             composable(route = PlaylistListDestination.route) {
@@ -296,6 +317,8 @@ fun App(
                         navigate(PlaylistDetailsDestination.route(MPDPlaylist(newName)))
                     },
                     onAddSongToPlaylistClick = onAddSongToPlaylistClick,
+                    onGotoQueueClick = onGotoQueueClick,
+                    onGotoPlaylistClick = onGotoPlaylistClick,
                 )
             }
         }

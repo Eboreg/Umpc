@@ -24,11 +24,8 @@ class SearchViewModel @Inject constructor(repo: MPDRepository) : SongSelectViewM
     fun addAllToPlaylist(playlistName: String, onFinish: (MPDBatchMapResponse) -> Unit) =
         repo.engines.playlist.addSongsToStoredPlaylist(_songSearchResults.value, playlistName, onFinish)
 
-    fun enqueueAll() {
-        _songSearchResults.value.forEach { song ->
-            repo.engines.control.enqueueSongLast(song)
-        }
-    }
+    fun enqueueAll(onFinish: (MPDBatchMapResponse) -> Unit) =
+        repo.engines.control.enqueueSongsLast(_songSearchResults.value, onFinish)
 
     fun setSongSearchTerm(value: TextFieldValue) {
         _songSearchTerm.value = value

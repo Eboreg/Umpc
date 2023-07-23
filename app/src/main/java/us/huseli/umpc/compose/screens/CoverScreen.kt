@@ -212,7 +212,7 @@ fun CoverScreenSongTechInfo(
     audioFormat: MPDAudioFormat?,
     isDynamicPlaylistActive: Boolean,
 ) {
-    Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = modifier) {
+    Row(horizontalArrangement = Arrangement.SpaceEvenly, modifier = modifier) {
         bitrate?.let { Badge { Text(stringResource(R.string.x_kbps, it)) } }
         if (isDynamicPlaylistActive) Badge { Text(stringResource(R.string.dynamic_playlist)) }
         audioFormat?.let { Badge { Text(it.toString()) } }
@@ -222,16 +222,12 @@ fun CoverScreenSongTechInfo(
 @OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun CoverScreenButtons(viewModel: CurrentSongViewModel = hiltViewModel()) {
+    val context = LocalContext.current
     val isDynamicPlaylistActive by viewModel.isDynamicPlaylistActive.collectAsStateWithLifecycle(false)
     val isStreaming by viewModel.isStreaming.collectAsStateWithLifecycle()
     val randomState by viewModel.randomState.collectAsStateWithLifecycle()
     val repeatState by viewModel.repeatState.collectAsStateWithLifecycle()
     val streamingUrl by viewModel.streamingUrl.collectAsStateWithLifecycle()
-
-    val streamingStarted =
-        streamingUrl?.let { stringResource(R.string.streaming_from_x_started, it) }
-        ?: stringResource(R.string.streaming_started)
-    val streamingStopped = stringResource(R.string.streaming_stopped)
 
     val filterChipColors = FilterChipDefaults.filterChipColors(
         labelColor = LocalContentColor.current.copy(0.5f),
@@ -266,8 +262,13 @@ fun CoverScreenButtons(viewModel: CurrentSongViewModel = hiltViewModel()) {
             selected = isStreaming,
             colors = filterChipColors,
             onClick = {
-                viewModel.toggleStream {
-                    viewModel.addMessage(if (it) streamingStarted else streamingStopped)
+                viewModel.toggleStream { started ->
+                    viewModel.addMessage(
+                        if (started) {
+                            streamingUrl?.let { context.getString(R.string.streaming_from_x_started, it) }
+                            ?: context.getString(R.string.streaming_started)
+                        } else context.getString(R.string.streaming_stopped)
+                    )
                 }
             },
             label = { Text(stringResource(R.string.stream)) },

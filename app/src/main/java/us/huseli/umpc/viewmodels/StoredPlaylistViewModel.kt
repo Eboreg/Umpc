@@ -1,5 +1,6 @@
 package us.huseli.umpc.viewmodels
 
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.lifecycle.SavedStateHandle
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -21,6 +22,7 @@ class StoredPlaylistViewModel @Inject constructor(
     private val _removedSongs = mutableListOf<MPDSong>()
     private val _songs = MutableStateFlow<List<MPDSong>>(emptyList())
 
+    val listState = LazyListState()
     val songs = _songs.asStateFlow()
     val playlist = repo.engines.playlist.storedPlaylists.map { playlists -> playlists.find { it.name == playlistName } }
 

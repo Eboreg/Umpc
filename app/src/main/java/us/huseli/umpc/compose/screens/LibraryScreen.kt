@@ -31,6 +31,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.layout.onPlaced
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
@@ -48,6 +49,7 @@ import us.huseli.umpc.compose.utils.ListWithAlphabetBar
 import us.huseli.umpc.compose.utils.SubMenuScreen
 import us.huseli.umpc.data.MPDAlbum
 import us.huseli.umpc.data.MPDAlbumWithSongs
+import us.huseli.umpc.mpd.engine.SnackbarMessage
 import us.huseli.umpc.viewmodels.LibraryViewModel
 import kotlin.math.roundToInt
 
@@ -57,13 +59,15 @@ fun LibraryScreen(
     viewModel: LibraryViewModel = hiltViewModel(),
     onGotoAlbumClick: (MPDAlbum) -> Unit,
     onGotoArtistClick: (String) -> Unit,
+    onGotoPlaylistClick: (String) -> Unit,
+    onGotoQueueClick: () -> Unit,
 ) {
+    val context = LocalContext.current
     val grouping by viewModel.grouping.collectAsStateWithLifecycle()
     val searchTerm by viewModel.librarySearchTerm.collectAsStateWithLifecycle()
     val searchFocusRequester = remember { FocusRequester() }
     val isSearchActive by viewModel.isLibrarySearchActive.collectAsStateWithLifecycle(false)
     val selectedAlbums by viewModel.selectedAlbums.collectAsStateWithLifecycle()
-    val enqueuedSelectedAlbumsMessage = stringResource(R.string.enqueued_all_selected_albums)
     var isAddAlbumsToPlaylistDialogOpen by rememberSaveable { mutableStateOf(false) }
     val playlists by viewModel.storedPlaylists.collectAsStateWithLifecycle()
 
@@ -77,6 +81,7 @@ fun LibraryScreen(
             },
             addMessage = { viewModel.addMessage(it) },
             closeDialog = { isAddAlbumsToPlaylistDialogOpen = false },
+            onGotoPlaylistClick = onGotoPlaylistClick,
         )
     }
 
@@ -98,8 +103,22 @@ fun LibraryScreen(
                 pluralsResId = R.plurals.x_selected_albums,
                 onDeselectAllClick = { viewModel.deselectAllAlbums() },
                 onEnqueueClick = {
-                    viewModel.enqueueSelectedAlbums()
-                    viewModel.addMessage(enqueuedSelectedAlbumsMessage)
+                    viewModel.enqueueSelectedAlbums { response ->
+                        if (response.isSuccess) viewModel.addMessage(
+                            SnackbarMessage(
+                                message = context.getString(R.string.enqueued_all_selected_albums),
+                                actionLabel = context.getString(R.string.go_to_queue),
+                                onActionPerformed = onGotoQueueClick,
+                            )
+                        )
+                        else viewModel.addMessage(
+                            context.resources.getQuantityString(
+                                R.plurals.could_not_enqueue_albums,
+                                viewModel.selectedAlbums.value.size,
+                                response.error ?: context.getString(R.string.unknown_error),
+                            )
+                        )
+                    }
                 },
                 onAddToPlaylistClick = { isAddAlbumsToPlaylistDialogOpen = true },
             )

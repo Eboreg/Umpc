@@ -5,8 +5,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyListState
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.sharp.Delete
 import androidx.compose.material.icons.sharp.Edit
@@ -48,12 +46,13 @@ import us.huseli.umpc.viewmodels.StoredPlaylistViewModel
 fun StoredPlaylistScreen(
     modifier: Modifier = Modifier,
     viewModel: StoredPlaylistViewModel = hiltViewModel(),
-    listState: LazyListState = rememberLazyListState(),
     onGotoAlbumClick: (MPDAlbum) -> Unit,
     onGotoArtistClick: (String) -> Unit,
+    onGotoQueueClick: () -> Unit,
     onAddSongToPlaylistClick: (MPDSong) -> Unit,
     onPlaylistDeleted: () -> Unit,
     onPlaylistRenamed: (String) -> Unit,
+    onGotoPlaylistClick: (String) -> Unit,
 ) {
     val context = LocalContext.current
     val playlist by viewModel.playlist.collectAsStateWithLifecycle(null)
@@ -93,14 +92,12 @@ fun StoredPlaylistScreen(
 
     if (isDeleteDialogOpen) {
         playlist?.let {
-            val successMessage = stringResource(R.string.playlist_was_deleted)
-
             DeletePlaylistDialog(
                 name = it.name,
                 onConfirm = {
                     viewModel.delete { response ->
                         if (response.isSuccess) {
-                            viewModel.addMessage(successMessage)
+                            viewModel.addMessage(context.getString(R.string.playlist_was_deleted))
                             onPlaylistDeleted()
                         } else {
                             response.error?.let { error -> viewModel.addMessage(error) }
@@ -116,7 +113,7 @@ fun StoredPlaylistScreen(
         modifier = modifier,
         viewModel = viewModel,
         songs = songs,
-        listState = listState,
+        listState = viewModel.listState,
         currentSong = currentSong,
         playerState = playerState,
         reorderable = true,
@@ -125,6 +122,8 @@ fun StoredPlaylistScreen(
         onMoveSong = { from, to -> viewModel.moveSong(from, to) },
         onGotoAlbumClick = onGotoAlbumClick,
         onGotoArtistClick = onGotoArtistClick,
+        onGotoQueueClick = onGotoQueueClick,
+        onGotoPlaylistClick = onGotoPlaylistClick,
         onAddSongToPlaylistClick = onAddSongToPlaylistClick,
         onRemoveSong = { song ->
             viewModel.removeSong(song)
@@ -159,9 +158,21 @@ fun StoredPlaylistScreen(
                                     onClick = {
                                         viewModel.enqueue { response ->
                                             if (response.isSuccess) viewModel.addMessage(
-                                                context.getString(R.string.playlist_x_was_enqueued, it.name)
+                                                SnackbarMessage(
+                                                    message = context.getString(
+                                                        R.string.playlist_x_was_enqueued,
+                                                        it.name,
+                                                    ),
+                                                    actionLabel = context.getString(R.string.go_to_queue),
+                                                    onActionPerformed = { onGotoPlaylistClick(it.name) },
+                                                )
                                             )
-                                            else response.error?.let { error -> viewModel.addMessage(error) }
+                                            else viewModel.addMessage(
+                                                context.getString(
+                                                    R.string.could_not_enqueue_playlist,
+                                                    response.error ?: context.getString(R.string.unknown_error),
+                                                )
+                                            )
                                         }
                                     },
                                     content = { Icon(Icons.Sharp.PlaylistPlay, stringResource(R.string.enqueue)) },

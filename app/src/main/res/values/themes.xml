@@ -4,8 +4,9 @@
     <style name="Theme.Umpc" parent="android:Theme.Material.Light.NoActionBar" />
 
     <style name="Theme.Umpc.Starting" parent="Theme.SplashScreen">
-        <item name="windowSplashScreenBackground">@color/splash_background</item>
         <item name="postSplashScreenTheme">@style/Theme.Umpc</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/splashscreen_icon</item>
+        <item name="windowSplashScreenBackground">@color/splash_background</item>
     </style>
 
     <style name="Theme.Umpc.Starting.AppWidgetContainerParent" parent="@android:style/Theme.DeviceDefault">

@@ -27,6 +27,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.layout.onPlaced
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
@@ -41,6 +42,7 @@ import us.huseli.umpc.compose.LargeSongRowList
 import us.huseli.umpc.compose.utils.SmallOutlinedButton
 import us.huseli.umpc.data.MPDAlbum
 import us.huseli.umpc.data.MPDSong
+import us.huseli.umpc.mpd.engine.SnackbarMessage
 import us.huseli.umpc.viewmodels.SearchViewModel
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -51,7 +53,10 @@ fun SearchScreen(
     onGotoAlbumClick: (MPDAlbum) -> Unit,
     onGotoArtistClick: (String) -> Unit,
     onAddSongToPlaylistClick: (MPDSong) -> Unit,
+    onGotoPlaylistClick: (String) -> Unit,
+    onGotoQueueClick: () -> Unit,
 ) {
+    val context = LocalContext.current
     val searchTerm by viewModel.songSearchTerm.collectAsStateWithLifecycle()
     val searchFocusRequester = remember { FocusRequester() }
     val searchResults by viewModel.songSearchResults.collectAsStateWithLifecycle()
@@ -60,7 +65,6 @@ fun SearchScreen(
     val isSearching by viewModel.isSearching.collectAsStateWithLifecycle()
     val playlists by viewModel.storedPlaylists.collectAsStateWithLifecycle()
     var isAddToPlaylistDialogOpen by rememberSaveable { mutableStateOf(false) }
-    val enqueuingAllMessage = stringResource(R.string.enqueuing_all_search_results)
 
     if (isAddToPlaylistDialogOpen) {
         BatchAddToPlaylistDialog(
@@ -72,6 +76,7 @@ fun SearchScreen(
             },
             addMessage = { viewModel.addMessage(it) },
             closeDialog = { isAddToPlaylistDialogOpen = false },
+            onGotoPlaylistClick = onGotoPlaylistClick,
         )
     }
 
@@ -86,6 +91,8 @@ fun SearchScreen(
         onGotoAlbumClick = onGotoAlbumClick,
         onGotoArtistClick = onGotoArtistClick,
         onAddSongToPlaylistClick = onAddSongToPlaylistClick,
+        onGotoPlaylistClick = onGotoPlaylistClick,
+        onGotoQueueClick = onGotoQueueClick,
         emptyListText = {
             Text(
                 text = stringResource(R.string.enter_at_least_3_characters),
@@ -132,8 +139,21 @@ fun SearchScreen(
                         if (resultCount > 0) {
                             SmallOutlinedButton(
                                 onClick = {
-                                    viewModel.addMessage(enqueuingAllMessage)
-                                    viewModel.enqueueAll()
+                                    viewModel.enqueueAll { response ->
+                                        if (response.isSuccess) viewModel.addMessage(
+                                            SnackbarMessage(
+                                                message = context.getString(R.string.enqueued_all_search_results),
+                                                actionLabel = context.getString(R.string.go_to_queue),
+                                                onActionPerformed = onGotoQueueClick,
+                                            )
+                                        )
+                                        else viewModel.addMessage(
+                                            context.getString(
+                                                R.string.could_not_enqueue_search_results,
+                                                response.error ?: context.getString(R.string.unknown_error)
+                                            )
+                                        )
+                                    }
                                 },
                                 leadingIcon = Icons.Sharp.PlaylistPlay,
                                 text = stringResource(R.string.enqueue_all),

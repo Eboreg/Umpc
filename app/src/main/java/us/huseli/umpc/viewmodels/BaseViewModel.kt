@@ -11,6 +11,7 @@ import us.huseli.umpc.data.MPDAlbumArt
 import us.huseli.umpc.data.MPDSong
 import us.huseli.umpc.mpd.MPDRepository
 import us.huseli.umpc.mpd.engine.SnackbarMessage
+import us.huseli.umpc.mpd.response.MPDMapResponse
 
 abstract class BaseViewModel(protected val repo: MPDRepository) : ViewModel() {
     val currentSong = repo.currentSong
@@ -24,17 +25,11 @@ abstract class BaseViewModel(protected val repo: MPDRepository) : ViewModel() {
 
     fun addMessage(message: SnackbarMessage) = repo.engines.message.addMessage(message)
 
-    fun enqueueAlbum(album: MPDAlbum) {
-        repo.engines.control.enqueueAlbumLast(album) { response ->
-            if (response.isSuccess) repo.engines.message.addMessage("The album was enqueued.")
-            else repo.engines.message.addMessage("Could not enqeue album: ${response.error}")
-        }
-    }
+    fun enqueueAlbum(album: MPDAlbum, onFinish: (MPDMapResponse) -> Unit) =
+        repo.engines.control.enqueueAlbumLast(album, onFinish)
 
-    fun enqueueSong(song: MPDSong) = repo.engines.control.enqueueSongLast(song) { response ->
-        if (response.isSuccess) repo.engines.message.addMessage("The song was enqueued.")
-        else repo.engines.message.addMessage("Could not enqueue song: ${response.error}")
-    }
+    fun enqueueSong(song: MPDSong, onFinish: (MPDMapResponse) -> Unit) =
+        repo.engines.control.enqueueSongLast(song, onFinish)
 
     fun getAlbumArt(song: MPDSong, callback: (MPDAlbumArt) -> Unit) = viewModelScope.launch {
         repo.engines.image.getAlbumArt(song.albumArtKey, ImageRequestType.FULL, callback)

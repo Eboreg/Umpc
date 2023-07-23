@@ -24,6 +24,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -40,6 +41,7 @@ fun BottomBar(
     viewModel: CurrentSongViewModel = hiltViewModel(),
     onSurfaceClick: () -> Unit,
 ) {
+    val context = LocalContext.current
     val albumArt by viewModel.currentSongAlbumArt.collectAsStateWithLifecycle()
     val currentSong by viewModel.currentSong.collectAsStateWithLifecycle()
     val playerState by viewModel.playerState.collectAsStateWithLifecycle()
@@ -48,10 +50,6 @@ fun BottomBar(
     val currentSongElapsed by viewModel.currentSongElapsed.collectAsStateWithLifecycle()
     val streamingUrl by viewModel.streamingUrl.collectAsStateWithLifecycle()
     val height = if (isInLandscapeMode()) 68.dp else 74.dp
-    val streamingStarted =
-        streamingUrl?.let { stringResource(R.string.streaming_from_x_started, it) }
-        ?: stringResource(R.string.streaming_started)
-    val streamingStopped = stringResource(R.string.streaming_stopped)
 
     val iconToggleButtonColors = IconButtonDefaults.iconToggleButtonColors(
         contentColor = LocalContentColor.current.copy(0.5f)
@@ -90,8 +88,13 @@ fun BottomBar(
                     IconToggleButton(
                         checked = isStreaming,
                         onCheckedChange = {
-                            viewModel.toggleStream {
-                                viewModel.addMessage(if (it) streamingStarted else streamingStopped)
+                            viewModel.toggleStream { started ->
+                                viewModel.addMessage(
+                                    if (started) {
+                                        streamingUrl?.let { context.getString(R.string.streaming_from_x_started, it) }
+                                        ?: context.getString(R.string.streaming_started)
+                                    } else context.getString(R.string.streaming_stopped)
+                                )
                             }
                         },
                         colors = iconToggleButtonColors,

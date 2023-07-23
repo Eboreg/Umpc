@@ -38,6 +38,7 @@ import us.huseli.umpc.isInLandscapeMode
 fun SmallSongRow(
     modifier: Modifier = Modifier,
     song: MPDSong,
+    discNumber: Int? = null,
     isCurrentSong: Boolean,
     isExpanded: Boolean,
     isSelected: Boolean,
@@ -65,7 +66,7 @@ fun SmallSongRow(
                     isCurrentSong = isCurrentSong,
                     playerState = playerState,
                     position = song.trackNumber,
-                    discNumber = song.discNumber,
+                    discNumber = discNumber,
                     showAlbumArt = false,
                     onPlayPauseClick = onPlayPauseClick,
                     onEnqueueClick = onEnqueueClick,
@@ -75,6 +76,7 @@ fun SmallSongRow(
             } else {
                 SmallSongRowContent(
                     song = song,
+                    discNumber = discNumber,
                     isCurrentSong = isCurrentSong,
                     showArtist = showArtist || song.artist != song.album.artist,
                     showYear = showYear,
@@ -90,6 +92,7 @@ fun SmallSongRow(
 fun SmallSongRowContent(
     modifier: Modifier = Modifier,
     song: MPDSong,
+    discNumber: Int? = null,
     isCurrentSong: Boolean,
     showArtist: Boolean = false,
     showYear: Boolean = true,
@@ -101,7 +104,7 @@ fun SmallSongRowContent(
         if (showYear) song.year?.toString() else null,
     )
     val numbers =
-        if (song.discNumber != null && song.trackNumber != null) "${song.discNumber}-${song.trackNumber}"
+        if (discNumber != null && song.trackNumber != null) "${discNumber}-${song.trackNumber}"
         else if (song.trackNumber != null) song.trackNumber.toString()
         else null
 
@@ -113,7 +116,7 @@ fun SmallSongRowContent(
         numbers?.let {
             Text(
                 text = it,
-                modifier = Modifier.width(30.dp).padding(end = 5.dp),
+                modifier = Modifier.width(35.dp).padding(end = 5.dp),
                 style = MaterialTheme.typography.bodySmall,
             )
         }

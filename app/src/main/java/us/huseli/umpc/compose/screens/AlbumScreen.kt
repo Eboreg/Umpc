@@ -42,6 +42,7 @@ import us.huseli.umpc.compose.utils.SmallOutlinedButton
 import us.huseli.umpc.data.MPDAlbum
 import us.huseli.umpc.data.MPDSong
 import us.huseli.umpc.isInLandscapeMode
+import us.huseli.umpc.mpd.engine.SnackbarMessage
 import us.huseli.umpc.viewmodels.AlbumViewModel
 
 @Composable
@@ -49,7 +50,9 @@ fun AlbumScreen(
     modifier: Modifier = Modifier,
     viewModel: AlbumViewModel = hiltViewModel(),
     onGotoArtistClick: (String) -> Unit,
+    onGotoPlaylistClick: (String) -> Unit,
     onAddSongToPlaylistClick: (MPDSong) -> Unit,
+    onGotoQueueClick: () -> Unit,
 ) {
     val context = LocalContext.current
     val albumArt by viewModel.albumArt.collectAsStateWithLifecycle()
@@ -61,13 +64,38 @@ fun AlbumScreen(
     var isAddSongsToPlaylistDialogOpen by rememberSaveable { mutableStateOf(false) }
     val selectedSongs by viewModel.selectedSongs.collectAsStateWithLifecycle()
 
+    val onEnqueueClick: (MPDAlbum) -> Unit = {
+        viewModel.enqueueAlbum(it) { response ->
+            if (response.isSuccess) viewModel.addMessage(
+                SnackbarMessage(
+                    message = context.getString(R.string.the_album_was_enqueued),
+                    actionLabel = context.getString(R.string.go_to_queue),
+                    onActionPerformed = onGotoQueueClick,
+                )
+            )
+            else viewModel.addMessage(
+                context.resources.getQuantityString(
+                    R.plurals.could_not_enqueue_albums,
+                    1,
+                    response.error ?: context.getString(R.string.unknown_error),
+                )
+            )
+        }
+    }
+
     if (isAddAlbumToPlaylistDialogOpen) {
         AddToPlaylistDialog(
             title = "\"${viewModel.album.name}\"",
             playlists = playlists,
             onConfirm = {
                 viewModel.addAlbumToPlaylist(it) { response ->
-                    if (response.isSuccess) viewModel.addMessage(context.getString(R.string.album_was_added_to_playlist))
+                    if (response.isSuccess) viewModel.addMessage(
+                        SnackbarMessage(
+                            message = context.getString(R.string.album_was_added_to_playlist),
+                            actionLabel = context.getString(R.string.go_to_playlist),
+                            onActionPerformed = { onGotoPlaylistClick(it) },
+                        )
+                    )
                     else response.error?.let { error -> viewModel.addMessage(error) }
                 }
                 isAddAlbumToPlaylistDialogOpen = false
@@ -86,6 +114,7 @@ fun AlbumScreen(
             },
             addMessage = { viewModel.addMessage(it) },
             closeDialog = { isAddSongsToPlaylistDialogOpen = false },
+            onGotoPlaylistClick = onGotoPlaylistClick,
         )
     }
 
@@ -94,8 +123,22 @@ fun AlbumScreen(
             pluralsResId = R.plurals.x_selected_songs,
             selectedItemCount = selectedSongs.size,
             onEnqueueClick = {
-                viewModel.enqueueSelectedSongs()
-                viewModel.addMessage(context.getString(R.string.enqueued_all_selected_songs))
+                viewModel.enqueueSelectedSongs { response ->
+                    if (response.isSuccess) viewModel.addMessage(
+                        SnackbarMessage(
+                            message = context.getString(R.string.enqueued_all_selected_songs),
+                            actionLabel = context.getString(R.string.go_to_queue),
+                            onActionPerformed = onGotoQueueClick,
+                        )
+                    )
+                    else viewModel.addMessage(
+                        context.resources.getQuantityString(
+                            R.plurals.could_not_enqueue_songs,
+                            selectedSongs.size,
+                            response.error ?: context.getString(R.string.unknown_error),
+                        )
+                    )
+                }
             },
             onDeselectAllClick = { viewModel.deselectAllSongs() },
             onAddToPlaylistClick = { isAddSongsToPlaylistDialogOpen = true },
@@ -118,7 +161,7 @@ fun AlbumScreen(
                         album = viewModel.album,
                         yearRange = albumWithSongs?.yearRange,
                         onGotoArtistClick = { onGotoArtistClick(it) },
-                        onEnqueueClick = { viewModel.enqueueAlbum(it) },
+                        onEnqueueClick = onEnqueueClick,
                         onPlayClick = { viewModel.playAlbum(it) },
                         onAddToPlaylistClick = { isAddAlbumToPlaylistDialogOpen = true },
                     )
@@ -134,7 +177,7 @@ fun AlbumScreen(
                         album = viewModel.album,
                         yearRange = albumWithSongs?.yearRange,
                         onGotoArtistClick = { onGotoArtistClick(it) },
-                        onEnqueueClick = { viewModel.enqueueAlbum(it) },
+                        onEnqueueClick = onEnqueueClick,
                         onPlayClick = { viewModel.playAlbum(it) },
                         onAddToPlaylistClick = { isAddAlbumToPlaylistDialogOpen = true },
                     )
@@ -142,27 +185,49 @@ fun AlbumScreen(
             )
         }
 
-        albumWithSongs?.songs?.forEach { song ->
-            var isExpanded by rememberSaveable { mutableStateOf(false) }
+        albumWithSongs?.let { album ->
+            val discNumbers = album.songs.mapNotNull { it.discNumber }.toSet()
 
-            Divider()
-            SmallSongRow(
-                song = song,
-                isCurrentSong = currentSongFilename == song.filename,
-                isExpanded = isExpanded,
-                isSelected = selectedSongs.contains(song),
-                playerState = playerState,
-                showYear = albumWithSongs?.yearRange?.first != albumWithSongs?.yearRange?.last,
-                onEnqueueClick = { viewModel.enqueueSong(song) },
-                onPlayPauseClick = { viewModel.playOrPauseSong(song) },
-                onGotoArtistClick = { onGotoArtistClick(song.artist) },
-                onAddToPlaylistClick = { onAddSongToPlaylistClick(song) },
-                onClick = {
-                    if (selectedSongs.isNotEmpty()) viewModel.toggleSongSelected(song)
-                    else isExpanded = !isExpanded
-                },
-                onLongClick = { viewModel.toggleSongSelected(song) },
-            )
+            album.songs.forEach { song ->
+                var isExpanded by rememberSaveable { mutableStateOf(false) }
+
+                Divider()
+                SmallSongRow(
+                    song = song,
+                    discNumber = if (discNumbers.size > 1) song.discNumber else null,
+                    isCurrentSong = currentSongFilename == song.filename,
+                    isExpanded = isExpanded,
+                    isSelected = selectedSongs.contains(song),
+                    playerState = playerState,
+                    showYear = albumWithSongs?.yearRange?.first != albumWithSongs?.yearRange?.last,
+                    onEnqueueClick = {
+                        viewModel.enqueueSong(song) { response ->
+                            if (response.isSuccess) viewModel.addMessage(
+                                SnackbarMessage(
+                                    message = context.getString(R.string.the_song_was_enqueued),
+                                    actionLabel = context.getString(R.string.go_to_queue),
+                                    onActionPerformed = onGotoQueueClick,
+                                )
+                            )
+                            else viewModel.addMessage(
+                                context.resources.getQuantityString(
+                                    R.plurals.could_not_enqueue_songs,
+                                    1,
+                                    response.error ?: context.getString(R.string.unknown_error),
+                                )
+                            )
+                        }
+                    },
+                    onPlayPauseClick = { viewModel.playOrPauseSong(song) },
+                    onGotoArtistClick = { onGotoArtistClick(song.artist) },
+                    onAddToPlaylistClick = { onAddSongToPlaylistClick(song) },
+                    onClick = {
+                        if (selectedSongs.isNotEmpty()) viewModel.toggleSongSelected(song)
+                        else isExpanded = !isExpanded
+                    },
+                    onLongClick = { viewModel.toggleSongSelected(song) },
+                )
+            }
         }
     }
 }

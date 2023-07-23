@@ -1,6 +1,7 @@
 package us.huseli.umpc
 
 import android.app.PendingIntent
+import android.app.Service
 import android.appwidget.AppWidgetManager
 import android.content.ComponentName
 import android.content.Intent
@@ -225,7 +226,7 @@ class MediaService : MediaBrowserServiceCompat(), LoggerInterface {
                             startForeground(NOTIFICATION_ID_NOW_PLAYING, notificationBuilder.build())
                         }
                         PlayerState.STOP -> {
-                            // stopForeground(Service.STOP_FOREGROUND_REMOVE)
+                            stopForeground(Service.STOP_FOREGROUND_REMOVE)
                         }
                         PlayerState.PAUSE -> {
                             notificationBuilder.clearActions()

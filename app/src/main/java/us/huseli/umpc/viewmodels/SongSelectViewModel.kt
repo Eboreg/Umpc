@@ -17,7 +17,8 @@ abstract class SongSelectViewModel(repo: MPDRepository) : BaseViewModel(repo) {
         _selectedSongs.value = emptyList()
     }
 
-    fun enqueueSelectedSongs() = repo.engines.control.enqueueSongsLast(_selectedSongs.value)
+    fun enqueueSelectedSongs(onFinish: (MPDBatchMapResponse) -> Unit) =
+        repo.engines.control.enqueueSongsLast(_selectedSongs.value, onFinish)
 
     fun toggleSongSelected(song: MPDSong) {
         _selectedSongs.value = _selectedSongs.value.toMutableList().apply {

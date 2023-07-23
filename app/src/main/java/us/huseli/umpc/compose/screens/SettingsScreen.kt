@@ -19,6 +19,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -34,13 +35,12 @@ fun SettingsScreen(
     modifier: Modifier = Modifier,
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
+    val context = LocalContext.current
     val outputs by viewModel.outputs.collectAsStateWithLifecycle()
     val hostname by viewModel.hostname.collectAsStateWithLifecycle()
     val password by viewModel.password.collectAsStateWithLifecycle()
     val port by viewModel.port.collectAsStateWithLifecycle()
     val streamingUrl by viewModel.streamingUrl.collectAsStateWithLifecycle()
-    val cacheClearedMessage = stringResource(R.string.all_locally_stored_album_art_was_cleared)
-    val settingsSavedMessage = stringResource(R.string.settings_saved)
 
     Column(modifier = modifier.verticalScroll(rememberScrollState())) {
         SimpleResponsiveBlock(
@@ -113,7 +113,11 @@ fun SettingsScreen(
                 }
 
                 OutlinedButton(
-                    onClick = { viewModel.clearAlbumArtCache { viewModel.addMessage(cacheClearedMessage) } },
+                    onClick = {
+                        viewModel.clearAlbumArtCache {
+                            viewModel.addMessage(context.getString(R.string.all_locally_stored_album_art_was_cleared))
+                        }
+                    },
                     shape = MaterialTheme.shapes.extraSmall
                 ) {
                     Text(stringResource(R.string.clear_album_art_cache))
@@ -122,7 +126,7 @@ fun SettingsScreen(
                 Button(
                     onClick = {
                         viewModel.save()
-                        viewModel.addMessage(settingsSavedMessage)
+                        viewModel.addMessage(context.getString(R.string.settings_saved))
                     },
                     shape = MaterialTheme.shapes.extraSmall
                 ) {

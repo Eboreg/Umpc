@@ -18,6 +18,12 @@ class MPDControlEngine(private val repo: MPDRepository) : LoggerInterface {
     fun enqueueAlbumLast(album: MPDAlbum, onFinish: (MPDMapResponse) -> Unit) =
         repo.client.enqueue(album.searchFilter.findadd(), onFinish = onFinish)
 
+    fun enqueueAlbums(albums: List<MPDAlbum>, onFinish: ((MPDBatchMapResponse) -> Unit)? = null) =
+        repo.client.enqueueBatch(
+            commands = albums.map { MPDMapCommand(it.searchFilter.findadd()) },
+            onFinish = onFinish,
+        )
+
     fun enqueueAlbumNextAndPlay(album: MPDAlbum) {
         val addPosition = if (repo.currentSongPosition.value != null) 0 else null
         val firstSongPosition = repo.currentSongPosition.value?.plus(1) ?: repo.queue.value.size
@@ -45,7 +51,7 @@ class MPDControlEngine(private val repo: MPDRepository) : LoggerInterface {
 
     fun enqueueSongs(songs: List<MPDSong>, onFinish: ((MPDBatchMapResponse) -> Unit)? = null) =
         repo.client.enqueueBatch(
-            songs
+            commands = songs
                 .filter { it.position != null }
                 .map { MPDMapCommand("add", listOf(it.filename, it.position.toString())) },
             onFinish = onFinish,

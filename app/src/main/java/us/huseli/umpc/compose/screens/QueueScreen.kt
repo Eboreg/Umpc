@@ -52,6 +52,8 @@ fun QueueScreen(
     onGotoAlbumClick: (MPDAlbum) -> Unit,
     onGotoArtistClick: (String) -> Unit,
     onAddSongToPlaylistClick: (MPDSong) -> Unit,
+    onGotoQueueClick: () -> Unit,
+    onGotoPlaylistClick: (String) -> Unit,
 ) {
     val context = LocalContext.current
     val activeDynamicPlaylist by viewModel.activeDynamicPlaylist.collectAsStateWithLifecycle()
@@ -62,7 +64,6 @@ fun QueueScreen(
     val scope = rememberCoroutineScope()
     var totalDuration by rememberSaveable { mutableStateOf(0.0) }
     var isSubmenuExpanded by rememberSaveable { mutableStateOf(false) }
-    val queueClearedMsg = stringResource(R.string.the_queue_was_cleared)
 
     val scrollToCurrent: () -> Unit = {
         scope.launch { currentSongPosition?.let { viewModel.listState.scrollToItem(max(0, it - 1)) } }
@@ -99,6 +100,8 @@ fun QueueScreen(
         showSongPositions = true,
         onGotoArtistClick = onGotoArtistClick,
         onGotoAlbumClick = onGotoAlbumClick,
+        onGotoPlaylistClick = onGotoPlaylistClick,
+        onGotoQueueClick = onGotoQueueClick,
         onAddSongToPlaylistClick = onAddSongToPlaylistClick,
         onMoveSong = { from, to -> viewModel.moveSong(from, to) },
         onRemoveSong = { song ->
@@ -119,7 +122,9 @@ fun QueueScreen(
                 totalDuration = totalDuration,
                 onToggleExpandedClick = { isSubmenuExpanded = !isSubmenuExpanded },
                 onScrollToCurrentClick = scrollToCurrent,
-                onClearQueueClick = { viewModel.clearQueue { viewModel.addMessage(queueClearedMsg) } },
+                onClearQueueClick = {
+                    viewModel.clearQueue { viewModel.addMessage(context.getString(R.string.the_queue_was_cleared)) }
+                },
                 onDeactivateDynamicPlaylistClick = { viewModel.deactivateDynamicPlaylist() },
             )
         }

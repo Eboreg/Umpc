@@ -17,13 +17,8 @@ abstract class AlbumSelectViewModel(repo: MPDRepository) : BaseViewModel(repo) {
         _selectedAlbums.value = emptyList()
     }
 
-    fun enqueueSelectedAlbums() {
-        _selectedAlbums.value.forEach { album ->
-            repo.engines.control.enqueueAlbumLast(album) { response ->
-                if (!response.isSuccess) repo.engines.message.addMessage("Could not enqeue album: ${response.error}")
-            }
-        }
-    }
+    fun enqueueSelectedAlbums(onFinish: (MPDBatchMapResponse) -> Unit) =
+        repo.engines.control.enqueueAlbums(_selectedAlbums.value, onFinish)
 
     fun toggleAlbumSelected(album: MPDAlbum) {
         _selectedAlbums.value = _selectedAlbums.value.toMutableList().apply {

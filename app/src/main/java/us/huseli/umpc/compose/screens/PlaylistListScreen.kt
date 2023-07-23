@@ -36,6 +36,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -59,11 +60,11 @@ fun PlaylistListScreen(
     storedPlaylistScrollState: ScrollState = rememberScrollState(),
     dynamicPlaylistScrollState: ScrollState = rememberScrollState(),
 ) {
+    val context = LocalContext.current
     val displayType by viewModel.displayType.collectAsStateWithLifecycle()
     var isCreateDynamicPlaylistDialogOpen by rememberSaveable { mutableStateOf(false) }
     var editingDynamicPlaylist by rememberSaveable { mutableStateOf<DynamicPlaylist?>(null) }
     var deletingDynamicPlaylist by rememberSaveable { mutableStateOf<DynamicPlaylist?>(null) }
-    val playlistWasDeleted = stringResource(R.string.playlist_was_deleted)
 
     if (isCreateDynamicPlaylistDialogOpen) {
         EditDynamicPlaylistDialog(
@@ -90,7 +91,7 @@ fun PlaylistListScreen(
                 onConfirm = {
                     deletingDynamicPlaylist = null
                     viewModel.deleteDynamicPlaylist(playlist)
-                    viewModel.addMessage(playlistWasDeleted)
+                    viewModel.addMessage(context.getString(R.string.playlist_was_deleted))
                 },
                 onCancel = { deletingDynamicPlaylist = null },
             )

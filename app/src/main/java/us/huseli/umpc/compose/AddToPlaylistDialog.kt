@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import us.huseli.umpc.AddToPlaylistItemType
 import us.huseli.umpc.R
 import us.huseli.umpc.data.MPDPlaylist
+import us.huseli.umpc.mpd.engine.SnackbarMessage
 import us.huseli.umpc.mpd.response.MPDBatchMapResponse
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -110,7 +111,8 @@ fun BatchAddToPlaylistDialog(
     itemCount: Int,
     playlists: List<MPDPlaylist>,
     addFunction: (String, (MPDBatchMapResponse) -> Unit) -> Unit,
-    addMessage: (String) -> Unit,
+    addMessage: (SnackbarMessage) -> Unit,
+    onGotoPlaylistClick: (String) -> Unit,
     closeDialog: () -> Unit,
 ) {
     val context = LocalContext.current
@@ -125,33 +127,43 @@ fun BatchAddToPlaylistDialog(
         onConfirm = {
             addFunction(it) { response ->
                 if (response.successCount == 0 && response.errorCount > 0) addMessage(
-                    context.resources.getQuantityString(
-                        when (itemType) {
-                            AddToPlaylistItemType.SONG -> R.plurals.add_songs_playlist_fail
-                            AddToPlaylistItemType.ALBUM -> R.plurals.add_albums_playlist_fail
-                        },
-                        response.errorCount,
-                        response.errorCount
+                    SnackbarMessage(
+                        message = context.resources.getQuantityString(
+                            when (itemType) {
+                                AddToPlaylistItemType.SONG -> R.plurals.add_songs_playlist_fail
+                                AddToPlaylistItemType.ALBUM -> R.plurals.add_albums_playlist_fail
+                            },
+                            response.errorCount,
+                            response.errorCount
+                        ),
                     )
                 )
                 else if (response.successCount > 0 && response.errorCount == 0) addMessage(
-                    context.resources.getQuantityString(
-                        when (itemType) {
-                            AddToPlaylistItemType.SONG -> R.plurals.add_songs_playlist_success
-                            AddToPlaylistItemType.ALBUM -> R.plurals.add_albums_playlist_success
-                        },
-                        response.successCount,
-                        response.successCount
+                    SnackbarMessage(
+                        message = context.resources.getQuantityString(
+                            when (itemType) {
+                                AddToPlaylistItemType.SONG -> R.plurals.add_songs_playlist_success
+                                AddToPlaylistItemType.ALBUM -> R.plurals.add_albums_playlist_success
+                            },
+                            response.successCount,
+                            response.successCount
+                        ),
+                        actionLabel = context.getString(R.string.go_to_playlist),
+                        onActionPerformed = { onGotoPlaylistClick(it) },
                     )
                 )
                 else addMessage(
-                    context.getString(
-                        when (itemType) {
-                            AddToPlaylistItemType.SONG -> R.string.add_songs_playlist_success_and_fail
-                            AddToPlaylistItemType.ALBUM -> R.string.add_albums_playlist_success_and_fail
-                        },
-                        response.successCount,
-                        response.errorCount
+                    SnackbarMessage(
+                        message = context.getString(
+                            when (itemType) {
+                                AddToPlaylistItemType.SONG -> R.string.add_songs_playlist_success_and_fail
+                                AddToPlaylistItemType.ALBUM -> R.string.add_albums_playlist_success_and_fail
+                            },
+                            response.successCount,
+                            response.errorCount
+                        ),
+                        actionLabel = context.getString(R.string.go_to_playlist),
+                        onActionPerformed = { onGotoPlaylistClick(it) },
                     )
                 )
             }
