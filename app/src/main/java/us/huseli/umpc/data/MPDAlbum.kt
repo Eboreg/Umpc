@@ -43,7 +43,7 @@ fun Map<String, List<String>>.toMPDAlbums(): List<MPDAlbum> = try {
         getArtist("AlbumArtistSort") ?: getArtist("AlbumArtist") ?: getArtist("ArtistSort") ?: getArtist("Artist")
     val albums = getAlbums("AlbumSort") ?: getAlbums("Album")
 
-    albums!!.map { MPDAlbum(artist!!, it) }.sortedBy { it.artist.lowercase() }
+    albums!!.map { MPDAlbum(artist!!, it) }
 } catch (e: NullPointerException) {
     emptyList()
 }
@@ -59,3 +59,6 @@ fun Iterable<MPDAlbumWithSongs>.plus(other: Iterable<MPDAlbumWithSongs>) =
     this.associate { it.album to it.songs }
         .plus(other.associate { it.album to it.songs })
         .map { MPDAlbumWithSongs(it.key, it.value) }
+
+fun Iterable<MPDAlbum>.sorted() =
+    this.sortedBy { it.name.lowercase().replace(Regex("^(the )|(los )|(os )|(de )|(dom )|(den )|(det )"), "") }

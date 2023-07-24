@@ -36,6 +36,7 @@ class MPDMultiMapResponse : MPDBaseTextResponse() {
     }
 
     fun extractAlbums(): List<MPDAlbum> = _responseMaps.flatMap { it.toMPDAlbums() }
+
     fun extractOutputs(): List<MPDOutput> =
         _responseMaps.mapNotNull { map -> map.mapValues { it.value.first() }.toMPDOutput() }
 

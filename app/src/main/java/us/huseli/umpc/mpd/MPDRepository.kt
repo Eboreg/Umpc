@@ -20,6 +20,7 @@ import us.huseli.umpc.data.MPDSong
 import us.huseli.umpc.data.groupByAlbum
 import us.huseli.umpc.data.plus
 import us.huseli.umpc.data.queueDataStore
+import us.huseli.umpc.data.sorted
 import us.huseli.umpc.data.sortedByYear
 import us.huseli.umpc.data.toMPDSong
 import us.huseli.umpc.data.toMPDStatus
@@ -277,7 +278,7 @@ class MPDRepository @Inject constructor(
 
     /** Caches every album artist and their albums, no songs. */
     private fun loadAlbums() = client.enqueueMultiMap("list albumsort group albumartistsort") { response ->
-        response.extractAlbums().also { _albums.value = it }
+        _albums.value = response.extractAlbums().sorted()
     }
 
     private fun loadCurrentSong() = client.enqueue("currentsong") { response ->

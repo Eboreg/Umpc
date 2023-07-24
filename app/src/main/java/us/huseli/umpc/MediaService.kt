@@ -1,10 +1,12 @@
 package us.huseli.umpc
 
+import android.Manifest
+import android.app.Notification
 import android.app.PendingIntent
-import android.app.Service
 import android.appwidget.AppWidgetManager
 import android.content.ComponentName
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import android.support.v4.media.MediaBrowserCompat
@@ -12,7 +14,9 @@ import android.support.v4.media.session.PlaybackStateCompat
 import android.view.KeyEvent
 import android.widget.RemoteViews
 import androidx.compose.ui.graphics.asAndroidBitmap
+import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
+import androidx.core.app.NotificationManagerCompat
 import androidx.media.MediaBrowserServiceCompat
 import androidx.media.session.MediaButtonReceiver
 import dagger.hilt.android.AndroidEntryPoint
@@ -29,6 +33,7 @@ import javax.inject.Inject
 @AndroidEntryPoint
 class MediaService : MediaBrowserServiceCompat(), LoggerInterface {
     private lateinit var notificationBuilder: NotificationCompat.Builder
+    private var notification: Notification? = null
     @Inject
     lateinit var repo: MPDRepository
     @Inject
@@ -69,8 +74,34 @@ class MediaService : MediaBrowserServiceCompat(), LoggerInterface {
         log("onCreate")
 
         notificationBuilder = getNotificationBuilder()
-        startForeground(NOTIFICATION_ID_NOW_PLAYING, notificationBuilder.build())
+        showNotification()
         startListeners()
+    }
+
+    private fun showNotification() {
+        if (ActivityCompat.checkSelfPermission(
+                this,
+                Manifest.permission.POST_NOTIFICATIONS
+            ) == PackageManager.PERMISSION_GRANTED
+        ) {
+            with(NotificationManagerCompat.from(this)) {
+                notification = notificationBuilder.build().also {
+                    notify(NOTIFICATION_ID_NOW_PLAYING, it)
+                }
+            }
+        }
+        /*
+        notification = notificationBuilder.build().also {
+            startForeground(NOTIFICATION_ID_NOW_PLAYING, it)
+        }
+         */
+    }
+
+    private fun hideNotification() {
+        with(NotificationManagerCompat.from(this)) {
+            cancel(NOTIFICATION_ID_NOW_PLAYING)
+        }
+        // stopForeground(Service.STOP_FOREGROUND_REMOVE)
     }
 
     private fun getNotificationBuilder(): NotificationCompat.Builder {
@@ -86,6 +117,7 @@ class MediaService : MediaBrowserServiceCompat(), LoggerInterface {
             .setContentIntent(pendingIntent)
             .setContentText("Uffeli buffeli")
             .setContentTitle(baseContext.getString(R.string.app_name))
+            // .setOngoing(false)
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .setSmallIcon(R.drawable.ic_notification_logo)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
@@ -199,7 +231,7 @@ class MediaService : MediaBrowserServiceCompat(), LoggerInterface {
                     if (song != null) {
                         notificationBuilder.setContentTitle(song.title)
                         notificationBuilder.setContentText("${song.artist} • ${song.album.name}")
-                        startForeground(NOTIFICATION_ID_NOW_PLAYING, notificationBuilder.build())
+                        showNotification()
                     }
                 }
             }
@@ -211,7 +243,7 @@ class MediaService : MediaBrowserServiceCompat(), LoggerInterface {
                 mutex.withLock {
                     updateWidget()
                     notificationBuilder.setLargeIcon(bitmap)
-                    startForeground(NOTIFICATION_ID_NOW_PLAYING, notificationBuilder.build())
+                    showNotification()
                 }
             }
         }
@@ -223,15 +255,13 @@ class MediaService : MediaBrowserServiceCompat(), LoggerInterface {
                         PlayerState.PLAY -> {
                             notificationBuilder.clearActions()
                             getActions(true).forEach { notificationBuilder.addAction(it) }
-                            startForeground(NOTIFICATION_ID_NOW_PLAYING, notificationBuilder.build())
+                            showNotification()
                         }
-                        PlayerState.STOP -> {
-                            stopForeground(Service.STOP_FOREGROUND_REMOVE)
-                        }
+                        PlayerState.STOP -> hideNotification()
                         PlayerState.PAUSE -> {
                             notificationBuilder.clearActions()
                             getActions(false).forEach { notificationBuilder.addAction(it) }
-                            startForeground(NOTIFICATION_ID_NOW_PLAYING, notificationBuilder.build())
+                            showNotification()
                         }
                     }
                 }

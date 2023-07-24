@@ -185,7 +185,8 @@ fun App(
     }
 
     LaunchedEffect(Unit) {
-        context.startForegroundService(Intent(context, MediaService::class.java))
+        context.startService(Intent(context, MediaService::class.java))
+        // context.startForegroundService(Intent(context, MediaService::class.java))
     }
 
     songToAddToPlaylist?.let { song ->
@@ -195,7 +196,11 @@ fun App(
             onConfirm = { playlistName ->
                 viewModel.addSongToStoredPlaylist(song, playlistName) { response ->
                     if (response.isSuccess) viewModel.addMessage(
-                        context.resources.getQuantityString(R.plurals.add_songs_playlist_success, 1, 1)
+                        context.resources.getQuantityString(
+                            R.plurals.add_songs_playlist_success,
+                            1,
+                            1
+                        )
                     )
                     else response.error?.let { viewModel.addError(it) }
                 }
