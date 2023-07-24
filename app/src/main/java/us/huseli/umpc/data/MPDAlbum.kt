@@ -51,7 +51,7 @@ fun Map<String, List<String>>.toMPDAlbums(): List<MPDAlbum> = try {
 fun Iterable<MPDAlbum>.groupByArtist(): List<MPDArtistWithAlbums> =
     this.groupBy { it.artist }
         .map { MPDArtistWithAlbums(name = it.key, albums = it.value) }
-        .sortedBy { it.name.lowercase() }
+        .sorted()
 
 fun Iterable<MPDAlbumWithSongs>.sortedByYear(): List<MPDAlbumWithSongs> = this.sortedBy { it.yearRange?.first }
 

@@ -12,3 +12,6 @@ class MPDArtistWithAlbums(name: String, val albums: List<MPDAlbum>) : MPDArtist(
 
     override fun hashCode(): Int = 31 * super.hashCode() + albums.hashCode()
 }
+
+fun <T : MPDArtist> Iterable<T>.sorted() =
+    this.sortedBy { it.name.lowercase().replace(Regex("^(the )|(los )|(os )|(de )|(dom )|(den )|(det )"), "") }

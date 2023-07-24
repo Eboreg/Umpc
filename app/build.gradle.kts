@@ -154,5 +154,5 @@ dependencies {
     implementation("androidx.core:core-splashscreen:1.0.1")
 
     // Theme:
-    implementation("com.github.Eboreg:RetainTheme:1.1")
+    implementation("com.github.Eboreg:RetainTheme:1.1.1")
 }

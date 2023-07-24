@@ -164,9 +164,7 @@ class MPDRepository @Inject constructor(
         }
     }
 
-    fun registerOnMPDChangeListener(listener: OnMPDChangeListener) {
-        onMPDChangeListeners.add(listener)
-    }
+    fun registerOnMPDChangeListener(listener: OnMPDChangeListener) = onMPDChangeListeners.add(listener)
 
     fun fetchAlbumWithSongsListsByArtist(
         artist: String,
@@ -206,24 +204,22 @@ class MPDRepository @Inject constructor(
         }
     }
 
-    fun fetchSongListByAlbum(album: MPDAlbum, onFinish: (List<MPDSong>) -> Unit) {
-        /** In: 1 album. Out: All songs for this album. Updates _albumsWithSongs. */
+    /** In: 1 album. Out: All songs for this album. Updates _albumsWithSongs. */
+    fun fetchSongListByAlbum(album: MPDAlbum, onFinish: (List<MPDSong>) -> Unit) =
         client.enqueueMultiMap(album.searchFilter.find()) { response ->
             val songs = response.extractSongs()
             onFinish(songs)
             _albumsWithSongs.value = _albumsWithSongs.value.plus(MPDAlbumWithSongs(album, songs))
         }
-    }
 
-    private fun fetchSongListByAlbumArtist(albumArtist: String, onFinish: (List<MPDSong>) -> Unit) {
-        /** Will also update this._albumsWithSongs. */
+    /** Will also update this._albumsWithSongs. */
+    private fun fetchSongListByAlbumArtist(albumArtist: String, onFinish: (List<MPDSong>) -> Unit) =
         client.enqueueMultiMap(mpdFind { equals("albumartist", albumArtist) }) { response ->
             response.extractSongs().also {
                 onFinish(it)
                 _albumsWithSongs.value = _albumsWithSongs.value.plus(it.groupByAlbum())
             }
         }
-    }
 
     fun getAlbumWithSongsByAlbum(album: MPDAlbum, onFinish: (MPDAlbumWithSongs) -> Unit) {
         val aws = _albumsWithSongs.value.find { it.album == album }
@@ -280,79 +276,66 @@ class MPDRepository @Inject constructor(
     }
 
     /** Caches every album artist and their albums, no songs. */
-    private fun loadAlbums() {
-        client.enqueueMultiMap("list albumsort group albumartistsort") { response ->
-            response.extractAlbums().also { albums ->
-                _albums.value = albums.sortedBy { it.name.lowercase() }
-            }
+    private fun loadAlbums() = client.enqueueMultiMap("list albumsort group albumartistsort") { response ->
+        response.extractAlbums().also { _albums.value = it }
+    }
+
+    private fun loadCurrentSong() = client.enqueue("currentsong") { response ->
+        _currentSong.value = response.responseMap.mapValues { it.value.first() }.toMPDSong()?.also { song ->
+            song.duration?.let { _currentSongDuration.value = it }
         }
     }
 
-    private fun loadCurrentSong() {
-        client.enqueue("currentsong") { response ->
-            _currentSong.value = response.responseMap.mapValues { it.value.first() }.toMPDSong()?.also { song ->
-                song.duration?.let { _currentSongDuration.value = it }
-            }
-        }
-    }
-
-    private fun loadOutputs(onFinish: ((List<MPDOutput>) -> Unit)? = null) {
+    private fun loadOutputs(onFinish: ((List<MPDOutput>) -> Unit)? = null) =
         client.enqueueMultiMap("outputs") { response ->
             response.extractOutputs().also {
                 _outputs.value = it
                 onFinish?.invoke(it)
             }
         }
-    }
 
-    private fun loadQueue() {
-        client.enqueueMultiMap("playlistinfo") { response ->
-            response.extractSongs().also { songs ->
-                ioScope.launch {
-                    context.queueDataStore.updateData { currentQueue ->
-                        currentQueue.toBuilder()
-                            .clearSongs()
-                            .addAllSongs(songs.toProto())
-                            .build()
-                    }
+    private fun loadQueue() = client.enqueueMultiMap("playlistinfo") { response ->
+        response.extractSongs().also { songs ->
+            ioScope.launch {
+                context.queueDataStore.updateData { currentQueue ->
+                    currentQueue.toBuilder()
+                        .clearSongs()
+                        .addAllSongs(songs.toProto())
+                        .build()
                 }
             }
         }
     }
 
-    private fun loadStatus() {
-        client.enqueue("status") { response ->
-            response.responseMap.mapValues { it.value.first() }.toMPDStatus()?.also { status ->
-                status.volume?.let { _volume.value = it }
-                status.repeat?.let { _repeatState.value = it }
-                status.random?.let { _randomState.value = it }
-                // status.single?.let { _singleState.value = it }
-                // status.consume?.let { _consumeState.value = it }
-                status.playerState?.let { _playerState.value = it }
+    private fun loadStatus() = client.enqueue("status") { response ->
+        response.responseMap.mapValues { it.value.first() }.toMPDStatus()?.also { status ->
+            status.volume?.let { _volume.value = it }
+            status.repeat?.let { _repeatState.value = it }
+            status.random?.let { _randomState.value = it }
+            // status.single?.let { _singleState.value = it }
+            // status.consume?.let { _consumeState.value = it }
+            status.playerState?.let { _playerState.value = it }
 
-                engines.message.addError(status.error)
-                _currentSongElapsed.value = status.currentSongElapsed
-                _currentSongDuration.value = status.currentSongDuration
-                _currentSongId.value = status.currentSongId
-                _currentBitrate.value = status.bitrate
-                _currentSongPosition.value = status.currentSongPosition
-                _currentAudioFormat.value = status.audioFormat
-            }
+            engines.message.addError(status.error)
+            _currentSongElapsed.value = status.currentSongElapsed
+            _currentSongDuration.value = status.currentSongDuration
+            _currentSongId.value = status.currentSongId
+            _currentBitrate.value = status.bitrate
+            _currentSongPosition.value = status.currentSongPosition
+            _currentAudioFormat.value = status.audioFormat
         }
     }
 
     // https://mpd.readthedocs.io/en/latest/protocol.html#querying-mpd-s-status
-    private fun watch() {
-        idleClient.start { response ->
-            val subsystems = response.extractChanged()
+    private fun watch() = idleClient.start { response ->
+        val subsystems = response.extractChanged()
 
-            if (subsystems.contains("playlist")) loadQueue()
-            if (subsystems.contains("output")) loadOutputs()
-            if (subsystems.contains("player") || subsystems.contains("mixer") || subsystems.contains("options")) {
-                loadStatus()
-            }
-
-            onMPDChangeListeners.forEach { listener -> listener.onMPDChanged(subsystems) }
+        if (subsystems.contains("playlist")) loadQueue()
+        if (subsystems.contains("output")) loadOutputs()
+        if (subsystems.contains("player") || subsystems.contains("mixer") || subsystems.contains("options")) {
+            loadStatus()
         }
+
+        onMPDChangeListeners.forEach { listener -> listener.onMPDChanged(subsystems) }
     }
 }
