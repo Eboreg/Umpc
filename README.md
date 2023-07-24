@@ -1,6 +1,6 @@
 # Umpc
 
-An [MPD](https://mpd.readthedocs.io/en/latest/index.html) client for Android.
+An [MPD](https://mpd.readthedocs.io/en/latest/index.html) client for Android. An APK is probably available under [app/release](app/release).
 
 Umpc is not an acronym. It is pronounced "oomps".
 
