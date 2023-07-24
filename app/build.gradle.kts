@@ -44,6 +44,8 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
+
+        setProperty("archivesBaseName", "umpc_$versionName")
     }
 
     buildTypes {
