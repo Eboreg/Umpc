@@ -1,6 +1,6 @@
 # Umpc
 
-A client for [MPD](https://mpd.readthedocs.io/en/latest/index.html).
+An Android client for [MPD](https://mpd.readthedocs.io/en/latest/index.html).
 
 Umpc is not an acronym. It is pronounced "oomps".
 
