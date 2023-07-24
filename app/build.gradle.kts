@@ -39,7 +39,7 @@ android {
         minSdk = 26
         targetSdk = 33
         versionCode = 1
-        versionName = "1.0.0-beta.1"
+        versionName = "1.0.0-beta.2"
         // multiDexEnabled = true
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -150,4 +150,7 @@ dependencies {
 
     // Splashscreen:
     implementation("androidx.core:core-splashscreen:1.0.1")
+
+    // Theme:
+    implementation("com.github.Eboreg:RetainTheme:1.1")
 }

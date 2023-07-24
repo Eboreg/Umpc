@@ -15,9 +15,9 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
+import us.huseli.retaintheme.ui.theme.RetainTheme
 import us.huseli.umpc.Constants.NOTIFICATION_CHANNEL_ID_NOW_PLAYING
 import us.huseli.umpc.compose.App
-import us.huseli.umpc.ui.theme.UmpcTheme
 import us.huseli.umpc.viewmodels.MPDViewModel
 
 @AndroidEntryPoint
@@ -53,7 +53,7 @@ class MainActivity : ComponentActivity(), LoggerInterface {
         )
 
         setContent {
-            UmpcTheme {
+            RetainTheme {
                 App()
             }
         }
