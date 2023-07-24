@@ -11,9 +11,9 @@
       "type": "SINGLE",
       "filters": [],
       "attributes": [],
-      "versionCode": 3,
-      "versionName": "1.0.0-beta.3",
-      "outputFile": "umpc_1.0.0-beta.3-release.apk"
+      "versionCode": 4,
+      "versionName": "1.0.0-beta.4",
+      "outputFile": "umpc_1.0.0-beta.4-release.apk"
     }
   ],
   "elementType": "File"

@@ -25,21 +25,21 @@ val SENSIBLE_DATE_TIME: DateTimeFormatter = DateTimeFormatterBuilder()
     .append(DateTimeFormatter.ISO_LOCAL_TIME)
     .toFormatter()
 
-fun Double.formatDuration() = this.seconds.toComponents { hours, minutes, seconds, _ ->
+fun Double.formatDuration() = seconds.toComponents { hours, minutes, seconds, _ ->
     if (hours > 0) String.format("%d:%02d:%02d", hours, minutes, seconds)
     else String.format("%d:%02d", minutes, seconds)
 }
 
-fun File.toBitmap(): Bitmap? = this.takeIf { it.isFile }?.inputStream().use { BitmapFactory.decodeStream(it) }
+fun File.toBitmap(): Bitmap? = takeIf { it.isFile }?.inputStream().use { BitmapFactory.decodeStream(it) }
 
-fun Int.sqrt() = kotlin.math.sqrt(this.toDouble())
+fun Int.sqrt() = kotlin.math.sqrt(toDouble())
 
-fun Double.roundUp() = this.toInt() + (if (this % 1 > 0) 1 else 0)
+fun Double.roundUp() = toInt() + (if (this % 1 > 0) 1 else 0)
 
-fun Int.roundUpSqrt() = this.sqrt().roundUp()
+fun Int.roundUpSqrt() = sqrt().roundUp()
 
 fun IntRange.toYearRangeString() =
-    if (this.first == this.last) this.first.toString() else "${this.first}-${this.last}"
+    if (first == last) first.toString() else "${first}-${last}"
 
 fun Instant.formatDateTime(): String = atZone(ZoneId.systemDefault()).format(SENSIBLE_DATE_TIME)
 
@@ -61,15 +61,15 @@ fun String.toInstant(): Instant? = try {
 
 fun String.parseYear(): Int? = Regex("^([1-2]\\d{3})").find(this)?.value?.toInt()
 
-fun <T : Any> Collection<T>.skipEveryX(x: Int) = this.filterIndexed { index, _ -> (index + 1) % x != 0 }
+fun <T : Any> Collection<T>.skipEveryX(x: Int) = filterIndexed { index, _ -> (index + 1) % x != 0 }
 
-fun <T : Any> Collection<T>.includeEveryX(x: Int) = this.filterIndexed { index, _ -> index % x == 0 }
+fun <T : Any> Collection<T>.includeEveryX(x: Int) = filterIndexed { index, _ -> index % x == 0 }
 
 fun <T : Any> Collection<T>.prune(maxLength: Int) =
-    if (maxLength < this.size / 2) this.includeEveryX((this.size.toFloat() / maxLength).roundToInt())
-    else this.skipEveryX((this.size.toFloat() / (this.size - maxLength)).roundToInt())
+    if (maxLength < size / 2) includeEveryX((size.toFloat() / maxLength).roundToInt())
+    else skipEveryX((size.toFloat() / (size - maxLength)).roundToInt())
 
-fun <T : Any> Flow<List<T>>.leadingChars(transform: (T) -> String) = this.map { items ->
+fun <T : Any> Flow<List<T>>.leadingChars(transform: (T) -> String) = map { items ->
     items.mapNotNull {
         transform(it)
             .replace(Regex("[^\\w&&[^0-9]]"), "#")
@@ -77,3 +77,8 @@ fun <T : Any> Flow<List<T>>.leadingChars(transform: (T) -> String) = this.map { 
             ?.uppercaseChar()
     }.distinct().sorted()
 }
+
+private val leadingJunkRegex =
+    Regex("^[^\\p{Alnum}]*((the )|(los )|(os )|(de )|(dom )|(den )|(det ))?[^\\p{Alnum}]*", RegexOption.IGNORE_CASE)
+
+fun String.replaceLeadingJunk(): String = replace(leadingJunkRegex, "")

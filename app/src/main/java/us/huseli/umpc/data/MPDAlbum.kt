@@ -6,6 +6,7 @@ import kotlinx.parcelize.Parcelize
 import us.huseli.umpc.mpd.MPDFilter
 import us.huseli.umpc.mpd.mpdFilter
 import us.huseli.umpc.proto.MPDAlbumProto
+import us.huseli.umpc.replaceLeadingJunk
 
 @Parcelize
 data class MPDAlbum(val artist: String, val name: String) : Parcelable {
@@ -49,16 +50,15 @@ fun Map<String, List<String>>.toMPDAlbums(): List<MPDAlbum> = try {
 }
 
 fun Iterable<MPDAlbum>.groupByArtist(): List<MPDArtistWithAlbums> =
-    this.groupBy { it.artist }
+    groupBy { it.artist }
         .map { MPDArtistWithAlbums(name = it.key, albums = it.value) }
         .sorted()
 
-fun Iterable<MPDAlbumWithSongs>.sortedByYear(): List<MPDAlbumWithSongs> = this.sortedBy { it.yearRange?.first }
+fun Iterable<MPDAlbumWithSongs>.sortedByYear(): List<MPDAlbumWithSongs> = sortedBy { it.yearRange?.first }
 
 fun Iterable<MPDAlbumWithSongs>.plus(other: Iterable<MPDAlbumWithSongs>) =
-    this.associate { it.album to it.songs }
+    associate { it.album to it.songs }
         .plus(other.associate { it.album to it.songs })
         .map { MPDAlbumWithSongs(it.key, it.value) }
 
-fun Iterable<MPDAlbum>.sorted() =
-    this.sortedBy { it.name.lowercase().replace(Regex("^(the )|(los )|(os )|(de )|(dom )|(den )|(det )"), "") }
+fun Iterable<MPDAlbum>.sorted() = sortedBy { it.name.lowercase().replaceLeadingJunk() }

@@ -1,5 +1,7 @@
 package us.huseli.umpc.data
 
+import us.huseli.umpc.replaceLeadingJunk
+
 open class MPDArtist(val name: String) {
     override fun equals(other: Any?) = other is MPDArtist && other.name == name
     override fun hashCode(): Int = name.hashCode()
@@ -13,5 +15,4 @@ class MPDArtistWithAlbums(name: String, val albums: List<MPDAlbum>) : MPDArtist(
     override fun hashCode(): Int = 31 * super.hashCode() + albums.hashCode()
 }
 
-fun <T : MPDArtist> Iterable<T>.sorted() =
-    this.sortedBy { it.name.lowercase().replace(Regex("^(the )|(los )|(os )|(de )|(dom )|(den )|(det )"), "") }
+fun <T : MPDArtist> Iterable<T>.sorted() = sortedBy { it.name.lowercase().replaceLeadingJunk() }

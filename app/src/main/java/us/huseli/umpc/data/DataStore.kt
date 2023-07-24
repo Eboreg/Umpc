@@ -41,7 +41,7 @@ fun MPDSongProto.toNative(): MPDSong = MPDSong(
     position = position,
 )
 
-fun QueueProto.toNative(): List<MPDSong> = this.songsList.map { it.toNative() }
+fun QueueProto.toNative(): List<MPDSong> = songsList.map { it.toNative() }
 
 fun DynamicPlaylistProto.Filter.toNative(): DynamicPlaylistFilter = DynamicPlaylistFilter(
     key = when (key) {

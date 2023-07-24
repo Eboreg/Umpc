@@ -21,7 +21,7 @@ open class MPDFilter(private val term: String) {
 
 class MPDAndFilter(private vararg val filters: MPDFilter) :
     MPDFilter("(${filters.joinToString(" AND ")})") {
-    override fun and(other: MPDFilter) = MPDAndFilter(*this.filters, other)
+    override fun and(other: MPDFilter) = MPDAndFilter(*filters, other)
 }
 
 object MPDFilterContext {
