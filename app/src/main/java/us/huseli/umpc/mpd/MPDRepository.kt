@@ -140,6 +140,10 @@ class MPDRepository @Inject constructor(
         ioScope.launch {
             // Fetch (or empty) current song info as soon as it changes.
             _currentSongPosition.collect {
+                if (engines.control.stopAfterCurrent.value) {
+                    engines.control.stop()
+                    engines.control.disableStopAfterCurrent()
+                }
                 if (it != null) loadCurrentSong()
                 else _currentSong.value = null
             }
@@ -164,8 +168,6 @@ class MPDRepository @Inject constructor(
             }
         }
     }
-
-    fun registerOnMPDChangeListener(listener: OnMPDChangeListener) = onMPDChangeListeners.add(listener)
 
     fun fetchAlbumWithSongsListsByArtist(
         artist: String,
@@ -230,6 +232,8 @@ class MPDRepository @Inject constructor(
             onFinish(MPDAlbumWithSongs(album, it))
         }
     }
+
+    fun registerOnMPDChangeListener(listener: OnMPDChangeListener) = onMPDChangeListeners.add(listener)
 
     fun search(term: String, onFinish: (List<MPDSong>) -> Unit) {
         /**

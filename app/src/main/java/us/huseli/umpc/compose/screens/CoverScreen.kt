@@ -80,6 +80,7 @@ fun CoverScreen(
     val isDynamicPlaylistActive by viewModel.isDynamicPlaylistActive.collectAsStateWithLifecycle(false)
     val playerState by viewModel.playerState.collectAsStateWithLifecycle()
     val volume by viewModel.volume.collectAsStateWithLifecycle()
+    val stopAfterCurrent by viewModel.stopAfterCurrent.collectAsStateWithLifecycle()
 
     val density = LocalDensity.current
     val screenHeightDp = LocalContext.current.resources.configuration.screenHeightDp.dp
@@ -148,12 +149,14 @@ fun CoverScreen(
 
                 PlayerControls(
                     playerState = playerState,
+                    stopAfterCurrent = stopAfterCurrent,
                     onPreviousClick = { viewModel.previousOrRestart() },
                     onPlayPauseClick = { viewModel.playOrPause() },
                     onStopClick = { viewModel.stop() },
                     onNextClick = { viewModel.next() },
                     onForwardClick = { viewModel.seekRelative(10.0) },
                     onReverseClick = { viewModel.seekRelative(-10.0) },
+                    onStopLongClick = { viewModel.toggleStopAfterCurrent() },
                 )
                 SongProgressSlider(
                     modifier = Modifier.height(IntrinsicSize.Min),

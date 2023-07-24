@@ -1,6 +1,10 @@
 package us.huseli.umpc.compose
 
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
@@ -11,14 +15,20 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.sharp.FastForward
 import androidx.compose.material.icons.sharp.FastRewind
+import androidx.compose.material.icons.sharp.HourglassBottom
 import androidx.compose.material.icons.sharp.Pause
 import androidx.compose.material.icons.sharp.PlayArrow
 import androidx.compose.material.icons.sharp.SkipNext
 import androidx.compose.material.icons.sharp.SkipPrevious
 import androidx.compose.material.icons.sharp.Stop
+import androidx.compose.material.ripple.rememberRipple
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LocalContentColor
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -26,13 +36,16 @@ import androidx.compose.ui.unit.dp
 import us.huseli.umpc.PlayerState
 import us.huseli.umpc.R
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun PlayerControls(
     modifier: Modifier = Modifier,
     playerState: PlayerState?,
+    stopAfterCurrent: Boolean,
     onPreviousClick: () -> Unit,
     onPlayPauseClick: () -> Unit,
     onStopClick: () -> Unit,
+    onStopLongClick: () -> Unit,
     onNextClick: () -> Unit,
     onReverseClick: () -> Unit,
     onForwardClick: () -> Unit,
@@ -88,16 +101,37 @@ fun PlayerControls(
                 }
             }
 
-            IconButton(
-                modifier = Modifier.weight(1f).aspectRatio(1f, true),
-                onClick = onStopClick,
-                enabled = !isStopped
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .aspectRatio(1f, true)
+                    .combinedClickable(
+                        enabled = !isStopped,
+                        onClick = onStopClick,
+                        onLongClick = onStopLongClick,
+                        indication = rememberRipple(bounded = false, radius = 20.dp),
+                        interactionSource = remember { MutableInteractionSource() },
+                    ),
             ) {
-                Icon(
-                    modifier = Modifier.fillMaxSize(),
-                    imageVector = Icons.Sharp.Stop,
-                    contentDescription = stringResource(R.string.stop),
-                )
+                val contentColor = LocalContentColor.current.copy(alpha = if (isStopped) 0.38f else 1f)
+
+                CompositionLocalProvider(LocalContentColor provides contentColor) {
+                    Icon(
+                        modifier = Modifier.fillMaxSize(),
+                        imageVector = Icons.Sharp.Stop,
+                        contentDescription =
+                        if (stopAfterCurrent) stringResource(R.string.stop_after_current)
+                        else stringResource(R.string.stop),
+                    )
+                    if (stopAfterCurrent) {
+                        Icon(
+                            modifier = Modifier.fillMaxSize(0.3f).align(Alignment.Center),
+                            imageVector = Icons.Sharp.HourglassBottom,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.background,
+                        )
+                    }
+                }
             }
 
             IconButton(

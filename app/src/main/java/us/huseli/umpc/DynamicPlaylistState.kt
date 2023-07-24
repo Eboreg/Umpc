@@ -114,7 +114,7 @@ class DynamicPlaylistState(
             log("DYNAMICPLAYLISTSTATE: will enqueue $filename. filenames.size=${filenames.size}, firstPosition=$firstPosition, currentOffset=$currentOffset, replaceCurrentQueue=$replaceCurrentQueue, playOnLoad=$playOnLoad")
             repo.engines.control.enqueueSongLast(filename) { response ->
                 if (response.isSuccess && playOnLoad && !isPlayCalled) {
-                    repo.engines.control.play(firstPosition)
+                    repo.engines.control.playSongByPosition(firstPosition)
                     isPlayCalled = true
                 }
             }
@@ -129,7 +129,11 @@ class DynamicPlaylistState(
 
     private suspend fun loadFilenamesFromDisk(offset: Int, length: Int): List<String> =
         context.dynamicPlaylistDataStore.data.first().run {
-            log("DYNAMICPLAYLISTSTATE: loading filenames from disk. offset=$offset, length=$length, start=${min(offset, filenamesCount)}, end=${min(offset + length, filenamesCount)}, currentOffset=$currentOffset")
+            log(
+                "DYNAMICPLAYLISTSTATE: loading filenames from disk. offset=$offset, length=$length, start=${
+                    min(offset, filenamesCount)
+                }, end=${min(offset + length, filenamesCount)}, currentOffset=$currentOffset"
+            )
             filenamesList.filterNotNull().subList(
                 min(offset, filenamesCount),
                 min(offset + length, filenamesCount)

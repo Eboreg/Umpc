@@ -83,6 +83,7 @@
     <string name="shuffle">Shuffle</string>
     <string name="start_streaming">Start streaming</string>
     <string name="stop">Stop</string>
+    <string name="stop_after_current">Stop after current</string>
     <string name="stop_streaming">Stop streaming</string>
     <string name="stored_playlists">Stored playlists</string>
     <string name="stream">Stream</string>
@@ -134,13 +135,13 @@
         <item quantity="one">1 album</item>
         <item quantity="other">%1$d albums</item>
     </plurals>
-    <plurals name="x_selected_songs">
-        <item quantity="one">1 selected song</item>
-        <item quantity="other">%1$d selected songs</item>
-    </plurals>
     <plurals name="x_selected_albums">
         <item quantity="one">1 selected album</item>
         <item quantity="other">%1$d selected albums</item>
+    </plurals>
+    <plurals name="x_selected_songs">
+        <item quantity="one">1 selected song</item>
+        <item quantity="other">%1$d selected songs</item>
     </plurals>
     <plurals name="x_songs">
         <item quantity="one">1 song</item>

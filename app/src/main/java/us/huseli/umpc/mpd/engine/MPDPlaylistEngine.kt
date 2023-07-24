@@ -140,7 +140,7 @@ class MPDPlaylistEngine(
         /** Clears the queue, loads playlist into it, and plays from position 0. */
         repo.client.enqueue("clear") {
             repo.client.enqueue("load", playlistName) {
-                repo.client.enqueue("play 0")
+                repo.engines.control.playSongByPosition(0)
             }
         }
     }

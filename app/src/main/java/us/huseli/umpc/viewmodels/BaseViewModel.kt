@@ -43,7 +43,7 @@ abstract class BaseViewModel(protected val repo: MPDRepository) : ViewModel() {
 
     fun playOrPauseSong(song: MPDSong) {
         if (song.filename == repo.currentSong.value?.filename) repo.engines.control.playOrPause()
-        else if (song.id != null) repo.engines.control.playSongId(song.id)
+        else if (song.id != null) repo.engines.control.playSongById(song.id)
         else repo.engines.control.enqueueSongNextAndPlay(song)
     }
 }

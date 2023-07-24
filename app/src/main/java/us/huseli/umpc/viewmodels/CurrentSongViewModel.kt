@@ -19,6 +19,7 @@ class CurrentSongViewModel @Inject constructor(repo: MPDRepository) : BaseViewMo
     val randomState = repo.randomState
     val repeatState = repo.repeatState
     val streamingUrl = repo.engines.settings.streamingUrl.asStateFlow()
+    val stopAfterCurrent = repo.engines.control.stopAfterCurrent
 
     fun deactivateDynamicPlaylist() = repo.engines.playlist.deactivateDynamicPlaylist()
     fun next() = repo.engines.control.next()
@@ -33,6 +34,7 @@ class CurrentSongViewModel @Inject constructor(repo: MPDRepository) : BaseViewMo
     fun stop() = repo.engines.control.stop()
     fun toggleRandomState() = repo.engines.control.toggleRandomState()
     fun toggleRepeatState() = repo.engines.control.toggleRepeatState()
+    fun toggleStopAfterCurrent() = repo.engines.control.toggleStopAfterCurrent()
     fun toggleStream(onFinish: ((Boolean) -> Unit)? = null) =
         viewModelScope.launch { onFinish?.invoke(repo.streamPlayer.toggle()) }
 }

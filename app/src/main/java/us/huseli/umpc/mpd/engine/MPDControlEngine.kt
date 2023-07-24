@@ -1,6 +1,8 @@
 package us.huseli.umpc.mpd.engine
 
 import androidx.annotation.IntRange
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import us.huseli.umpc.LoggerInterface
 import us.huseli.umpc.PlayerState
 import us.huseli.umpc.data.MPDAlbum
@@ -13,7 +15,15 @@ import kotlin.math.max
 import kotlin.math.min
 
 class MPDControlEngine(private val repo: MPDRepository) : LoggerInterface {
+    private val _stopAfterCurrent = MutableStateFlow(false)
+
+    val stopAfterCurrent = _stopAfterCurrent.asStateFlow()
+
     fun clearQueue(onFinish: ((MPDMapResponse) -> Unit)? = null) = repo.client.enqueue("clear", onFinish = onFinish)
+
+    fun disableStopAfterCurrent() {
+        _stopAfterCurrent.value = false
+    }
 
     fun enqueueAlbumLast(album: MPDAlbum, onFinish: (MPDMapResponse) -> Unit) =
         repo.client.enqueue(album.searchFilter.findadd(), onFinish = onFinish)
@@ -29,7 +39,7 @@ class MPDControlEngine(private val repo: MPDRepository) : LoggerInterface {
         val firstSongPosition = repo.currentSongPosition.value?.plus(1) ?: repo.queue.value.size
 
         repo.client.enqueue(album.searchFilter.findadd(addPosition)) { response ->
-            if (response.isSuccess) playSongPosition(firstSongPosition)
+            if (response.isSuccess) playSongByPosition(firstSongPosition)
         }
     }
 
@@ -45,7 +55,7 @@ class MPDControlEngine(private val repo: MPDRepository) : LoggerInterface {
             else listOf(song.filename)
 
         repo.client.enqueue("addid", args) { response ->
-            response.responseMap["Id"]?.get(0).let { repo.client.enqueue("playid $it") }
+            response.responseMap["Id"]?.get(0)?.toInt()?.let { playSongById(it) }
         }
     }
 
@@ -62,11 +72,17 @@ class MPDControlEngine(private val repo: MPDRepository) : LoggerInterface {
 
     fun moveSongInQueue(fromIdx: Int, toIdx: Int) = repo.client.enqueue("move $fromIdx $toIdx")
 
-    fun next() = repo.client.enqueue("next")
+    fun next() {
+        disableStopAfterCurrent()
+        repo.client.enqueue("next")
+    }
 
     fun pause() = repo.client.enqueue("pause 1")
 
-    fun play(position: Int? = null) = playSongPosition(position ?: repo.currentSongPosition.value ?: 0)
+    fun play() {
+        if (repo.currentSongPosition.value == null) disableStopAfterCurrent()
+        playSongByPosition(repo.currentSongPosition.value ?: 0)
+    }
 
     fun playOrPause() {
         when (repo.playerState.value) {
@@ -76,11 +92,20 @@ class MPDControlEngine(private val repo: MPDRepository) : LoggerInterface {
         }
     }
 
-    fun playSongId(songId: Int) = repo.client.enqueue("playid $songId")
+    fun playSongById(songId: Int) {
+        if (repo.currentSongId.value != songId) disableStopAfterCurrent()
+        repo.client.enqueue("playid $songId")
+    }
 
-    private fun playSongPosition(pos: Int) = repo.client.enqueue("play $pos")
+    fun playSongByPosition(pos: Int) {
+        if (repo.currentSongPosition.value != pos) disableStopAfterCurrent()
+        repo.client.enqueue("play $pos")
+    }
 
-    fun previous() = repo.client.enqueue("previous")
+    fun previous() {
+        disableStopAfterCurrent()
+        repo.client.enqueue("previous")
+    }
 
     fun removeSongFromQueue(song: MPDSong) =
         song.position?.let { repo.client.enqueue("delete $it") }
@@ -106,13 +131,20 @@ class MPDControlEngine(private val repo: MPDRepository) : LoggerInterface {
     fun setVolume(@IntRange(0, 100) value: Int) =
         repo.client.enqueue("setvol $value")
 
-    fun stop() = repo.client.enqueue("stop")
+    fun stop() {
+        disableStopAfterCurrent()
+        repo.client.enqueue("stop")
+    }
 
     fun toggleRandomState() =
         repo.client.enqueue("random", if (repo.randomState.value) "0" else "1")
 
     fun toggleRepeatState() =
         repo.client.enqueue("repeat", if (repo.repeatState.value) "0" else "1")
+
+    fun toggleStopAfterCurrent() {
+        _stopAfterCurrent.value = !_stopAfterCurrent.value
+    }
 
     fun volumeDown() {
         if (repo.volume.value > 0) {
