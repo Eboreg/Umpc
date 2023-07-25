@@ -38,8 +38,8 @@ android {
         applicationId = "us.huseli.umpc"
         minSdk = 26
         targetSdk = 33
-        versionCode = 5
-        versionName = "1.0.0-beta.5"
+        versionCode = 6
+        versionName = "1.0.0-beta.6"
         // multiDexEnabled = true
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
