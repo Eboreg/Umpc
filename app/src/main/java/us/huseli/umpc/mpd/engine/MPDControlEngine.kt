@@ -108,7 +108,7 @@ class MPDControlEngine(private val repo: MPDRepository) : LoggerInterface {
     }
 
     fun removeSongFromQueue(song: MPDSong) =
-        song.position?.let { repo.client.enqueue("delete $it") }
+        song.id?.let { repo.client.enqueue("deleteid $it") }
 
     fun removeSongsFromQueue(songs: List<MPDSong>, onFinish: ((MPDBatchMapResponse) -> Unit)? = null) =
         repo.client.enqueueBatch(

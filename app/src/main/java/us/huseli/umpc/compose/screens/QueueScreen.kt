@@ -83,7 +83,7 @@ fun QueueScreen(
         )
     }
 
-    LaunchedEffect(queue) {
+    LaunchedEffect(Unit) {
         scrollToCurrent()
         totalDuration = queue.mapNotNull { it.duration }.sum()
     }

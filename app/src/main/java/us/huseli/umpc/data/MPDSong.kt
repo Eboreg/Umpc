@@ -32,11 +32,14 @@ data class MPDSong(
     @Transient
     val listKey = id ?: position ?: filename
 
-    override fun equals(other: Any?) =
-        other is MPDSong &&
-        other.filename == filename &&
-        (id == null || other.id == id) &&
-        (position == null || other.position == position)
+    override fun equals(other: Any?): Boolean {
+        if (other is MPDSong && other.filename == filename) {
+            if (id != null) return other.id == id
+            if (position != null) return other.position == position
+            return true
+        }
+        return false
+    }
 
     override fun hashCode() = filename.hashCode()
 
