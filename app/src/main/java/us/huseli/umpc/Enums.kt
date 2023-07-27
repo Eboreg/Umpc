@@ -6,7 +6,7 @@ enum class SingleState { OFF, ON, ONESHOT }
 
 enum class ConsumeState { OFF, ON, ONESHOT }
 
-enum class PlayerState { PLAY, STOP, PAUSE }
+enum class PlayerState { UNKNOWN, PLAY, STOP, PAUSE }
 
 enum class LibraryGrouping { ARTIST, ALBUM }
 

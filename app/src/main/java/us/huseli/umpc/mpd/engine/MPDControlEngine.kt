@@ -72,14 +72,14 @@ class MPDControlEngine(private val repo: MPDRepository) : LoggerInterface {
 
     fun moveSongInQueue(fromIdx: Int, toIdx: Int) = repo.client.enqueue("move $fromIdx $toIdx")
 
-    fun next() {
+    fun next() = ensurePlayerState {
         disableStopAfterCurrent()
         repo.client.enqueue("next")
     }
 
-    fun pause() = repo.client.enqueue("pause 1")
+    fun pause() = ensurePlayerState { repo.client.enqueue("pause 1") }
 
-    fun play() {
+    fun play() = ensurePlayerState {
         if (repo.currentSongPosition.value == null) disableStopAfterCurrent()
         playSongByPosition(repo.currentSongPosition.value ?: 0)
     }
@@ -88,7 +88,10 @@ class MPDControlEngine(private val repo: MPDRepository) : LoggerInterface {
         when (repo.playerState.value) {
             PlayerState.PLAY -> pause()
             PlayerState.STOP -> play()
-            PlayerState.PAUSE -> resume()
+            PlayerState.PAUSE -> repo.client.enqueue("pause 0")
+            PlayerState.UNKNOWN -> repo.loadStatus {
+                if (repo.playerState.value != PlayerState.UNKNOWN) playOrPause()
+            }
         }
     }
 
@@ -102,7 +105,7 @@ class MPDControlEngine(private val repo: MPDRepository) : LoggerInterface {
         repo.client.enqueue("play $pos")
     }
 
-    fun previous() {
+    fun previous() = ensurePlayerState {
         disableStopAfterCurrent()
         repo.client.enqueue("previous")
     }
@@ -115,8 +118,6 @@ class MPDControlEngine(private val repo: MPDRepository) : LoggerInterface {
             songs.filter { it.id != null }.map { MPDMapCommand("deleteid ${it.id}") },
             onFinish = onFinish,
         )
-
-    private fun resume() = repo.client.enqueue("pause 0")
 
     fun seek(time: Double) = repo.client.enqueue("seekcur $time")
 
@@ -131,7 +132,7 @@ class MPDControlEngine(private val repo: MPDRepository) : LoggerInterface {
     fun setVolume(@IntRange(0, 100) value: Int) =
         repo.client.enqueue("setvol $value")
 
-    fun stop() {
+    fun stop() = ensurePlayerState {
         disableStopAfterCurrent()
         repo.client.enqueue("stop")
     }
@@ -158,5 +159,13 @@ class MPDControlEngine(private val repo: MPDRepository) : LoggerInterface {
             val volume = min(100, repo.volume.value + 5)
             repo.client.enqueue("setvol $volume")
         }
+    }
+
+    private fun ensurePlayerState(callback: () -> Unit) {
+        if (repo.playerState.value == PlayerState.UNKNOWN) {
+            repo.loadStatus {
+                if (repo.playerState.value != PlayerState.UNKNOWN) callback()
+            }
+        } else callback()
     }
 }

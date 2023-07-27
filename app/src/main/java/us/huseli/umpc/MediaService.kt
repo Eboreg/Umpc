@@ -121,10 +121,7 @@ class MediaService : MediaBrowserServiceCompat(), LoggerInterface {
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .setSmallIcon(R.drawable.ic_notification_logo)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
-            .setStyle(
-                androidx.media.app.NotificationCompat.MediaStyle()
-                    .setShowActionsInCompactView(0, 1, 2)
-            )
+            .setStyle(androidx.media.app.NotificationCompat.MediaStyle().setShowActionsInCompactView(0, 1, 2))
         getActions(repo.playerState.value == PlayerState.PLAY).forEach { builder.addAction(it) }
         return builder
     }
@@ -178,7 +175,7 @@ class MediaService : MediaBrowserServiceCompat(), LoggerInterface {
         val views = RemoteViews(context.packageName, R.layout.widget).apply {
             if (bitmap != null) setImageViewBitmap(R.id.albumArt, bitmap)
             else setImageViewResource(R.id.albumArt, R.mipmap.ic_launcher)
-            setOnClickPendingIntent(R.id.albumArt, pendingIntent)
+            setOnClickPendingIntent(android.R.id.background, pendingIntent)
             setTextViewText(R.id.song, repo.currentSong.value?.title ?: "")
             setTextViewText(
                 R.id.artistAndAlbum,
@@ -263,6 +260,7 @@ class MediaService : MediaBrowserServiceCompat(), LoggerInterface {
                             getActions(false).forEach { notificationBuilder.addAction(it) }
                             showNotification()
                         }
+                        PlayerState.UNKNOWN -> {}
                     }
                 }
             }

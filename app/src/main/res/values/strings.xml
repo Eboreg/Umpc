@@ -99,6 +99,7 @@
     <string name="unknown_error">Unknown error</string>
     <string name="value">Value</string>
     <string name="x_kbps">%1$d Kbps</string>
+    <string name="clear">Clear</string>
     <plurals name="add_albums_playlist_fail">
         <item quantity="one">Failed to add album to playlist.</item>
         <item quantity="other">Failed to add %1$d albums to playlist.</item>

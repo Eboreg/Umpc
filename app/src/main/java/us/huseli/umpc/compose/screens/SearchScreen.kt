@@ -1,5 +1,6 @@
 package us.huseli.umpc.compose.screens
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -9,9 +10,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.sharp.PlaylistAdd
 import androidx.compose.material.icons.sharp.PlaylistPlay
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
@@ -95,10 +98,12 @@ fun SearchScreen(
         onGotoPlaylistClick = onGotoPlaylistClick,
         onGotoQueueClick = onGotoQueueClick,
         emptyListText = {
-            Text(
-                text = stringResource(R.string.enter_at_least_3_characters),
-                modifier = Modifier.padding(10.dp)
-            )
+            if (searchTerm.text.length < 3) {
+                Text(
+                    text = stringResource(R.string.enter_at_least_3_characters),
+                    modifier = Modifier.padding(10.dp)
+                )
+            }
         },
         subMenu = {
             Surface(tonalElevation = 2.dp, modifier = Modifier.fillMaxWidth()) {
@@ -121,6 +126,12 @@ fun SearchScreen(
                                 CircularProgressIndicator(
                                     modifier = Modifier.padding(end = 8.dp).size(24.dp),
                                     strokeWidth = 2.dp,
+                                )
+                            } else {
+                                Icon(
+                                    imageVector = Icons.Filled.Cancel,
+                                    contentDescription = stringResource(R.string.clear),
+                                    modifier = Modifier.clickable { viewModel.clearSearchTerm() },
                                 )
                             }
                         }

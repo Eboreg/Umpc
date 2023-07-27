@@ -35,6 +35,7 @@ import us.huseli.umpc.mpd.engine.MPDImageEngine
 import us.huseli.umpc.mpd.engine.MPDPlaylistEngine
 import us.huseli.umpc.mpd.engine.MessageEngine
 import us.huseli.umpc.mpd.engine.SettingsEngine
+import us.huseli.umpc.mpd.response.MPDMapResponse
 import java.io.File
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -69,16 +70,16 @@ class MPDRepository @Inject constructor(
     private val _currentAudioFormat = MutableStateFlow<MPDAudioFormat?>(null)
     private val _currentBitrate = MutableStateFlow<Int?>(null)
     private val _outputs = MutableStateFlow<List<MPDOutput>>(emptyList())
-    private val _playerState = MutableStateFlow(PlayerState.STOP)
+    private val _playerState = MutableStateFlow(PlayerState.UNKNOWN)
     private val _queue = MutableStateFlow<List<MPDSong>>(emptyList())
     private val _randomState = MutableStateFlow(false)
     private val _repeatState = MutableStateFlow(false)
     private val _volume = MutableStateFlow(100)
 
     val engines: Engines
-    var client = MPDClient(ioScope)
-    var binaryClient = MPDBinaryClient(ioScope)
-    private var idleClient = MPDIdleClient(ioScope)
+    val client = MPDClient(ioScope)
+    val binaryClient = MPDBinaryClient(ioScope)
+    private val idleClient = MPDIdleClient(ioScope)
 
     val albumArtDirectory = File(context.cacheDir, "albumArt").apply { mkdirs() }
     val thumbnailDirectory = File(albumArtDirectory, "thumbnails").apply { mkdirs() }
@@ -125,8 +126,8 @@ class MPDRepository @Inject constructor(
                     binaryClient.start()
 
                     loadStatus()
-                    loadQueue()
                     loadAlbums()
+                    loadQueue()
                     loadOutputs()
                     engines.playlist.loadStoredPlaylists()
                     watch()
@@ -312,7 +313,7 @@ class MPDRepository @Inject constructor(
         }
     }
 
-    private fun loadStatus() = client.enqueue("status") { response ->
+    fun loadStatus(onFinish: ((MPDMapResponse) -> Unit)? = null) = client.enqueue("status") { response ->
         response.responseMap.mapValues { it.value.first() }.toMPDStatus()?.also { status ->
             status.volume?.let { _volume.value = it }
             status.repeat?.let { _repeatState.value = it }
@@ -329,6 +330,7 @@ class MPDRepository @Inject constructor(
             _currentSongPosition.value = status.currentSongPosition
             _currentAudioFormat.value = status.audioFormat
         }
+        onFinish?.invoke(response)
     }
 
     // https://mpd.readthedocs.io/en/latest/protocol.html#querying-mpd-s-status
