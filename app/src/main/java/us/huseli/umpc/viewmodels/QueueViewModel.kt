@@ -9,6 +9,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.launch
 import us.huseli.umpc.Constants
 import us.huseli.umpc.data.MPDSong
+import us.huseli.umpc.data.MPDVersion
 import us.huseli.umpc.mpd.OnMPDChangeListener
 import us.huseli.umpc.mpd.command.MPDMapCommand
 import us.huseli.umpc.mpd.response.MPDMapResponse
@@ -26,8 +27,8 @@ class QueueViewModel @Inject constructor(
 
     val activeDynamicPlaylist = repo.activeDynamicPlaylist
     val currentSongPosition = repo.currentSongPosition
-    val queue = repo.queue
     val listState = LazyListState()
+    val queue = repo.queue
 
     init {
         repo.loadQueue()
@@ -74,5 +75,13 @@ class QueueViewModel @Inject constructor(
 
     override fun onMPDChanged(subsystems: List<String>) {
         if (subsystems.contains("playlist")) repo.loadQueue()
+    }
+
+    fun addQueueToPlaylist(playlistName: String, onFinish: (MPDMapResponse) -> Unit) {
+        repo.client.enqueue("save", playlistName) { response ->
+            if (!response.isSuccess && repo.protocolVersion.value >= MPDVersion("0.24.0"))
+                repo.client.enqueue("save", listOf(playlistName, "append"), onFinish)
+            else onFinish(response)
+        }
     }
 }

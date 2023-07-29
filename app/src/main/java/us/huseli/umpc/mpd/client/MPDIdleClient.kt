@@ -17,7 +17,9 @@ class MPDIdleClient @Inject constructor(
 ) : MPDBaseClient(ioScope, settingsRepository) {
     private val onMPDChangeListeners = mutableListOf<OnMPDChangeListener>()
 
-    fun registerOnMPDChangeListener(listener: OnMPDChangeListener) = onMPDChangeListeners.add(listener)
+    fun registerOnMPDChangeListener(listener: OnMPDChangeListener) {
+        onMPDChangeListeners.add(listener)
+    }
 
     override suspend fun start() {
         val command = MPDMapCommand("idle")

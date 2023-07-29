@@ -1,4 +1,5 @@
 <resources>
+    <string name="a_playlist_with_this_name_already_exists">A playlist with this name already exists.</string>
     <string name="about_dynamic_playlists">About dynamic playlists</string>
     <string name="active_dynamic_playlist_x">Active dynamic playlist: %1$s</string>
     <string name="add_albums_playlist_success_and_fail">Added %1$d album(s) to playlist, but failed to add %2$d album(s).</string>
@@ -13,6 +14,7 @@
     <string name="app_widget_description">The currently playing song on MPD, plus some controls.</string>
     <string name="appears_on">Appears on</string>
     <string name="cancel">Cancel</string>
+    <string name="clear">Clear</string>
     <string name="clear_album_art_cache">Clear album art cache</string>
     <string name="clear_queue">Clear queue</string>
     <string name="comparator">Comparator</string>
@@ -39,6 +41,7 @@
     <string name="enqueued_all_selected_albums">Enqueued all selected albums.</string>
     <string name="enqueued_all_selected_songs">Enqueued all selected songs.</string>
     <string name="enter_at_least_3_characters">Enter at least 3 characters.</string>
+    <string name="enter_the_name_of_a_new_playlist">Enter the name of a new playlist:</string>
     <string name="filter_by">Filter by</string>
     <string name="forward">Forward</string>
     <string name="go_to_album">Go to album</string>
@@ -67,12 +70,14 @@
     <string name="port">Port</string>
     <string name="previous">Previous</string>
     <string name="queue">Queue</string>
+    <string name="queue_was_added_to_playlist">Queue was added to playlist.</string>
     <string name="remove">Remove</string>
     <string name="rename">Rename</string>
     <string name="rename_playlist">Rename playlist</string>
     <string name="repeat">Repeat</string>
     <string name="rewind">Rewind</string>
     <string name="save">Save</string>
+    <string name="save_queue_to_playlist">Save queue to playlist</string>
     <string name="scroll_to_current_song">Scroll to current song</string>
     <string name="search">Search</string>
     <string name="search_for_songs">Search for songs</string>
@@ -99,7 +104,6 @@
     <string name="unknown_error">Unknown error</string>
     <string name="value">Value</string>
     <string name="x_kbps">%1$d Kbps</string>
-    <string name="clear">Clear</string>
     <plurals name="add_albums_playlist_fail">
         <item quantity="one">Failed to add album to playlist.</item>
         <item quantity="other">Failed to add %1$d albums to playlist.</item>

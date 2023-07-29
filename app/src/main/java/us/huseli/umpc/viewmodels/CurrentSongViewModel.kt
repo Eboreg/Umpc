@@ -15,7 +15,7 @@ import javax.inject.Inject
 class CurrentSongViewModel @Inject constructor(
     repo: MPDRepository,
     settingsRepository: SettingsRepository,
-    val streamPlayer: MPDStreamPlayer,
+    private val streamPlayer: MPDStreamPlayer,
 ) : BaseViewModel(repo) {
     val currentSongDuration = repo.currentSongDuration
     val currentSongElapsed = repo.currentSongElapsed

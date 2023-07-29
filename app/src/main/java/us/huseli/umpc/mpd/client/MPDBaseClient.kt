@@ -6,6 +6,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -14,6 +15,7 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import us.huseli.umpc.LoggerInterface
 import us.huseli.umpc.data.MPDCredentials
+import us.huseli.umpc.data.MPDVersion
 import us.huseli.umpc.mpd.command.MPDBaseCommand
 import us.huseli.umpc.mpd.command.MPDBatchMapCommand
 import us.huseli.umpc.mpd.command.MPDMapCommand
@@ -34,6 +36,7 @@ abstract class MPDBaseClient(
     enum class State { STARTED, PREPARED, READY, RUNNING, ERROR }
 
     // private val commandQueue = MutableSharedFlow<MPDBaseCommand<*>>(replay = 100)
+    private var _protocolVersion = MutableStateFlow(MPDVersion())
     private val nextCommand = MutableStateFlow<MPDBaseCommand<*>?>(null)
     private var commandQueue = listOf<MPDBaseCommand<*>>()
     private val commandMutex = Mutex()
@@ -56,6 +59,8 @@ abstract class MPDBaseClient(
     protected val workerScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     protected val state = MutableStateFlow(State.STARTED)
     protected var socket = Socket()
+
+    val protocolVersion = _protocolVersion.asStateFlow()
 
     init {
         ioScope.launch {
@@ -147,6 +152,8 @@ abstract class MPDBaseClient(
                 if (responseLine == null || !responseLine.startsWith("OK MPD")) {
                     throw MPDClientException(this@MPDBaseClient, "Expected OK MPD response, got: $responseLine")
                 }
+
+                _protocolVersion.value = MPDVersion(responseLine.substringAfter("OK MPD "))
 
                 credentials?.password?.also { password ->
                     val response = MPDMapCommand("password", password).execute(socket)

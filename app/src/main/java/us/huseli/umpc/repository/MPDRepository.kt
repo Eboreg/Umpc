@@ -114,6 +114,7 @@ class MPDRepository @Inject constructor(
     val loadingDynamicPlaylist = _loadingDynamicPlaylist.asStateFlow()
     val outputs = _outputs.asStateFlow()
     val playerState = _playerState.asStateFlow()
+    val protocolVersion = client.protocolVersion
     val queue = _queue.asStateFlow()
     val randomState = _randomState.asStateFlow()
     val repeatState = _repeatState.asStateFlow()

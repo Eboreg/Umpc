@@ -29,13 +29,17 @@ fun AddToPlaylistDialog(
     modifier: Modifier = Modifier,
     title: String,
     playlists: List<MPDPlaylist>,
+    allowExistingPlaylist: Boolean = true,
     onConfirm: (String) -> Unit,
     onCancel: () -> Unit,
 ) {
     var isDropdownExpanded by rememberSaveable { mutableStateOf(false) }
     var selectedPlaylist by rememberSaveable { mutableStateOf<MPDPlaylist?>(null) }
     var newPlaylistName by rememberSaveable { mutableStateOf("") }
-    val isValid = selectedPlaylist?.name?.isNotEmpty() == true || newPlaylistName.isNotEmpty()
+    val nameIsDuplicate = playlists.map { it.name }.contains(newPlaylistName)
+    val isValid =
+        if (allowExistingPlaylist) selectedPlaylist?.name?.isNotEmpty() == true || newPlaylistName.isNotEmpty()
+        else newPlaylistName.isNotEmpty() && !nameIsDuplicate
     val selectedPlaylistName = selectedPlaylist?.name ?: newPlaylistName.takeIf { it.isNotEmpty() }
 
     AlertDialog(
@@ -55,44 +59,51 @@ fun AddToPlaylistDialog(
         },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
-                Text(stringResource(R.string.add_x_to_playlist, title))
-                ExposedDropdownMenuBox(
-                    expanded = isDropdownExpanded,
-                    onExpandedChange = { isDropdownExpanded = !isDropdownExpanded },
-                ) {
-                    TextField(
-                        modifier = Modifier.menuAnchor(),
-                        readOnly = true,
-                        value = selectedPlaylist?.name ?: "",
-                        onValueChange = {},
-                        label = { Text(stringResource(R.string.select_a_playlist)) },
-                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = isDropdownExpanded) }
-                    )
-                    ExposedDropdownMenu(
+                if (allowExistingPlaylist) {
+                    Text(stringResource(R.string.add_x_to_playlist, title))
+                    ExposedDropdownMenuBox(
                         expanded = isDropdownExpanded,
-                        onDismissRequest = { isDropdownExpanded = false },
+                        onExpandedChange = { isDropdownExpanded = !isDropdownExpanded },
                     ) {
-                        playlists.forEach { playlist ->
-                            DropdownMenuItem(
-                                text = { Text(playlist.name) },
-                                onClick = {
-                                    selectedPlaylist = playlist
-                                    isDropdownExpanded = false
-                                },
-                                contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding,
-                            )
+                        TextField(
+                            modifier = Modifier.menuAnchor(),
+                            readOnly = true,
+                            value = selectedPlaylist?.name ?: "",
+                            onValueChange = {},
+                            label = { Text(stringResource(R.string.select_a_playlist)) },
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = isDropdownExpanded) }
+                        )
+                        ExposedDropdownMenu(
+                            expanded = isDropdownExpanded,
+                            onDismissRequest = { isDropdownExpanded = false },
+                        ) {
+                            playlists.forEach { playlist ->
+                                DropdownMenuItem(
+                                    text = { Text(playlist.name) },
+                                    onClick = {
+                                        selectedPlaylist = playlist
+                                        isDropdownExpanded = false
+                                    },
+                                    contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding,
+                                )
+                            }
                         }
                     }
                 }
 
-                Text(stringResource(R.string.or_enter_the_name_of_a_new_playlist))
+                Text(stringResource(if (allowExistingPlaylist) R.string.or_enter_the_name_of_a_new_playlist else R.string.enter_the_name_of_a_new_playlist))
                 OutlinedTextField(
                     value = newPlaylistName,
+                    isError = !allowExistingPlaylist && nameIsDuplicate,
                     onValueChange = {
                         newPlaylistName = it
                         if (it.isNotEmpty()) selectedPlaylist = null
                     },
                     singleLine = true,
+                    supportingText = {
+                        if (!allowExistingPlaylist && nameIsDuplicate)
+                            Text(stringResource(R.string.a_playlist_with_this_name_already_exists))
+                    }
                 )
             }
         }

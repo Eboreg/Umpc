@@ -17,6 +17,7 @@ abstract class BaseViewModel(val repo: MPDRepository) : ViewModel() {
     val currentSongAlbumArt = repo.currentSongAlbumArt
     val currentSongFilename = repo.currentSong.map { it?.filename }.distinctUntilChanged()
     val playerState = repo.playerState
+    val protocolVersion = repo.protocolVersion
     val storedPlaylists = repo.storedPlaylists
     val volume = repo.volume
 

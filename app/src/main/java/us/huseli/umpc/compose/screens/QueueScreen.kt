@@ -34,11 +34,13 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.launch
 import us.huseli.umpc.R
+import us.huseli.umpc.compose.AddToPlaylistDialog
 import us.huseli.umpc.compose.LargeSongRowList
 import us.huseli.umpc.compose.utils.SmallOutlinedButton
 import us.huseli.umpc.data.DynamicPlaylist
 import us.huseli.umpc.data.MPDAlbum
 import us.huseli.umpc.data.MPDSong
+import us.huseli.umpc.data.MPDVersion
 import us.huseli.umpc.formatDuration
 import us.huseli.umpc.isInLandscapeMode
 import us.huseli.umpc.repository.SnackbarMessage
@@ -61,9 +63,12 @@ fun QueueScreen(
     val currentSong by viewModel.currentSong.collectAsStateWithLifecycle()
     val currentSongPosition by viewModel.currentSongPosition.collectAsStateWithLifecycle()
     val playerState by viewModel.playerState.collectAsStateWithLifecycle()
+    val playlists by viewModel.storedPlaylists.collectAsStateWithLifecycle()
+    val protocolVersion by viewModel.protocolVersion.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
     var totalDuration by rememberSaveable { mutableStateOf(0.0) }
     var isSubmenuExpanded by rememberSaveable { mutableStateOf(false) }
+    var isAddToPlaylistDialogOpen by rememberSaveable { mutableStateOf(false) }
 
     val scrollToCurrent: () -> Unit = {
         scope.launch { currentSongPosition?.let { viewModel.listState.scrollToItem(max(0, it - 1)) } }
@@ -89,6 +94,28 @@ fun QueueScreen(
 
     LaunchedEffect(queue) {
         totalDuration = queue.mapNotNull { it.duration }.sum()
+    }
+
+    if (isAddToPlaylistDialogOpen) {
+        AddToPlaylistDialog(
+            title = stringResource(R.string.queue).lowercase(),
+            playlists = playlists,
+            allowExistingPlaylist = protocolVersion >= MPDVersion("0.24.0"),
+            onConfirm = {
+                viewModel.addQueueToPlaylist(it) { response ->
+                    if (response.isSuccess) viewModel.addMessage(
+                        SnackbarMessage(
+                            message = context.getString(R.string.queue_was_added_to_playlist),
+                            actionLabel = context.getString(R.string.go_to_playlist),
+                            onActionPerformed = { onGotoPlaylistClick(it) },
+                        )
+                    )
+                    else response.error?.let { error -> viewModel.addError(error) }
+                }
+                isAddToPlaylistDialogOpen = false
+            },
+            onCancel = { isAddToPlaylistDialogOpen = false },
+        )
     }
 
     LargeSongRowList(
@@ -129,6 +156,7 @@ fun QueueScreen(
                     viewModel.clearQueue { viewModel.addMessage(context.getString(R.string.the_queue_was_cleared)) }
                 },
                 onDeactivateDynamicPlaylistClick = { viewModel.deactivateDynamicPlaylist() },
+                onSaveToPlaylistClick = { isAddToPlaylistDialogOpen = true },
             )
         }
     )
@@ -147,6 +175,7 @@ fun QueueScreenSubMenu(
     onScrollToCurrentClick: () -> Unit,
     onClearQueueClick: () -> Unit,
     onDeactivateDynamicPlaylistClick: () -> Unit,
+    onSaveToPlaylistClick: () -> Unit,
 ) {
     Surface(
         tonalElevation = 2.dp,
@@ -158,29 +187,36 @@ fun QueueScreenSubMenu(
                     FlowRow(
                         modifier = Modifier.fillMaxWidth()
                             .padding(horizontal = 10.dp)
-                            .padding(top = if (isInLandscapeMode()) 10.dp else 0.dp)
-                            .padding(bottom = 10.dp),
+                            .padding(top = if (isInLandscapeMode()) 10.dp else 0.dp, bottom = 5.dp),
                         horizontalArrangement = Arrangement.SpaceAround,
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         if (currentSongPosition != null) {
                             SmallOutlinedButton(
+                                modifier = Modifier.padding(bottom = 5.dp),
                                 onClick = onScrollToCurrentClick,
                                 text = stringResource(R.string.scroll_to_current_song),
                             )
                         }
                         if (activeDynamicPlaylist == null) {
                             SmallOutlinedButton(
+                                modifier = Modifier.padding(bottom = 5.dp),
                                 onClick = onClearQueueClick,
                                 text = stringResource(R.string.clear_queue),
                             )
                         }
                         if (activeDynamicPlaylist != null) {
                             SmallOutlinedButton(
+                                modifier = Modifier.padding(bottom = 5.dp),
                                 onClick = onDeactivateDynamicPlaylistClick,
                                 text = stringResource(R.string.deactivate_dynamic_playlist),
                             )
                         }
+                        SmallOutlinedButton(
+                            modifier = Modifier.padding(bottom = 5.dp),
+                            onClick = onSaveToPlaylistClick,
+                            text = stringResource(R.string.save_queue_to_playlist),
+                        )
                     }
                 }
                 FlowRow(
