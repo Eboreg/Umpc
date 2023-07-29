@@ -35,8 +35,8 @@ import us.huseli.umpc.R
 import us.huseli.umpc.compose.utils.ListWithNumericBar
 import us.huseli.umpc.data.MPDAlbum
 import us.huseli.umpc.data.MPDSong
-import us.huseli.umpc.mpd.engine.SnackbarMessage
-import us.huseli.umpc.viewmodels.SongSelectViewModel
+import us.huseli.umpc.repository.SnackbarMessage
+import us.huseli.umpc.viewmodels.abstr.SongSelectViewModel
 import kotlin.math.roundToInt
 
 @Composable
@@ -144,8 +144,6 @@ fun LargeSongRowList(
                     modifier = if (reorderable) Modifier.reorderable(reorderableState) else Modifier,
                 ) {
                     itemsIndexed(mutableSongs, key = { _, song -> song.listKey }) { index, song ->
-                        Divider()
-
                         ReorderableItem(reorderableState, key = song.listKey) { isDragging ->
                             val rowModifier =
                                 if (isDragging)
@@ -179,7 +177,7 @@ fun LargeSongRowList(
                                 onLongClick = { viewModel.toggleSongSelected(song) },
                                 onPlayPauseClick = { viewModel.playOrPauseSong(song) },
                                 onEnqueueClick = {
-                                    viewModel.enqueueSong(song) { response ->
+                                    viewModel.enqueueSongLast(song) { response ->
                                         if (response.isSuccess) viewModel.addMessage(
                                             SnackbarMessage(
                                                 message = context.getString(R.string.the_song_was_enqueued),
@@ -202,6 +200,8 @@ fun LargeSongRowList(
                                 onRemove = { onRemoveSong?.invoke(song) },
                             )
                         }
+
+                        if (index < mutableSongs.size - 1) Divider()
                     }
                 }
             }

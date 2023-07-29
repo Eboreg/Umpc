@@ -1,8 +1,9 @@
-package us.huseli.umpc.mpd.engine
+package us.huseli.umpc.repository
 
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import us.huseli.umpc.mpd.MPDRepository
+import javax.inject.Inject
+import javax.inject.Singleton
 
 data class SnackbarMessage(
     val message: String,
@@ -10,7 +11,8 @@ data class SnackbarMessage(
     val onActionPerformed: (() -> Unit)? = null,
 )
 
-class MessageEngine(private val repo: MPDRepository) {
+@Singleton
+class MessageRepository @Inject constructor() {
     private val _error = MutableStateFlow<SnackbarMessage?>(null)
     private val _message = MutableStateFlow<SnackbarMessage?>(null)
 
@@ -36,7 +38,6 @@ class MessageEngine(private val repo: MPDRepository) {
 
     fun clearError() {
         _error.value = null
-        repo.client.enqueue("clearerror")
     }
 
     fun clearMessage() {

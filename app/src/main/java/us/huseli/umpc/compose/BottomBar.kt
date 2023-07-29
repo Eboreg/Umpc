@@ -55,76 +55,85 @@ fun BottomBar(
         contentColor = LocalContentColor.current.copy(0.5f)
     )
 
-    BottomAppBar(
-        modifier = modifier.clickable { onSurfaceClick() }.height(height),
-        contentPadding = PaddingValues(0.dp)
-    ) {
-        Column(modifier = Modifier.fillMaxWidth()) {
-            if (currentSongElapsed != null && currentSongDuration != null) {
-                SongProgressIndicator(
-                    modifier = Modifier.fillMaxWidth(),
-                    elapsed = currentSongElapsed ?: 0.0,
-                    duration = currentSongDuration ?: 0.0,
-                    playerState = playerState,
-                )
-            }
+    currentSong?.let { song ->
+        BottomAppBar(
+            modifier = modifier.clickable { onSurfaceClick() }.height(height),
+            contentPadding = PaddingValues(0.dp)
+        ) {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                if (currentSongElapsed != null && currentSongDuration != null) {
+                    SongProgressIndicator(
+                        modifier = Modifier.fillMaxWidth(),
+                        elapsed = currentSongElapsed ?: 0.0,
+                        duration = currentSongDuration ?: 0.0,
+                        playerState = playerState,
+                    )
+                }
 
-            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                AlbumArt(imageBitmap = albumArt?.thumbnail, modifier = Modifier.padding(end = 8.dp), forceSquare = true)
+                Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    AlbumArt(
+                        imageBitmap = albumArt?.thumbnail,
+                        modifier = Modifier.padding(end = 8.dp),
+                        forceSquare = true
+                    )
 
-                Column(modifier = Modifier.weight(1f)) {
-                    currentSong?.let {
-                        AutoScrollingTextLine(it.title)
+                    Column(modifier = Modifier.weight(1f)) {
+                        AutoScrollingTextLine(song.title)
                         if (isInLandscapeMode()) {
-                            Text("${it.artist} • ${it.album.name}", style = MaterialTheme.typography.bodySmall)
+                            Text("${song.artist} • ${song.album.name}", style = MaterialTheme.typography.bodySmall)
                         } else {
-                            AutoScrollingTextLine(it.artist, style = MaterialTheme.typography.bodySmall)
-                            AutoScrollingTextLine(it.album.name, style = MaterialTheme.typography.bodySmall)
+                            AutoScrollingTextLine(song.artist, style = MaterialTheme.typography.bodySmall)
+                            AutoScrollingTextLine(song.album.name, style = MaterialTheme.typography.bodySmall)
                         }
                     }
-                }
 
-                if (streamingUrl != null) {
-                    IconToggleButton(
-                        checked = isStreaming,
-                        onCheckedChange = {
-                            viewModel.toggleStream { started ->
-                                viewModel.addMessage(
-                                    if (started) {
-                                        streamingUrl?.let { context.getString(R.string.streaming_from_x_started, it) }
-                                        ?: context.getString(R.string.streaming_started)
-                                    } else context.getString(R.string.streaming_stopped)
-                                )
-                            }
-                        },
-                        colors = iconToggleButtonColors,
-                    ) {
-                        Icon(
-                            imageVector = Icons.Sharp.Headphones,
-                            contentDescription =
-                            if (isStreaming) stringResource(R.string.stop_streaming)
-                            else stringResource(R.string.start_streaming),
-                            modifier = Modifier.fillMaxSize(0.8f),
-                        )
+                    if (streamingUrl != null) {
+                        IconToggleButton(
+                            checked = isStreaming,
+                            onCheckedChange = {
+                                viewModel.toggleStream { started ->
+                                    viewModel.addMessage(
+                                        if (started) {
+                                            streamingUrl?.let {
+                                                context.getString(
+                                                    R.string.streaming_from_x_started,
+                                                    it
+                                                )
+                                            }
+                                            ?: context.getString(R.string.streaming_started)
+                                        } else context.getString(R.string.streaming_stopped)
+                                    )
+                                }
+                            },
+                            colors = iconToggleButtonColors,
+                        ) {
+                            Icon(
+                                imageVector = Icons.Sharp.Headphones,
+                                contentDescription =
+                                if (isStreaming) stringResource(R.string.stop_streaming)
+                                else stringResource(R.string.start_streaming),
+                                modifier = Modifier.fillMaxSize(0.8f),
+                            )
+                        }
                     }
-                }
 
-                IconButton(
-                    onClick = { viewModel.playOrPause() },
-                    modifier = Modifier.padding(end = 10.dp)
-                ) {
-                    if (playerState == PlayerState.PLAY) {
-                        Icon(
-                            imageVector = Icons.Sharp.Pause,
-                            contentDescription = stringResource(R.string.pause),
-                            modifier = Modifier.fillMaxSize(),
-                        )
-                    } else {
-                        Icon(
-                            imageVector = Icons.Sharp.PlayArrow,
-                            contentDescription = stringResource(R.string.play),
-                            modifier = Modifier.fillMaxSize(),
-                        )
+                    IconButton(
+                        onClick = { viewModel.playOrPause() },
+                        modifier = Modifier.padding(end = 10.dp)
+                    ) {
+                        if (playerState == PlayerState.PLAY) {
+                            Icon(
+                                imageVector = Icons.Sharp.Pause,
+                                contentDescription = stringResource(R.string.pause),
+                                modifier = Modifier.fillMaxSize(),
+                            )
+                        } else {
+                            Icon(
+                                imageVector = Icons.Sharp.PlayArrow,
+                                contentDescription = stringResource(R.string.play),
+                                modifier = Modifier.fillMaxSize(),
+                            )
+                        }
                     }
                 }
             }

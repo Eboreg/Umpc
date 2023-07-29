@@ -26,15 +26,6 @@ data class MPDAlbum(val artist: String, val name: String) : Parcelable {
         .build()
 }
 
-data class MPDAlbumWithSongs(val album: MPDAlbum, val songs: List<MPDSong>) {
-    val albumArtKey: AlbumArtKey?
-        get() = songs.firstOrNull()?.albumArtKey
-
-    val duration: Double? = songs.mapNotNull { it.duration }.takeIf { it.isNotEmpty() }?.sum()
-    val yearRange: IntRange? =
-        songs.mapNotNull { it.year }.takeIf { it.isNotEmpty() }?.let { IntRange(it.min(), it.max()) }
-}
-
 fun Map<String, List<String>>.toMPDAlbums(): List<MPDAlbum> = try {
     val getArtist: (String) -> String? =
         { key -> this[key]?.firstOrNull()?.takeIf { it.isNotBlank() } }
@@ -48,17 +39,5 @@ fun Map<String, List<String>>.toMPDAlbums(): List<MPDAlbum> = try {
 } catch (e: NullPointerException) {
     emptyList()
 }
-
-fun Iterable<MPDAlbum>.groupByArtist(): List<MPDArtistWithAlbums> =
-    groupBy { it.artist }
-        .map { MPDArtistWithAlbums(name = it.key, albums = it.value) }
-        .sorted()
-
-fun Iterable<MPDAlbumWithSongs>.sortedByYear(): List<MPDAlbumWithSongs> = sortedBy { it.yearRange?.first }
-
-fun Iterable<MPDAlbumWithSongs>.plus(other: Iterable<MPDAlbumWithSongs>) =
-    associate { it.album to it.songs }
-        .plus(other.associate { it.album to it.songs })
-        .map { MPDAlbumWithSongs(it.key, it.value) }
 
 fun Iterable<MPDAlbum>.sorted() = sortedBy { it.name.lowercase().replaceLeadingJunk() }

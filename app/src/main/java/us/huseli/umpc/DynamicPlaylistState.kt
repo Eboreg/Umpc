@@ -15,8 +15,8 @@ import us.huseli.umpc.data.DynamicPlaylist
 import us.huseli.umpc.data.dynamicPlaylistDataStore
 import us.huseli.umpc.data.queueDataStore
 import us.huseli.umpc.data.toNative
-import us.huseli.umpc.mpd.MPDRepository
 import us.huseli.umpc.mpd.OnMPDChangeListener
+import us.huseli.umpc.repository.MPDRepository
 import kotlin.math.max
 import kotlin.math.min
 
@@ -108,13 +108,13 @@ class DynamicPlaylistState(
         val firstPosition = if (replaceCurrentQueue) 0 else getQueue().songsCount + 1
 
         log("DYNAMICPLAYLISTSTATE: fill MPD queue. filenames.size=${filenames.size}, firstPosition=$firstPosition, currentOffset=$currentOffset, replaceCurrentQueue=$replaceCurrentQueue, playOnLoad=$playOnLoad")
-        if (replaceCurrentQueue) repo.engines.control.clearQueue()
+        if (replaceCurrentQueue) repo.clearQueue()
 
         filenames.forEach { filename ->
             log("DYNAMICPLAYLISTSTATE: will enqueue $filename. filenames.size=${filenames.size}, firstPosition=$firstPosition, currentOffset=$currentOffset, replaceCurrentQueue=$replaceCurrentQueue, playOnLoad=$playOnLoad")
-            repo.engines.control.enqueueSongLast(filename) { response ->
+            repo.enqueueSongLast(filename) { response ->
                 if (response.isSuccess && playOnLoad && !isPlayCalled) {
-                    repo.engines.control.playSongByPosition(firstPosition)
+                    repo.playSongByPosition(firstPosition)
                     isPlayCalled = true
                 }
             }
@@ -145,7 +145,7 @@ class DynamicPlaylistState(
             if (response.isSuccess) {
                 val filenames = response.extractFilenames()
                 onFinish(if (playlist.shuffle) filenames.shuffled() else filenames)
-                repo.engines.playlist.updateDynamicPlaylist(playlist, songCount = filenames.size)
+                repo.updateDynamicPlaylist(playlist, songCount = filenames.size)
             }
         }
 

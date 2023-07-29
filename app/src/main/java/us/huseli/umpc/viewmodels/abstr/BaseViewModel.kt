@@ -1,0 +1,76 @@
+package us.huseli.umpc.viewmodels.abstr
+
+import androidx.lifecycle.ViewModel
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
+import us.huseli.umpc.ImageRequestType
+import us.huseli.umpc.data.MPDAlbum
+import us.huseli.umpc.data.MPDAlbumArt
+import us.huseli.umpc.data.MPDSong
+import us.huseli.umpc.mpd.response.MPDMapResponse
+import us.huseli.umpc.repository.MPDRepository
+import us.huseli.umpc.repository.SnackbarMessage
+import kotlin.math.min
+
+abstract class BaseViewModel(val repo: MPDRepository) : ViewModel() {
+    val currentSong = repo.currentSong
+    val currentSongAlbumArt = repo.currentSongAlbumArt
+    val currentSongFilename = repo.currentSong.map { it?.filename }.distinctUntilChanged()
+    val playerState = repo.playerState
+    val storedPlaylists = repo.storedPlaylists
+    val volume = repo.volume
+
+    fun addError(message: String) = repo.messageRepository.addError(message)
+
+    fun addError(message: SnackbarMessage) = repo.messageRepository.addError(message)
+
+    fun addMessage(message: String) = repo.messageRepository.addMessage(message)
+
+    fun addMessage(message: SnackbarMessage) = repo.messageRepository.addMessage(message)
+
+    fun enqueueAlbumLast(album: MPDAlbum, onFinish: (MPDMapResponse) -> Unit) =
+        repo.client.enqueue(album.searchFilter.findadd(), onFinish = onFinish)
+
+    fun enqueueSongLast(song: MPDSong, onFinish: (MPDMapResponse) -> Unit) =
+        repo.enqueueSongLast(song.filename, onFinish)
+
+    private fun enqueueSongNextAndPlay(song: MPDSong) {
+        val args =
+            if (repo.currentSongId.value != null) listOf(song.filename, "+0")
+            else listOf(song.filename)
+
+        repo.client.enqueue("addid", args) { response ->
+            response.responseMap["Id"]?.get(0)?.toInt()?.let { playSongById(it) }
+        }
+    }
+
+    fun getAlbumArt(song: MPDSong, callback: (MPDAlbumArt) -> Unit) =
+        repo.getAlbumArt(song.albumArtKey, ImageRequestType.FULL, callback)
+
+    fun playAlbum(album: MPDAlbum?) = album?.let {
+        val addPosition = if (repo.currentSongPosition.value != null) 0 else null
+        val firstSongPosition = min(
+            repo.currentSongPosition.value?.plus(1) ?: repo.queue.value.size,
+            repo.queue.value.size
+        )
+
+        repo.client.enqueue(album.searchFilter.findadd(addPosition)) { response ->
+            if (response.isSuccess) playSongByPosition(firstSongPosition)
+        }
+    }
+
+    fun playOrPause() = repo.playOrPause()
+
+    fun playOrPauseSong(song: MPDSong) {
+        if (song == repo.currentSong.value) playOrPause()
+        else if (song.id != null) playSongById(song.id)
+        else enqueueSongNextAndPlay(song)
+    }
+
+    private fun playSongById(songId: Int) {
+        if (repo.currentSongId.value != songId) repo.disableStopAfterCurrent()
+        repo.client.enqueue("playid $songId")
+    }
+
+    fun playSongByPosition(pos: Int) = repo.playSongByPosition(pos)
+}

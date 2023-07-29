@@ -41,7 +41,7 @@ import us.huseli.umpc.data.MPDAlbum
 import us.huseli.umpc.data.MPDSong
 import us.huseli.umpc.formatDuration
 import us.huseli.umpc.isInLandscapeMode
-import us.huseli.umpc.mpd.engine.SnackbarMessage
+import us.huseli.umpc.repository.SnackbarMessage
 import us.huseli.umpc.viewmodels.QueueViewModel
 import kotlin.math.max
 
@@ -85,6 +85,9 @@ fun QueueScreen(
 
     LaunchedEffect(Unit) {
         scrollToCurrent()
+    }
+
+    LaunchedEffect(queue) {
         totalDuration = queue.mapNotNull { it.duration }.sum()
     }
 

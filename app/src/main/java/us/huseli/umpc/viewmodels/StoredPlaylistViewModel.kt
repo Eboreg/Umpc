@@ -8,10 +8,13 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
 import us.huseli.umpc.Constants.NAV_ARG_PLAYLIST
 import us.huseli.umpc.data.MPDSong
-import us.huseli.umpc.mpd.MPDRepository
 import us.huseli.umpc.mpd.OnMPDChangeListener
+import us.huseli.umpc.mpd.command.MPDMapCommand
 import us.huseli.umpc.mpd.response.MPDMapResponse
+import us.huseli.umpc.repository.MPDRepository
+import us.huseli.umpc.viewmodels.abstr.SongSelectViewModel
 import javax.inject.Inject
+import kotlin.math.min
 
 @HiltViewModel
 class StoredPlaylistViewModel @Inject constructor(
@@ -24,7 +27,7 @@ class StoredPlaylistViewModel @Inject constructor(
 
     val listState = LazyListState()
     val songs = _songs.asStateFlow()
-    val playlist = repo.engines.playlist.storedPlaylists.map { playlists -> playlists.find { it.name == playlistName } }
+    val playlist = repo.storedPlaylists.map { playlists -> playlists.find { it.name == playlistName } }
 
     init {
         loadSongs()
@@ -32,37 +35,60 @@ class StoredPlaylistViewModel @Inject constructor(
     }
 
     fun delete(onFinish: (MPDMapResponse) -> Unit) =
-        repo.engines.playlist.deleteStoredPlaylist(playlistName, onFinish)
+        repo.client.enqueue("rm", playlistName, onFinish)
 
     fun enqueue(onFinish: (MPDMapResponse) -> Unit) =
-        repo.engines.playlist.enqueueStoredPlaylist(playlistName, onFinish)
+        repo.client.enqueue("load", playlistName, onFinish)
 
     fun moveSong(fromIdx: Int, toIdx: Int) =
-        repo.engines.playlist.moveSongInStoredPlaylist(playlistName, fromIdx, toIdx)
-
-    fun play() = repo.engines.playlist.playStoredPlaylist(playlistName)
+        repo.client.enqueue("playlistmove", listOf(playlistName, fromIdx.toString(), toIdx.toString()))
 
     fun rename(newName: String, onFinish: (Boolean) -> Unit) =
-        repo.engines.playlist.renameStoredPlaylist(playlistName, newName, onFinish)
+        repo.client.enqueue("rename", listOf(playlistName, newName)) { response ->
+            onFinish(response.isSuccess)
+        }
 
-    private fun loadSongs() = repo.engines.playlist.fetchStoredPlaylistSongs(playlistName) { _songs.value = it }
+    private fun loadSongs() =
+        repo.client.enqueueMultiMap("listplaylistinfo", playlistName) { response ->
+            _songs.value = response.extractSongsWithPosition()
+        }
+
+    fun play() {
+        val firstSongPosition = min(
+            repo.currentSongPosition.value?.plus(1) ?: repo.queue.value.size,
+            repo.queue.value.size
+        )
+
+        repo.client.enqueue("load", listOf(playlistName, "0:", firstSongPosition.toString())) { response ->
+            if (response.isSuccess) playSongByPosition(firstSongPosition)
+        }
+    }
 
     fun removeSelectedSongs() {
         _removedSongs.clear()
         _removedSongs.addAll(selectedSongs.value)
-        repo.engines.playlist.removeSongsFromStoredPlaylist(playlistName, selectedSongs.value) { deselectAllSongs() }
+        repo.client.enqueueBatch(
+            selectedSongs.value
+                .filter { it.position != null }
+                .sortedByDescending { it.position }
+                .map { MPDMapCommand("playlistdelete", listOf(playlistName, it.position.toString())) },
+            onFinish = { deselectAllSongs() },
+        )
     }
 
     fun removeSong(song: MPDSong) {
         _removedSongs.clear()
         _removedSongs.add(song)
-        repo.engines.playlist.removeSongFromStoredPlaylist(playlistName, song)
+        song.position?.let { repo.client.enqueue("playlistdelete", listOf(playlistName, it.toString())) }
     }
 
     fun undoRemoveSongs() =
-        repo.engines.playlist.addSongsWithPositionToStoredPlaylist(_removedSongs, playlistName) {
-            _removedSongs.clear()
-        }
+        repo.client.enqueueBatch(
+            commands = _removedSongs.sortedBy { it.position }.map {
+                MPDMapCommand("playlistadd", listOf(playlistName, it.filename, it.position.toString()))
+            },
+            onFinish = { _removedSongs.clear() },
+        )
 
     override fun onMPDChanged(subsystems: List<String>) {
         if (subsystems.contains("stored_playlist")) loadSongs()

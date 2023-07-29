@@ -36,10 +36,9 @@ import us.huseli.umpc.R
 import us.huseli.umpc.compose.DeletePlaylistDialog
 import us.huseli.umpc.compose.LargeSongRowList
 import us.huseli.umpc.data.MPDAlbum
-import us.huseli.umpc.data.MPDPlaylist
 import us.huseli.umpc.data.MPDSong
 import us.huseli.umpc.formatDateTime
-import us.huseli.umpc.mpd.engine.SnackbarMessage
+import us.huseli.umpc.repository.SnackbarMessage
 import us.huseli.umpc.viewmodels.StoredPlaylistViewModel
 
 @Composable
@@ -57,7 +56,7 @@ fun StoredPlaylistScreen(
     val context = LocalContext.current
     val playlist by viewModel.playlist.collectAsStateWithLifecycle(null)
     val songs by viewModel.songs.collectAsStateWithLifecycle()
-    val currentSong by viewModel.currentSong.collectAsStateWithLifecycle(null)
+    val currentSong by viewModel.currentSong.collectAsStateWithLifecycle()
     val playerState by viewModel.playerState.collectAsStateWithLifecycle()
     var isRenameDialogOpen by rememberSaveable { mutableStateOf(false) }
     var isDeleteDialogOpen by rememberSaveable { mutableStateOf(false) }
@@ -164,7 +163,7 @@ fun StoredPlaylistScreen(
                                                         it.name,
                                                     ),
                                                     actionLabel = context.getString(R.string.go_to_queue),
-                                                    onActionPerformed = { onGotoPlaylistClick(it.name) },
+                                                    onActionPerformed = onGotoQueueClick,
                                                 )
                                             )
                                             else viewModel.addError(
@@ -186,8 +185,18 @@ fun StoredPlaylistScreen(
                         Row(
                             modifier = Modifier.fillMaxWidth().padding(end = 10.dp),
                             horizontalArrangement = Arrangement.SpaceBetween,
-                            content = { StoredPlaylistScreenMetaInfo(it, songs) },
-                        )
+                        ) {
+                            Text(
+                                text = pluralStringResource(R.plurals.x_songs, songs.size, songs.size),
+                                style = MaterialTheme.typography.bodySmall,
+                            )
+                            it.lastModified?.let { lastModified ->
+                                Text(
+                                    text = stringResource(R.string.last_modified, lastModified.formatDateTime()),
+                                    style = MaterialTheme.typography.bodySmall,
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -226,18 +235,4 @@ fun RenameStoredPlaylistDialog(
             )
         }
     )
-}
-
-@Composable
-fun StoredPlaylistScreenMetaInfo(playlist: MPDPlaylist, songs: List<MPDSong>) {
-    Text(
-        pluralStringResource(R.plurals.x_songs, songs.size, songs.size),
-        style = MaterialTheme.typography.bodySmall
-    )
-    playlist.lastModified?.let { lastModified ->
-        Text(
-            stringResource(R.string.last_modified, lastModified.formatDateTime()),
-            style = MaterialTheme.typography.bodySmall
-        )
-    }
 }

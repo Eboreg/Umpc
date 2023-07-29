@@ -91,7 +91,6 @@ fun App(
 
     val error by viewModel.error.collectAsStateWithLifecycle()
     val message by viewModel.message.collectAsStateWithLifecycle()
-    val currentSong by viewModel.currentSong.collectAsStateWithLifecycle()
     val showVolumeFlash by viewModel.showVolumeFlash.collectAsStateWithLifecycle()
     val volume by viewModel.volume.collectAsStateWithLifecycle()
     val loadingDynamicPlaylist by viewModel.loadingDynamicPlaylist.collectAsStateWithLifecycle()
@@ -238,7 +237,7 @@ fun App(
             }
         },
         bottomBar = {
-            if (!isCoverShown && currentSong != null) {
+            if (!isCoverShown) {
                 BottomBar(onSurfaceClick = { isCoverShown = true })
             }
         },

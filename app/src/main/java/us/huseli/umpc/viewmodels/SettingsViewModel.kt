@@ -3,21 +3,29 @@ package us.huseli.umpc.viewmodels
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import us.huseli.umpc.mpd.MPDRepository
+import us.huseli.umpc.mpd.OnMPDChangeListener
+import us.huseli.umpc.repository.MPDRepository
+import us.huseli.umpc.repository.SettingsRepository
 import java.io.FileFilter
 import javax.inject.Inject
 
 @HiltViewModel
-class SettingsViewModel @Inject constructor(private val repo: MPDRepository) : ViewModel() {
+class SettingsViewModel @Inject constructor(
+    private val repo: MPDRepository,
+    private val settingsRepository: SettingsRepository,
+) : ViewModel(), OnMPDChangeListener {
     val outputs = repo.outputs
-    val hostname = repo.engines.settings.hostname.asStateFlow()
-    val password = repo.engines.settings.password.asStateFlow()
-    val port = repo.engines.settings.port.asStateFlow()
-    val streamingUrl = repo.engines.settings.streamingUrl.asStateFlow()
+    val hostname = settingsRepository.hostname
+    val password = settingsRepository.password
+    val port = settingsRepository.port
+    val streamingUrl = settingsRepository.streamingUrl
 
-    fun addMessage(message: String) = repo.engines.message.addMessage(message)
+    init {
+        repo.loadOutputs()
+    }
+
+    fun addMessage(message: String) = repo.messageRepository.addMessage(message)
 
     fun clearAlbumArtCache(onFinish: (() -> Unit)? = null) = viewModelScope.launch {
         repo.albumArtDirectory.listFiles(FileFilter { it.isFile })?.forEach { it.delete() }
@@ -25,26 +33,20 @@ class SettingsViewModel @Inject constructor(private val repo: MPDRepository) : V
         onFinish?.invoke()
     }
 
-    fun setOutputEnabled(id: Int, isEnabled: Boolean) {
-        repo.engines.settings.setOutputEnabled(id, isEnabled)
-        repo.engines.control.setOutputEnabled(id, isEnabled)
-    }
+    fun setOutputEnabled(id: Int, isEnabled: Boolean) =
+        repo.client.enqueue(if (isEnabled) "enableoutput $id" else "disableoutput $id")
 
-    fun setHostname(value: String) {
-        repo.engines.settings.hostname.value = value
-    }
+    fun setHostname(value: String) = settingsRepository.setHostname(value)
 
-    fun setPassword(value: String) {
-        repo.engines.settings.password.value = value
-    }
+    fun setPassword(value: String) = settingsRepository.setPassword(value)
 
-    fun setPort(value: Int) {
-        repo.engines.settings.port.value = value
-    }
+    fun setPort(value: Int) = settingsRepository.setPort(value)
 
-    fun setStreamingUrl(value: String) {
-        repo.engines.settings.streamingUrl.value = value
-    }
+    fun setStreamingUrl(value: String) = settingsRepository.setStreamingUrl(value)
 
-    fun save() = repo.engines.settings.save()
+    fun save() = settingsRepository.save()
+
+    override fun onMPDChanged(subsystems: List<String>) {
+        if (subsystems.contains("output")) repo.loadOutputs()
+    }
 }

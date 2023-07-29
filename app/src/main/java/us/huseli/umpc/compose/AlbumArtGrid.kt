@@ -8,15 +8,15 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import us.huseli.umpc.Logger
-import us.huseli.umpc.data.MPDAlbumArt
 import us.huseli.umpc.roundUpSqrt
 
 @Composable
-fun AlbumArtGrid(modifier: Modifier = Modifier, albumArtList: List<MPDAlbumArt>) {
+fun AlbumArtGrid(modifier: Modifier = Modifier, albumArtList: List<ImageBitmap>) {
     val screenWidth = LocalContext.current.resources.configuration.screenWidthDp.dp
     val slicedAlbumArtList = when {
         albumArtList.size >= 16 -> albumArtList.subList(0, 16)
@@ -40,7 +40,7 @@ fun AlbumArtGrid(modifier: Modifier = Modifier, albumArtList: List<MPDAlbumArt>)
                                 "albumArtList.size=${slicedAlbumArtList.size}, sublist.size = ${sublist.size}, index=$index, itemsPerRow=$itemsPerRow, screenWidth=$screenWidth, screenWidth / sublist.size = ${screenWidth / sublist.size}"
                             )
                             Image(
-                                bitmap = albumArt.fullImage,
+                                bitmap = albumArt,
                                 contentDescription = null,
                                 contentScale = ContentScale.Crop,
                                 modifier = Modifier.size(screenWidth / sublist.size)

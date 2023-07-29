@@ -10,7 +10,7 @@ import android.widget.RemoteViews
 import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.media.session.MediaButtonReceiver
 import dagger.hilt.android.AndroidEntryPoint
-import us.huseli.umpc.mpd.MPDRepository
+import us.huseli.umpc.repository.MPDRepository
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -37,7 +37,7 @@ internal fun updateAppWidget(
         Intent(context, MainActivity::class.java),
         PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
     )
-    val bitmap = repo.engines.image.currentSongAlbumArt.value?.fullImage?.asAndroidBitmap()
+    val bitmap = repo.currentSongAlbumArt.value?.fullImage?.asAndroidBitmap()
     // Construct the RemoteViews object
     val views = RemoteViews(context.packageName, R.layout.widget).apply {
         if (bitmap != null) setImageViewBitmap(R.id.albumArt, bitmap)

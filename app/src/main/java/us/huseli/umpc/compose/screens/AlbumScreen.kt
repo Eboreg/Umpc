@@ -42,7 +42,7 @@ import us.huseli.umpc.compose.utils.SmallOutlinedButton
 import us.huseli.umpc.data.MPDAlbum
 import us.huseli.umpc.data.MPDSong
 import us.huseli.umpc.isInLandscapeMode
-import us.huseli.umpc.mpd.engine.SnackbarMessage
+import us.huseli.umpc.repository.SnackbarMessage
 import us.huseli.umpc.viewmodels.AlbumViewModel
 
 @Composable
@@ -65,7 +65,7 @@ fun AlbumScreen(
     val selectedSongs by viewModel.selectedSongs.collectAsStateWithLifecycle()
 
     val onEnqueueClick: (MPDAlbum) -> Unit = {
-        viewModel.enqueueAlbum(it) { response ->
+        viewModel.enqueueAlbumLast(it) { response ->
             if (response.isSuccess) viewModel.addMessage(
                 SnackbarMessage(
                     message = context.getString(R.string.the_album_was_enqueued),
@@ -189,10 +189,9 @@ fun AlbumScreen(
         albumWithSongs?.let { album ->
             val discNumbers = album.songs.mapNotNull { it.discNumber }.toSet()
 
-            album.songs.forEach { song ->
+            album.songs.forEachIndexed { index, song ->
                 var isExpanded by rememberSaveable { mutableStateOf(false) }
 
-                Divider()
                 SmallSongRow(
                     song = song,
                     discNumber = if (discNumbers.size > 1) song.discNumber else null,
@@ -202,7 +201,7 @@ fun AlbumScreen(
                     playerState = playerState,
                     showYear = albumWithSongs?.yearRange?.first != albumWithSongs?.yearRange?.last,
                     onEnqueueClick = {
-                        viewModel.enqueueSong(song) { response ->
+                        viewModel.enqueueSongLast(song) { response ->
                             if (response.isSuccess) viewModel.addMessage(
                                 SnackbarMessage(
                                     message = context.getString(R.string.the_song_was_enqueued),
@@ -228,6 +227,7 @@ fun AlbumScreen(
                     },
                     onLongClick = { viewModel.toggleSongSelected(song) },
                 )
+                if (index < album.songs.size - 1) Divider()
             }
         }
     }

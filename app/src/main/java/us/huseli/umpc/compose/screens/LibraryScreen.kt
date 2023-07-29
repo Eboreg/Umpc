@@ -49,7 +49,7 @@ import us.huseli.umpc.compose.utils.ListWithAlphabetBar
 import us.huseli.umpc.compose.utils.SubMenuScreen
 import us.huseli.umpc.data.MPDAlbum
 import us.huseli.umpc.data.MPDAlbumWithSongs
-import us.huseli.umpc.mpd.engine.SnackbarMessage
+import us.huseli.umpc.repository.SnackbarMessage
 import us.huseli.umpc.viewmodels.LibraryViewModel
 import kotlin.math.roundToInt
 
@@ -135,7 +135,7 @@ fun LibraryScreen(
                 onValueChange = { viewModel.setLibrarySearchTerm(it) },
                 trailingIcon = {
                     IconButton(
-                        onClick = { viewModel.searchLibrary(grouping) },
+                        onClick = { viewModel.searchLibrary() },
                         content = { Icon(Icons.Sharp.Search, null) },
                     )
                 },
@@ -145,7 +145,7 @@ fun LibraryScreen(
                 ),
                 keyboardActions = KeyboardActions(
                     onSearch = {
-                        viewModel.searchLibrary(grouping)
+                        viewModel.searchLibrary()
                         searchFocusRequester.freeFocus()
                     }
                 ),

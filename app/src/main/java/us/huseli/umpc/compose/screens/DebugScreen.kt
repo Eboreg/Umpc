@@ -18,19 +18,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import us.huseli.umpc.mpd.engine.SnackbarMessage
+import us.huseli.umpc.repository.SnackbarMessage
 import us.huseli.umpc.viewmodels.MPDViewModel
-
-@Composable
-fun ColorSample(modifier: Modifier = Modifier, name: String, color: Color) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = modifier
-    ) {
-        Box(modifier = Modifier.height(40.dp).width(40.dp).border(1.dp, Color.Black).background(color))
-        Text(name, style = MaterialTheme.typography.labelSmall)
-    }
-}
 
 @Composable
 fun DebugScreen(modifier: Modifier = Modifier, viewModel: MPDViewModel = hiltViewModel()) {
@@ -104,5 +93,16 @@ fun DebugScreen(modifier: Modifier = Modifier, viewModel: MPDViewModel = hiltVie
         Row {
             ColorSample(Modifier.weight(0.5f), "tertiaryContainer", MaterialTheme.colorScheme.tertiaryContainer)
         }
+    }
+}
+
+@Composable
+fun ColorSample(modifier: Modifier = Modifier, name: String, color: Color) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = modifier
+    ) {
+        Box(modifier = Modifier.height(40.dp).width(40.dp).border(1.dp, Color.Black).background(color))
+        Text(name, style = MaterialTheme.typography.labelSmall)
     }
 }

@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Divider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -35,24 +36,8 @@ import us.huseli.umpc.compose.utils.FadingImageBox
 import us.huseli.umpc.data.MPDAlbum
 import us.huseli.umpc.formatDuration
 import us.huseli.umpc.isInLandscapeMode
-import us.huseli.umpc.mpd.engine.SnackbarMessage
+import us.huseli.umpc.repository.SnackbarMessage
 import us.huseli.umpc.viewmodels.ArtistViewModel
-
-@Composable
-fun ArtistScreenMeta(albumCount: Int, songCount: Int, totalDuration: Double) {
-    Text(
-        pluralStringResource(R.plurals.x_albums, albumCount, albumCount),
-        style = MaterialTheme.typography.bodySmall,
-    )
-    Text(
-        pluralStringResource(R.plurals.x_songs, songCount, songCount),
-        style = MaterialTheme.typography.bodySmall,
-    )
-    Text(
-        stringResource(R.string.total_time_colon, totalDuration.formatDuration()),
-        style = MaterialTheme.typography.bodySmall,
-    )
-}
 
 @Composable
 fun ArtistScreen(
@@ -121,7 +106,7 @@ fun ArtistScreen(
                 horizontalArrangement = Arrangement.spacedBy(20.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                AlbumArtGrid(albumArtList = albumArtMap.map { it.value }, modifier = Modifier.width(140.dp))
+                AlbumArtGrid(albumArtList = albumArtMap.map { it.value.fullImage }, modifier = Modifier.width(140.dp))
                 Column(
                     verticalArrangement = Arrangement.SpaceEvenly,
                     modifier = Modifier.fillMaxHeight(),
@@ -138,7 +123,7 @@ fun ArtistScreen(
         } else {
             FadingImageBox(
                 modifier = Modifier.fillMaxWidth(),
-                image = { AlbumArtGrid(albumArtList = albumArtMap.map { it.value }) },
+                image = { AlbumArtGrid(albumArtList = albumArtMap.map { it.value.fullImage }) },
                 topContent = {},
                 bottomContent = {
                     Text(
@@ -160,7 +145,7 @@ fun ArtistScreen(
                 style = MaterialTheme.typography.titleLarge,
                 modifier = Modifier.padding(10.dp),
             )
-            albumArtistAlbums.forEach { album ->
+            albumArtistAlbums.forEachIndexed { index, album ->
                 AlbumRow(
                     album = album,
                     thumbnail = albumArtMap[album.album.name]?.thumbnail,
@@ -172,6 +157,7 @@ fun ArtistScreen(
                     },
                     onLongClick = { viewModel.toggleAlbumSelected(album.album) },
                 )
+                if (index < albumArtistAlbums.size - 1) Divider()
             }
         }
 
@@ -181,7 +167,7 @@ fun ArtistScreen(
                 style = MaterialTheme.typography.titleLarge,
                 modifier = Modifier.padding(10.dp),
             )
-            nonAlbumArtistAlbums.forEach { album ->
+            nonAlbumArtistAlbums.forEachIndexed { index, album ->
                 AlbumRow(
                     album = album,
                     thumbnail = albumArtMap[album.album.name]?.thumbnail,
@@ -193,7 +179,24 @@ fun ArtistScreen(
                     },
                     onLongClick = { viewModel.toggleAlbumSelected(album.album) },
                 )
+                if (index < nonAlbumArtistAlbums.size - 1) Divider()
             }
         }
     }
+}
+
+@Composable
+fun ArtistScreenMeta(albumCount: Int, songCount: Int, totalDuration: Double) {
+    Text(
+        pluralStringResource(R.plurals.x_albums, albumCount, albumCount),
+        style = MaterialTheme.typography.bodySmall,
+    )
+    Text(
+        pluralStringResource(R.plurals.x_songs, songCount, songCount),
+        style = MaterialTheme.typography.bodySmall,
+    )
+    Text(
+        stringResource(R.string.total_time_colon, totalDuration.formatDuration()),
+        style = MaterialTheme.typography.bodySmall,
+    )
 }

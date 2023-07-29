@@ -27,7 +27,7 @@ import kotlinx.coroutines.sync.withLock
 import us.huseli.umpc.Constants.MEDIASERVICE_ROOT_ID
 import us.huseli.umpc.Constants.NOTIFICATION_CHANNEL_ID_NOW_PLAYING
 import us.huseli.umpc.Constants.NOTIFICATION_ID_NOW_PLAYING
-import us.huseli.umpc.mpd.MPDRepository
+import us.huseli.umpc.repository.MPDRepository
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -52,12 +52,12 @@ class MediaService : MediaBrowserServiceCompat(), LoggerInterface {
             intent.extras?.getParcelable("android.intent.extra.KEY_EVENT")
         }
         when (event?.keyCode) {
-            KeyEvent.KEYCODE_MEDIA_NEXT -> repo.engines.control.next()
-            KeyEvent.KEYCODE_MEDIA_PREVIOUS -> repo.engines.control.previous()
-            KeyEvent.KEYCODE_MEDIA_PLAY -> repo.engines.control.play()
-            KeyEvent.KEYCODE_MEDIA_PAUSE -> repo.engines.control.pause()
-            KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE -> repo.engines.control.playOrPause()
-            KeyEvent.KEYCODE_MEDIA_STOP -> repo.engines.control.stop()
+            KeyEvent.KEYCODE_MEDIA_NEXT -> repo.next()
+            KeyEvent.KEYCODE_MEDIA_PREVIOUS -> repo.previousOrRestart()
+            KeyEvent.KEYCODE_MEDIA_PLAY -> repo.play()
+            KeyEvent.KEYCODE_MEDIA_PAUSE -> repo.pause()
+            KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE -> repo.playOrPause()
+            KeyEvent.KEYCODE_MEDIA_STOP -> repo.stop()
         }
         appWidgetIds?.forEach { appWidgetId ->
             val views = RemoteViews(applicationContext.packageName, R.layout.widget).apply {
@@ -163,7 +163,7 @@ class MediaService : MediaBrowserServiceCompat(), LoggerInterface {
 
     private fun updateWidget() {
         val context = this
-        val bitmap = repo.engines.image.currentSongAlbumArt.value?.fullImage?.asAndroidBitmap()
+        val bitmap = repo.currentSongAlbumArt.value?.fullImage?.asAndroidBitmap()
         val appWidgetManager = AppWidgetManager.getInstance(context)
         val componentName = ComponentName(context, WidgetProvider::class.java)
         val pendingIntent: PendingIntent = PendingIntent.getActivity(
@@ -233,8 +233,9 @@ class MediaService : MediaBrowserServiceCompat(), LoggerInterface {
                 }
             }
         }
+
         ioScope.launch {
-            repo.engines.image.currentSongAlbumArt.collect { albumArt ->
+            repo.currentSongAlbumArt.collect { albumArt ->
                 val bitmap = albumArt?.fullImage?.asAndroidBitmap()
                 log("bitmap: width=${bitmap?.width}, height=${bitmap?.height}")
                 mutex.withLock {
@@ -244,6 +245,7 @@ class MediaService : MediaBrowserServiceCompat(), LoggerInterface {
                 }
             }
         }
+
         ioScope.launch {
             repo.playerState.collect { playerState ->
                 mutex.withLock {

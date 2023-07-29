@@ -45,7 +45,7 @@ import us.huseli.umpc.compose.LargeSongRowList
 import us.huseli.umpc.compose.utils.SmallOutlinedButton
 import us.huseli.umpc.data.MPDAlbum
 import us.huseli.umpc.data.MPDSong
-import us.huseli.umpc.mpd.engine.SnackbarMessage
+import us.huseli.umpc.repository.SnackbarMessage
 import us.huseli.umpc.viewmodels.SearchViewModel
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -63,7 +63,7 @@ fun SearchScreen(
     val searchTerm by viewModel.songSearchTerm.collectAsStateWithLifecycle()
     val searchFocusRequester = remember { FocusRequester() }
     val searchResults by viewModel.songSearchResults.collectAsStateWithLifecycle()
-    val currentSong by viewModel.currentSong.collectAsStateWithLifecycle(null)
+    val currentSong by viewModel.currentSong.collectAsStateWithLifecycle()
     val playerState by viewModel.playerState.collectAsStateWithLifecycle()
     val isSearching by viewModel.isSearching.collectAsStateWithLifecycle()
     val playlists by viewModel.storedPlaylists.collectAsStateWithLifecycle()

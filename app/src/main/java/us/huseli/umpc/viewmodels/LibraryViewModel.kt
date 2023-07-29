@@ -17,28 +17,33 @@ import us.huseli.umpc.data.MPDAlbumWithSongs
 import us.huseli.umpc.data.MPDArtistWithAlbums
 import us.huseli.umpc.data.groupByArtist
 import us.huseli.umpc.leadingChars
-import us.huseli.umpc.mpd.MPDRepository
+import us.huseli.umpc.mpd.OnMPDChangeListener
+import us.huseli.umpc.repository.MPDRepository
+import us.huseli.umpc.viewmodels.abstr.AlbumSelectViewModel
 import javax.inject.Inject
 
 @HiltViewModel
-class LibraryViewModel @Inject constructor(repo: MPDRepository) : AlbumSelectViewModel(repo) {
+class LibraryViewModel @Inject constructor(repo: MPDRepository) : AlbumSelectViewModel(repo), OnMPDChangeListener {
     private val _activeLibrarySearchType = MutableStateFlow(LibrarySearchType.NONE)
     private val _albums = MutableStateFlow<List<MPDAlbum>>(emptyList())
     private val _artists = MutableStateFlow<List<MPDArtistWithAlbums>>(emptyList())
-    private val _librarySearchTerm = MutableStateFlow("")
     private var _grouping = MutableStateFlow(LibraryGrouping.ARTIST)
+    private val _librarySearchTerm = MutableStateFlow("")
 
+    val albumLeadingChars = _albums.leadingChars { it.name }
+    val albumListState = LazyListState()
     val albums = _albums.asStateFlow()
+    val artistLeadingChars = _artists.leadingChars { it.name }
+    val artistListState = LazyListState()
     val artists = _artists.asStateFlow()
+    val grouping = _grouping.asStateFlow()
     val isLibrarySearchActive = _activeLibrarySearchType.map { it != LibrarySearchType.NONE }
     val librarySearchTerm = _librarySearchTerm.asStateFlow()
-    val grouping = _grouping.asStateFlow()
-    val artistListState = LazyListState()
-    val albumListState = LazyListState()
-    val artistLeadingChars = _artists.leadingChars { it.name }
-    val albumLeadingChars = _albums.leadingChars { it.name }
 
     init {
+        repo.loadAlbums()
+        repo.registerOnMPDChangeListener(this)
+
         viewModelScope.launch {
             combine(repo.albums, _activeLibrarySearchType, _librarySearchTerm) { albums, searchType, searchTerm ->
                 when (searchType) {
@@ -66,17 +71,27 @@ class LibraryViewModel @Inject constructor(repo: MPDRepository) : AlbumSelectVie
         _activeLibrarySearchType.value = LibrarySearchType.NONE
     }
 
-    fun getAlbumWithSongsByAlbum(album: MPDAlbum, callback: (MPDAlbumWithSongs) -> Unit) =
-        repo.getAlbumWithSongsByAlbum(album, callback)
+    fun getAlbumWithSongsByAlbum(album: MPDAlbum, onFinish: (MPDAlbumWithSongs) -> Unit) {
+        val aws = repo.albumsWithSongs.value.find { it.album == album }
 
-    fun getThumbnail(albumWithSongs: MPDAlbumWithSongs, callback: (MPDAlbumArt) -> Unit) = viewModelScope.launch {
-        albumWithSongs.albumArtKey?.let { albumArtKey ->
-            repo.engines.image.getAlbumArt(albumArtKey, ImageRequestType.THUMBNAIL, callback)
+        if (aws != null) onFinish(aws)
+        else {
+            repo.client.enqueueMultiMap(album.searchFilter.find()) { response ->
+                val songs = response.extractSongs()
+                MPDAlbumWithSongs(album, songs).also {
+                    repo.addAlbumsWithSongs(listOf(it))
+                    onFinish(it)
+                }
+            }
         }
     }
 
-    fun searchLibrary(grouping: LibraryGrouping) {
-        when (grouping) {
+    fun getThumbnail(albumWithSongs: MPDAlbumWithSongs, onFinish: (MPDAlbumArt) -> Unit) = viewModelScope.launch {
+        albumWithSongs.albumArtKey?.let { repo.getAlbumArt(it, ImageRequestType.THUMBNAIL, onFinish) }
+    }
+
+    fun searchLibrary() {
+        when (_grouping.value) {
             LibraryGrouping.ARTIST -> _activeLibrarySearchType.value = LibrarySearchType.ARTIST
             LibraryGrouping.ALBUM -> _activeLibrarySearchType.value = LibrarySearchType.ALBUM
         }
@@ -88,5 +103,9 @@ class LibraryViewModel @Inject constructor(repo: MPDRepository) : AlbumSelectVie
 
     fun setLibrarySearchTerm(value: String) {
         _librarySearchTerm.value = value
+    }
+
+    override fun onMPDChanged(subsystems: List<String>) {
+        if (subsystems.contains("database")) repo.loadAlbums()
     }
 }

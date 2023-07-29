@@ -1,24 +1,33 @@
-package us.huseli.umpc.viewmodels
+package us.huseli.umpc.viewmodels.abstr
 
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import us.huseli.umpc.data.MPDAlbum
-import us.huseli.umpc.mpd.MPDRepository
+import us.huseli.umpc.mpd.command.MPDMapCommand
 import us.huseli.umpc.mpd.response.MPDBatchMapResponse
+import us.huseli.umpc.repository.MPDRepository
 
 abstract class AlbumSelectViewModel(repo: MPDRepository) : BaseViewModel(repo) {
     private val _selectedAlbums = MutableStateFlow<List<MPDAlbum>>(emptyList())
     val selectedAlbums = _selectedAlbums.asStateFlow()
 
     fun addSelectedAlbumsToPlaylist(playlistName: String, onFinish: (MPDBatchMapResponse) -> Unit) =
-        repo.engines.playlist.addAlbumsToStoredPlaylist(_selectedAlbums.value, playlistName, onFinish)
+        repo.client.enqueueBatch(
+            commands = _selectedAlbums.value.map {
+                MPDMapCommand("searchaddpl", listOf(playlistName, it.searchFilter.toString()))
+            },
+            onFinish = onFinish,
+        )
 
     fun deselectAllAlbums() {
         _selectedAlbums.value = emptyList()
     }
 
     fun enqueueSelectedAlbums(onFinish: (MPDBatchMapResponse) -> Unit) =
-        repo.engines.control.enqueueAlbums(_selectedAlbums.value, onFinish)
+        repo.client.enqueueBatch(
+            commands = _selectedAlbums.value.map { MPDMapCommand(it.searchFilter.findadd()) },
+            onFinish = onFinish,
+        )
 
     fun toggleAlbumSelected(album: MPDAlbum) {
         _selectedAlbums.value = _selectedAlbums.value.toMutableList().apply {
