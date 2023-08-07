@@ -1,6 +1,6 @@
 # Umpc
 
-An [MPD](https://mpd.readthedocs.io/en/latest/index.html) client for Android. Its prime purpose is to help you enjoy illegally downloaded material. An APK is probably available under [app/release](app/release).
+An [MPD](https://mpd.readthedocs.io/en/latest/index.html) client for Android. An APK is probably available under [app/release](app/release). Make MP3 downloading great again!
 
 Umpc is not an acronym. It is pronounced "oomps".
 
