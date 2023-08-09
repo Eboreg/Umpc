@@ -33,7 +33,6 @@ import us.huseli.umpc.data.DynamicPlaylist
 import us.huseli.umpc.data.DynamicPlaylistFilter
 import us.huseli.umpc.data.MPDAlbum
 import us.huseli.umpc.data.MPDAlbumArt
-import us.huseli.umpc.data.MPDAlbumWithSongs
 import us.huseli.umpc.data.MPDAudioFormat
 import us.huseli.umpc.data.MPDOutput
 import us.huseli.umpc.data.MPDPlaylist
@@ -68,7 +67,6 @@ class MPDRepository @Inject constructor(
     @ApplicationContext private val context: Context,
 ) : OnMPDChangeListener, SharedPreferences.OnSharedPreferenceChangeListener {
     private val _activeDynamicPlaylist = MutableStateFlow<DynamicPlaylist?>(null)
-    private val _albumsWithSongs = MutableStateFlow<List<MPDAlbumWithSongs>>(listOf())
     private val _albums = MutableStateFlow<List<MPDAlbum>>(emptyList())
     private val _currentAudioFormat = MutableStateFlow<MPDAudioFormat?>(null)
     private val _currentBitrate = MutableStateFlow<Int?>(null)
@@ -101,7 +99,6 @@ class MPDRepository @Inject constructor(
 
     val activeDynamicPlaylist = _activeDynamicPlaylist.asStateFlow()
     val albums = _albums.asStateFlow()
-    val albumsWithSongs = _albumsWithSongs.asStateFlow()
     val currentAudioFormat = _currentAudioFormat.asStateFlow()
     val currentBitrate = _currentBitrate.asStateFlow()
     val currentSong = _currentSong.asStateFlow()
@@ -171,10 +168,6 @@ class MPDRepository @Inject constructor(
                 }
             }
         }
-    }
-
-    fun addAlbumsWithSongs(aws: List<MPDAlbumWithSongs>) {
-        _albumsWithSongs.value = _albumsWithSongs.value.plus(aws)
     }
 
     fun addDynamicPlaylist(playlist: DynamicPlaylist) {
@@ -397,7 +390,10 @@ class MPDRepository @Inject constructor(
                 }
             } else {
                 callback(MPDAlbumArt(key, fullImage.asImageBitmap(), thumbnail.asImageBitmap()))
-                fullImageFile.outputStream().use { outputStream -> outputStream.write(stream.readBytes()) }
+                fullImageFile.outputStream().use { outputStream ->
+                    stream.reset()
+                    outputStream.write(stream.readBytes())
+                }
             }
         }
     }

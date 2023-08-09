@@ -8,11 +8,9 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
-import us.huseli.umpc.ImageRequestType
 import us.huseli.umpc.LibraryGrouping
 import us.huseli.umpc.LibrarySearchType
 import us.huseli.umpc.data.MPDAlbum
-import us.huseli.umpc.data.MPDAlbumArt
 import us.huseli.umpc.data.MPDAlbumWithSongs
 import us.huseli.umpc.data.MPDArtistWithAlbums
 import us.huseli.umpc.data.groupByArtist
@@ -26,6 +24,7 @@ import javax.inject.Inject
 class LibraryViewModel @Inject constructor(repo: MPDRepository) : AlbumSelectViewModel(repo), OnMPDChangeListener {
     private val _activeLibrarySearchType = MutableStateFlow(LibrarySearchType.NONE)
     private val _albums = MutableStateFlow<List<MPDAlbum>>(emptyList())
+    private val _albumsWithSongs = MutableStateFlow<List<MPDAlbumWithSongs>>(emptyList())
     private val _artists = MutableStateFlow<List<MPDArtistWithAlbums>>(emptyList())
     private var _grouping = MutableStateFlow(LibraryGrouping.ARTIST)
     private val _librarySearchTerm = MutableStateFlow("")
@@ -72,22 +71,18 @@ class LibraryViewModel @Inject constructor(repo: MPDRepository) : AlbumSelectVie
     }
 
     fun getAlbumWithSongsByAlbum(album: MPDAlbum, onFinish: (MPDAlbumWithSongs) -> Unit) {
-        val aws = repo.albumsWithSongs.value.find { it.album == album }
+        val aws = _albumsWithSongs.value.find { it.album == album }
 
         if (aws != null) onFinish(aws)
         else {
             repo.client.enqueueMultiMap(album.searchFilter.find()) { response ->
                 val songs = response.extractSongs()
                 MPDAlbumWithSongs(album, songs).also {
-                    repo.addAlbumsWithSongs(listOf(it))
+                    _albumsWithSongs.value = _albumsWithSongs.value.plus(it)
                     onFinish(it)
                 }
             }
         }
-    }
-
-    fun getThumbnail(albumWithSongs: MPDAlbumWithSongs, onFinish: (MPDAlbumArt) -> Unit) = viewModelScope.launch {
-        albumWithSongs.albumArtKey?.let { repo.getAlbumArt(it, ImageRequestType.THUMBNAIL, onFinish) }
     }
 
     fun searchLibrary() {

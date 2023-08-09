@@ -29,7 +29,7 @@ import us.huseli.umpc.R
 import us.huseli.umpc.data.MPDSong
 import us.huseli.umpc.formatDuration
 import us.huseli.umpc.isInLandscapeMode
-import us.huseli.umpc.mpd.highlight
+import us.huseli.umpc.highlight
 
 @Composable
 fun LargeSongRowContent(

@@ -7,7 +7,6 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
@@ -35,10 +34,8 @@ abstract class MPDBaseClient(
 ) : LoggerInterface {
     enum class State { STARTED, PREPARED, READY, RUNNING, ERROR }
 
-    // private val commandQueue = MutableSharedFlow<MPDBaseCommand<*>>(replay = 100)
     private var _protocolVersion = MutableStateFlow(MPDVersion())
-    private val nextCommand = MutableStateFlow<MPDBaseCommand<*>?>(null)
-    private var commandQueue = listOf<MPDBaseCommand<*>>()
+    private val commandQueue = MutableStateFlow<List<MPDBaseCommand<*>>>(emptyList())
     private val commandMutex = Mutex()
     private val commandQueueMutex = Mutex()
     private var credentials: MPDCredentials? = null
@@ -83,13 +80,12 @@ abstract class MPDBaseClient(
         onFinish: ((MPDMapResponse) -> Unit)? = null,
     ) = enqueue(MPDMapCommand(command, args, onFinish))
 
-    fun <RT : MPDBaseResponse> enqueue(command: MPDBaseCommand<RT>) {
+    fun <RT : MPDBaseResponse> enqueue(command: MPDBaseCommand<RT>, force: Boolean = false) {
         ioScope.launch {
             commandQueueMutex.withLock {
-                if (!commandQueue.contains(command) && nextCommand.value != command) {
-                    log("ENQUEUE $command, commandQueue=${commandQueue}")
-                    if (nextCommand.value == null) nextCommand.value = command
-                    else commandQueue = commandQueue.toMutableList().apply { add(command) }
+                if (force || !commandQueue.value.contains(command)) {
+                    log("ENQUEUE $command, commandQueue=${commandQueue.value}")
+                    commandQueue.value += command
                 }
             }
         }
@@ -121,15 +117,10 @@ abstract class MPDBaseClient(
                 when (state.value) {
                     State.PREPARED -> connect(failSilently = true)
                     State.READY -> {
-                        nextCommand.filterNotNull().collect { command ->
+                        commandQueue.value.firstOrNull()?.let { command ->
+                            commandQueue.value -= command
                             runCommand(command)
-                            commandQueueMutex.withLock {
-                                commandQueue = commandQueue.toMutableList().apply {
-                                    nextCommand.value = removeFirstOrNull()
-                                }
-                            }
                         }
-                        // commandQueue.collect { command -> runCommand(command) }
                     }
                     else -> {}
                 }
@@ -185,7 +176,7 @@ abstract class MPDBaseClient(
             val response = commandMutex.withLock { command.execute(socket) }
             if (response.status == MPDBaseResponse.Status.EMPTY_RESPONSE) {
                 connect(failSilently = true)
-                enqueue(command)
+                enqueue(command, force = true)
             } else {
                 state.value = State.READY
                 command.onFinish?.invoke(response)

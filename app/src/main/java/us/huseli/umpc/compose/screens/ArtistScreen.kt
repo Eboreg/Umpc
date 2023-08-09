@@ -8,18 +8,21 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.Divider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -48,14 +51,15 @@ fun ArtistScreen(
     onGotoQueueClick: () -> Unit,
 ) {
     val context = LocalContext.current
-    val albumArtistAlbums by viewModel.albumArtistAlbums.collectAsStateWithLifecycle()
-    val nonAlbumArtistAlbums by viewModel.nonAlbumArtistAlbums.collectAsStateWithLifecycle()
-    val albumArtMap by viewModel.albumArtMap.collectAsStateWithLifecycle()
-    val songCount by viewModel.songCount.collectAsStateWithLifecycle(0)
-    val totalDuration by viewModel.totalDuration.collectAsStateWithLifecycle(0.0)
+    val albums by viewModel.albums.collectAsStateWithLifecycle(emptyList())
+    val appearsOnAlbums by viewModel.appearsOnAlbums.collectAsStateWithLifecycle(emptyList())
+    val songCount by viewModel.songCount.collectAsStateWithLifecycle()
+    val totalDuration by viewModel.totalDuration.collectAsStateWithLifecycle()
     val selectedAlbums by viewModel.selectedAlbums.collectAsStateWithLifecycle()
     var isAddAlbumsToPlaylistDialogOpen by rememberSaveable { mutableStateOf(false) }
     val playlists by viewModel.storedPlaylists.collectAsStateWithLifecycle()
+    val landscape = isInLandscapeMode()
+    val gridAlbumArt by viewModel.gridAlbumArt.collectAsStateWithLifecycle()
 
     if (isAddAlbumsToPlaylistDialogOpen) {
         BatchAddToPlaylistDialog(
@@ -72,83 +76,98 @@ fun ArtistScreen(
         )
     }
 
-    Column(modifier = modifier.verticalScroll(state = rememberScrollState())) {
-        if (selectedAlbums.isNotEmpty()) {
-            SelectedItemsSubMenu(
-                pluralsResId = R.plurals.x_selected_albums,
-                selectedItemCount = selectedAlbums.size,
-                onEnqueueClick = {
-                    viewModel.enqueueSelectedAlbums { response ->
-                        if (response.isSuccess) viewModel.addMessage(
-                            SnackbarMessage(
-                                message = context.getString(R.string.enqueued_all_selected_albums),
-                                actionLabel = context.getString(R.string.go_to_queue),
-                                onActionPerformed = onGotoQueueClick,
-                            )
+    if (selectedAlbums.isNotEmpty()) {
+        SelectedItemsSubMenu(
+            pluralsResId = R.plurals.x_selected_albums,
+            selectedItemCount = selectedAlbums.size,
+            onEnqueueClick = {
+                viewModel.enqueueSelectedAlbums { response ->
+                    if (response.isSuccess) viewModel.addMessage(
+                        SnackbarMessage(
+                            message = context.getString(R.string.enqueued_all_selected_albums),
+                            actionLabel = context.getString(R.string.go_to_queue),
+                            onActionPerformed = onGotoQueueClick,
                         )
-                        else viewModel.addError(
-                            context.resources.getQuantityString(
-                                R.plurals.could_not_enqueue_albums,
-                                viewModel.selectedAlbums.value.size,
-                                response.error ?: context.getString(R.string.unknown_error),
-                            )
+                    )
+                    else viewModel.addError(
+                        context.resources.getQuantityString(
+                            R.plurals.could_not_enqueue_albums,
+                            viewModel.selectedAlbums.value.size,
+                            response.error ?: context.getString(R.string.unknown_error),
                         )
-                    }
-                },
-                onDeselectAllClick = { viewModel.deselectAllAlbums() },
-                onAddToPlaylistClick = { isAddAlbumsToPlaylistDialogOpen = true },
-            )
-        }
+                    )
+                }
+            },
+            onDeselectAllClick = { viewModel.deselectAllAlbums() },
+            onAddToPlaylistClick = { isAddAlbumsToPlaylistDialogOpen = true },
+        )
+    }
 
-        if (isInLandscapeMode()) {
-            Row(
-                modifier = Modifier.fillMaxWidth().height(140.dp),
-                horizontalArrangement = Arrangement.spacedBy(20.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                AlbumArtGrid(albumArtList = albumArtMap.map { it.value.fullImage }, modifier = Modifier.width(140.dp))
-                Column(
-                    verticalArrangement = Arrangement.SpaceEvenly,
-                    modifier = Modifier.fillMaxHeight(),
-                    content = {
+    LazyColumn(modifier = modifier, state = viewModel.listState) {
+        if (landscape) {
+            item {
+                Row(
+                    modifier = Modifier.fillMaxWidth().height(140.dp),
+                    horizontalArrangement = Arrangement.spacedBy(20.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    AlbumArtGrid(
+                        albumArtList = gridAlbumArt,
+                        modifier = Modifier.width(140.dp)
+                    )
+                    Column(
+                        verticalArrangement = Arrangement.SpaceEvenly,
+                        modifier = Modifier.fillMaxHeight(),
+                        content = {
+                            Text(
+                                text = viewModel.artist,
+                                style = MaterialTheme.typography.titleLarge,
+                                modifier = Modifier.padding(bottom = 10.dp)
+                            )
+                            ArtistScreenMeta(albums.size, songCount, totalDuration)
+                        },
+                    )
+                }
+            }
+        } else {
+            item {
+                FadingImageBox(
+                    modifier = Modifier.fillMaxWidth(),
+                    image = { AlbumArtGrid(albumArtList = gridAlbumArt) },
+                    topContent = {},
+                    bottomContent = {
                         Text(
                             text = viewModel.artist,
                             style = MaterialTheme.typography.titleLarge,
-                            modifier = Modifier.padding(bottom = 10.dp)
                         )
-                        ArtistScreenMeta(albumArtistAlbums.size, songCount, totalDuration)
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp),
+                            horizontalArrangement = Arrangement.SpaceEvenly,
+                            content = { ArtistScreenMeta(albums.size, songCount, totalDuration) },
+                        )
                     },
                 )
             }
-        } else {
-            FadingImageBox(
-                modifier = Modifier.fillMaxWidth(),
-                image = { AlbumArtGrid(albumArtList = albumArtMap.map { it.value.fullImage }) },
-                topContent = {},
-                bottomContent = {
-                    Text(
-                        text = viewModel.artist,
-                        style = MaterialTheme.typography.titleLarge,
-                    )
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp),
-                        horizontalArrangement = Arrangement.SpaceEvenly,
-                        content = { ArtistScreenMeta(albumArtistAlbums.size, songCount, totalDuration) },
-                    )
-                },
-            )
         }
 
-        if (albumArtistAlbums.isNotEmpty()) {
-            Text(
-                text = stringResource(R.string.albums),
-                style = MaterialTheme.typography.titleLarge,
-                modifier = Modifier.padding(10.dp),
-            )
-            albumArtistAlbums.forEachIndexed { index, album ->
+        if (albums.isNotEmpty()) {
+            item {
+                Text(
+                    text = stringResource(R.string.albums),
+                    style = MaterialTheme.typography.titleLarge,
+                    modifier = Modifier.padding(10.dp),
+                )
+            }
+            itemsIndexed(albums) { index, album ->
+                var thumbnail by remember { mutableStateOf<ImageBitmap?>(null) }
+
+                LaunchedEffect(album) {
+                    viewModel.getThumbnail(album) { thumbnail = it.thumbnail }
+                }
+
                 AlbumRow(
                     album = album,
-                    thumbnail = albumArtMap[album.album.name]?.thumbnail,
+                    thumbnail = thumbnail,
                     showArtist = album.album.artist != viewModel.artist,
                     isSelected = selectedAlbums.contains(album.album),
                     onClick = {
@@ -157,20 +176,28 @@ fun ArtistScreen(
                     },
                     onLongClick = { viewModel.toggleAlbumSelected(album.album) },
                 )
-                if (index < albumArtistAlbums.size - 1) Divider()
+                if (index < albums.size - 1) Divider()
             }
         }
 
-        if (nonAlbumArtistAlbums.isNotEmpty()) {
-            Text(
-                text = stringResource(R.string.appears_on),
-                style = MaterialTheme.typography.titleLarge,
-                modifier = Modifier.padding(10.dp),
-            )
-            nonAlbumArtistAlbums.forEachIndexed { index, album ->
+        if (appearsOnAlbums.isNotEmpty()) {
+            item {
+                Text(
+                    text = stringResource(R.string.appears_on),
+                    style = MaterialTheme.typography.titleLarge,
+                    modifier = Modifier.padding(10.dp),
+                )
+            }
+            itemsIndexed(appearsOnAlbums) { index, album ->
+                var thumbnail by remember { mutableStateOf<ImageBitmap?>(null) }
+
+                LaunchedEffect(album) {
+                    viewModel.getThumbnail(album) { thumbnail = it.thumbnail }
+                }
+
                 AlbumRow(
                     album = album,
-                    thumbnail = albumArtMap[album.album.name]?.thumbnail,
+                    thumbnail = thumbnail,
                     showArtist = album.album.artist != viewModel.artist,
                     isSelected = selectedAlbums.contains(album.album),
                     onClick = {
@@ -179,7 +206,7 @@ fun ArtistScreen(
                     },
                     onLongClick = { viewModel.toggleAlbumSelected(album.album) },
                 )
-                if (index < nonAlbumArtistAlbums.size - 1) Divider()
+                if (index < appearsOnAlbums.size - 1) Divider()
             }
         }
     }

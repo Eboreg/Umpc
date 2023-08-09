@@ -64,8 +64,8 @@ fun AlbumScreen(
     var isAddSongsToPlaylistDialogOpen by rememberSaveable { mutableStateOf(false) }
     val selectedSongs by viewModel.selectedSongs.collectAsStateWithLifecycle()
 
-    val onEnqueueClick: (MPDAlbum) -> Unit = {
-        viewModel.enqueueAlbumLast(it) { response ->
+    val onEnqueueClick: () -> Unit = {
+        viewModel.enqueueLast { response ->
             if (response.isSuccess) viewModel.addMessage(
                 SnackbarMessage(
                     message = context.getString(R.string.the_album_was_enqueued),
@@ -88,7 +88,7 @@ fun AlbumScreen(
             title = "\"${viewModel.album.name}\"",
             playlists = playlists,
             onConfirm = {
-                viewModel.addAlbumToPlaylist(it) { response ->
+                viewModel.addToPlaylist(it) { response ->
                     if (response.isSuccess) viewModel.addMessage(
                         SnackbarMessage(
                             message = context.getString(R.string.album_was_added_to_playlist),
@@ -161,9 +161,9 @@ fun AlbumScreen(
                     AlbumScreenMeta(
                         album = viewModel.album,
                         yearRange = albumWithSongs?.yearRange,
-                        onGotoArtistClick = { onGotoArtistClick(it) },
+                        onGotoArtistClick = { onGotoArtistClick(viewModel.album.artist) },
                         onEnqueueClick = onEnqueueClick,
-                        onPlayClick = { viewModel.playAlbum(it) },
+                        onPlayClick = { viewModel.play() },
                         onAddToPlaylistClick = { isAddAlbumToPlaylistDialogOpen = true },
                     )
                 }
@@ -177,9 +177,9 @@ fun AlbumScreen(
                     AlbumScreenMeta(
                         album = viewModel.album,
                         yearRange = albumWithSongs?.yearRange,
-                        onGotoArtistClick = { onGotoArtistClick(it) },
+                        onGotoArtistClick = { onGotoArtistClick(viewModel.album.artist) },
                         onEnqueueClick = onEnqueueClick,
-                        onPlayClick = { viewModel.playAlbum(it) },
+                        onPlayClick = { viewModel.play() },
                         onAddToPlaylistClick = { isAddAlbumToPlaylistDialogOpen = true },
                     )
                 }
@@ -237,40 +237,42 @@ fun AlbumScreen(
 fun AlbumScreenMeta(
     album: MPDAlbum,
     yearRange: IntRange? = null,
-    onGotoArtistClick: (String) -> Unit,
-    onEnqueueClick: (MPDAlbum) -> Unit,
-    onPlayClick: (MPDAlbum) -> Unit,
-    onAddToPlaylistClick: (MPDAlbum) -> Unit,
+    onGotoArtistClick: () -> Unit,
+    onEnqueueClick: () -> Unit,
+    onPlayClick: () -> Unit,
+    onAddToPlaylistClick: () -> Unit,
 ) {
-    val name =
-        if (yearRange != null && yearRange.first != yearRange.last) "${album.name} (${yearRange.first} - ${yearRange.last})"
-        else if (yearRange != null) "${album.name} (${yearRange.first})"
-        else album.name
-
     Text(
-        text = name,
+        text = album.name,
         style = MaterialTheme.typography.titleLarge,
         textAlign = TextAlign.Center
     )
+    if (yearRange != null) {
+        Text(
+            text = if (yearRange.first != yearRange.last) "${yearRange.first} - ${yearRange.last}" else yearRange.first.toString(),
+            style = MaterialTheme.typography.titleMedium,
+            textAlign = TextAlign.Center,
+        )
+    }
     Text(
         text = album.artist,
         style = MaterialTheme.typography.titleMedium,
         textAlign = TextAlign.Center,
-        modifier = Modifier.clickable { onGotoArtistClick(album.artist) },
+        modifier = Modifier.clickable { onGotoArtistClick() },
     )
     Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.padding(vertical = 10.dp)) {
         SmallOutlinedButton(
-            onClick = { onEnqueueClick(album) },
+            onClick = onEnqueueClick,
             leadingIcon = Icons.Sharp.PlaylistPlay,
             text = stringResource(R.string.enqueue),
         )
         SmallOutlinedButton(
-            onClick = { onPlayClick(album) },
+            onClick = onPlayClick,
             leadingIcon = Icons.Sharp.PlayArrow,
             text = stringResource(R.string.play),
         )
         SmallOutlinedButton(
-            onClick = { onAddToPlaylistClick(album) },
+            onClick = onAddToPlaylistClick,
             leadingIcon = Icons.Sharp.PlaylistAdd,
             text = stringResource(R.string.add_to_playlist),
         )

@@ -1,5 +1,6 @@
 package us.huseli.umpc
 
+import android.net.Uri
 import androidx.navigation.NavType
 import androidx.navigation.navArgument
 import us.huseli.umpc.Constants.NAV_ARG_ALBUM
@@ -17,7 +18,7 @@ object AlbumDestination {
         navArgument(NAV_ARG_ALBUM) { type = NavType.StringType },
     )
 
-    fun route(album: MPDAlbum) = "album/${album.artist}/${album.name}"
+    fun route(album: MPDAlbum) = "album/${Uri.encode(album.artist)}/${Uri.encode(album.name)}"
 }
 
 object ArtistDestination {
@@ -26,7 +27,7 @@ object ArtistDestination {
         navArgument(NAV_ARG_ARTIST) { type = NavType.StringType },
     )
 
-    fun route(name: String) = "artist/$name"
+    fun route(name: String) = "artist/${Uri.encode(name)}"
 }
 
 object PlaylistDetailsDestination {
@@ -35,8 +36,8 @@ object PlaylistDetailsDestination {
         navArgument(NAV_ARG_PLAYLIST) { type = NavType.StringType },
     )
 
-    fun route(playlist: MPDPlaylist) = "playlist/${playlist.name}"
-    fun route(playlistName: String) = "playlist/$playlistName"
+    fun route(playlist: MPDPlaylist) = "playlist/${Uri.encode(playlist.name)}"
+    fun route(playlistName: String) = "playlist/${Uri.encode(playlistName)}"
 }
 
 object LibraryDestination : Destination("library")

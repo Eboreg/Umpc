@@ -8,6 +8,10 @@ import android.graphics.BitmapFactory
 import androidx.activity.ComponentActivity
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import java.io.File
@@ -82,3 +86,15 @@ private val leadingJunkRegex =
     Regex("^[^\\p{Alnum}]*((the )|(los )|(os )|(de )|(dom )|(den )|(det ))?[^\\p{Alnum}]*", RegexOption.IGNORE_CASE)
 
 fun String.replaceLeadingJunk(): String = replace(leadingJunkRegex, "")
+
+fun String.highlight(term: String?): AnnotatedString {
+    val builder = AnnotatedString.Builder(this)
+
+    if (term != null) {
+        val matches = Regex(term, RegexOption.IGNORE_CASE).findAll(this)
+        val style = SpanStyle(fontWeight = FontWeight.Black, textDecoration = TextDecoration.Underline)
+
+        matches.forEach { builder.addStyle(style, it.range.first, it.range.last + 1) }
+    }
+    return builder.toAnnotatedString()
+}

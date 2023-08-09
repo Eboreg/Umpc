@@ -12,7 +12,7 @@ import us.huseli.umpc.replaceLeadingJunk
 data class MPDAlbum(val artist: String, val name: String) : Parcelable {
     @IgnoredOnParcel
     @Transient
-    val searchFilter: MPDFilter = mpdFilter { equals("album", name).and(equals("albumartist", artist)) }
+    val searchFilter: MPDFilter = mpdFilter { equals("album", name) and equals("albumartist", artist) }
 
     override fun equals(other: Any?) =
         other is MPDAlbum && other.artist == artist && other.name == name
@@ -26,16 +26,23 @@ data class MPDAlbum(val artist: String, val name: String) : Parcelable {
         .build()
 }
 
+fun Map<String, List<String>>.toMPDAlbums(artist: String): List<MPDAlbum> = try {
+    val getAlbums: (String) -> List<String>? =
+        { key -> this[key]?.filter { it.isNotBlank() }?.takeUnless { it.isEmpty() } }
+    val albums = getAlbums("AlbumSort") ?: getAlbums("Album")
+
+    albums!!.map { MPDAlbum(artist, it) }
+} catch (e: NullPointerException) {
+    emptyList()
+}
+
 fun Map<String, List<String>>.toMPDAlbums(): List<MPDAlbum> = try {
     val getArtist: (String) -> String? =
         { key -> this[key]?.firstOrNull()?.takeIf { it.isNotBlank() } }
-    val getAlbums: (String) -> List<String>? =
-        { key -> this[key]?.filter { it.isNotBlank() }?.takeUnless { it.isEmpty() } }
     val artist =
         getArtist("AlbumArtistSort") ?: getArtist("AlbumArtist") ?: getArtist("ArtistSort") ?: getArtist("Artist")
-    val albums = getAlbums("AlbumSort") ?: getAlbums("Album")
 
-    albums!!.map { MPDAlbum(artist!!, it) }
+    toMPDAlbums(artist!!)
 } catch (e: NullPointerException) {
     emptyList()
 }

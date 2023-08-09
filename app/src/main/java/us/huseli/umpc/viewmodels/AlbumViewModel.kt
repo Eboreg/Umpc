@@ -34,7 +34,6 @@ class AlbumViewModel @Inject constructor(
             val songs = response.extractSongs()
             val albumWithSongs = MPDAlbumWithSongs(album, songs)
 
-            repo.addAlbumsWithSongs(listOf(albumWithSongs))
             _albumWithSongs.value = albumWithSongs
             albumWithSongs.albumArtKey?.let { albumArtKey ->
                 repo.getAlbumArt(albumArtKey, ImageRequestType.FULL) { _albumArt.value = it.fullImage }
@@ -42,6 +41,10 @@ class AlbumViewModel @Inject constructor(
         }
     }
 
-    fun addAlbumToPlaylist(playlistName: String, onFinish: (MPDMapResponse) -> Unit) =
+    fun addToPlaylist(playlistName: String, onFinish: (MPDMapResponse) -> Unit) =
         repo.client.enqueue("searchaddpl", listOf(playlistName, album.searchFilter.toString()), onFinish)
+
+    fun enqueueLast(onFinish: (MPDMapResponse) -> Unit) = enqueueAlbumLast(album, onFinish)
+
+    fun play() = playAlbum(album)
 }

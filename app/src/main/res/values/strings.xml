@@ -13,6 +13,7 @@
     <string name="app_name">Umpc</string>
     <string name="app_widget_description">The currently playing song on MPD, plus some controls.</string>
     <string name="appears_on">Appears on</string>
+    <string name="base_url">Base URL</string>
     <string name="cancel">Cancel</string>
     <string name="clear">Clear</string>
     <string name="clear_album_art_cache">Clear album art cache</string>
@@ -29,6 +30,7 @@
     <string name="delete_playlist_question">Delete playlist?</string>
     <string name="delete_playlist_x">Delete playlist "%1$s"?</string>
     <string name="deselect_all">Deselect all</string>
+    <string name="download">Download</string>
     <string name="dynamic_playlist">Dynamic playlist</string>
     <string name="dynamic_playlist_help1">A dynamic playlist will, when activated, search the MPD database for a given criteria, and feed the first 20 matching songs into the play queue.</string>
     <string name="dynamic_playlist_help2">As long as Umpc is running, and this dynamic playlist stays active, it will then continuously enqueue more matching songs whenever the playhead is nearing the end of the queue.</string>
@@ -57,6 +59,7 @@
     <string name="mute_volume">Mute volume</string>
     <string name="new_name">New name</string>
     <string name="next">Next</string>
+    <string name="no">No</string>
     <string name="ok">OK</string>
     <string name="or_enter_the_name_of_a_new_playlist">Or enter the name of a new playlist:</string>
     <string name="outputs">Outputs</string>
@@ -69,6 +72,7 @@
     <string name="playlists">Playlists</string>
     <string name="port">Port</string>
     <string name="previous">Previous</string>
+    <string name="protocol">Protocol</string>
     <string name="queue">Queue</string>
     <string name="queue_was_added_to_playlist">Queue was added to playlist.</string>
     <string name="remove">Remove</string>
@@ -85,6 +89,7 @@
     <string name="server_settings">Server settings</string>
     <string name="settings">Settings</string>
     <string name="settings_saved">Settings saved.</string>
+    <string name="sftp">SFTP</string>
     <string name="shuffle">Shuffle</string>
     <string name="start_streaming">Start streaming</string>
     <string name="stop">Stop</string>
@@ -102,8 +107,10 @@
     <string name="total_time_colon">Total time: %1$s</string>
     <string name="undo">Undo</string>
     <string name="unknown_error">Unknown error</string>
+    <string name="username">Username</string>
     <string name="value">Value</string>
     <string name="x_kbps">%1$d Kbps</string>
+    <string name="yes">Yes</string>
     <plurals name="add_albums_playlist_fail">
         <item quantity="one">Failed to add album to playlist.</item>
         <item quantity="other">Failed to add %1$d albums to playlist.</item>

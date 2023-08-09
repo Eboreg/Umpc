@@ -1,22 +1,21 @@
 package us.huseli.umpc.viewmodels
 
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import us.huseli.umpc.Constants.NAV_ARG_ARTIST
 import us.huseli.umpc.ImageRequestType
 import us.huseli.umpc.data.MPDAlbum
-import us.huseli.umpc.data.MPDAlbumArt
 import us.huseli.umpc.data.MPDAlbumWithSongs
 import us.huseli.umpc.data.groupByAlbum
-import us.huseli.umpc.data.plus
-import us.huseli.umpc.data.sortedByYear
 import us.huseli.umpc.mpd.mpdFind
+import us.huseli.umpc.mpd.mpdList
 import us.huseli.umpc.repository.MPDRepository
 import us.huseli.umpc.viewmodels.abstr.AlbumSelectViewModel
 import javax.inject.Inject
@@ -26,88 +25,75 @@ class ArtistViewModel @Inject constructor(
     repo: MPDRepository,
     savedStateHandle: SavedStateHandle,
 ) : AlbumSelectViewModel(repo) {
-    // Albums where the artist is the album artist:
-    private val _albumArtistAlbums = MutableStateFlow<List<MPDAlbumWithSongs>>(emptyList())
-    // Albums where the artist is _not_ the album artist:
-    private val _nonAlbumArtistAlbums = MutableStateFlow<List<MPDAlbumWithSongs>>(emptyList())
-    private val _artistSongs = combine(_albumArtistAlbums, _nonAlbumArtistAlbums) { aaa, naaa ->
-        aaa.flatMap { it.songs } + naaa.flatMap { it.songs.filter { s -> s.artist == artist } }
-    }
-    private val _albumArtMap = MutableStateFlow<Map<String, MPDAlbumArt>>(emptyMap())
+    private val _albums = MutableStateFlow<List<MPDAlbum>>(emptyList())
+    private val _appearsOnAlbums = MutableStateFlow<List<MPDAlbum>>(emptyList())
+    private val _albumsWithSongs = MutableStateFlow<List<MPDAlbumWithSongs>>(emptyList())
+    private val _appearsOnAlbumsWithSongs = MutableStateFlow<List<MPDAlbumWithSongs>>(emptyList())
+    private val _songCount = MutableStateFlow(0)
+    private val _totalDuration = MutableStateFlow(0.0)
+    private val _gridAlbumArt = MutableStateFlow<List<ImageBitmap>>(emptyList())
 
     val artist: String = savedStateHandle.get<String>(NAV_ARG_ARTIST)!!
-    val albumArtistAlbums = _albumArtistAlbums.asStateFlow()
-    val nonAlbumArtistAlbums = _nonAlbumArtistAlbums.asStateFlow()
-    val songCount = _artistSongs.map { it.size }
-    val totalDuration = _artistSongs.map { songs -> songs.sumOf { it.duration ?: 0.0 } }
-    val albumArtMap = _albumArtMap.asStateFlow()
+    val albums = combine(_albums, _albumsWithSongs) { albums, albumsWithSongs ->
+        (albumsWithSongs + albums
+            .filter { album -> !albumsWithSongs.map { it.album }.contains(album) }
+            .map { MPDAlbumWithSongs(it, emptyList()) }).sortedBy { it.album.name.lowercase() }
+    }
+    val appearsOnAlbums = combine(_appearsOnAlbums, _appearsOnAlbumsWithSongs) { albums, albumsWithSongs ->
+        (albumsWithSongs + albums
+            .filter { album -> !albumsWithSongs.map { it.album }.contains(album) }
+            .map { MPDAlbumWithSongs(it, emptyList()) }).sortedBy { it.album.name.lowercase() }
+    }
+    val songCount = _songCount.asStateFlow()
+    val totalDuration = _totalDuration.asStateFlow()
+    val gridAlbumArt = _gridAlbumArt.asStateFlow()
+    val listState = LazyListState()
 
     init {
-        fetchAlbumWithSongsListsByArtist(artist) { albumArtistAlbums, nonAlbumArtistAlbums ->
-            _albumArtistAlbums.value = albumArtistAlbums
-            _nonAlbumArtistAlbums.value = nonAlbumArtistAlbums
-            repo.addAlbumsWithSongs(albumArtistAlbums)
-            repo.addAlbumsWithSongs(nonAlbumArtistAlbums)
+        repo.client.enqueueMultiMap(mpdList("albumsort") { equals("albumartist", artist) }) { response ->
+            _albums.value = response.extractAlbums(artist)
+            repo.client.enqueueMultiMap(mpdList("albumsort", "albumartist") { equals("artist", artist) }) { response2 ->
+                _appearsOnAlbums.value = response2.extractAlbums().filter { it.artist != artist }
 
-            viewModelScope.launch {
-                val keys = (albumArtistAlbums + nonAlbumArtistAlbums).mapNotNull { it.albumArtKey }
-                var finishedImages = 0
-
-                keys.forEach { key ->
-                    repo.getAlbumArt(key, ImageRequestType.BOTH) { albumArt ->
-                        _albumArtMap.value = _albumArtMap.value.toMutableMap().apply {
-                            put(albumArt.key.album, albumArt)
+                viewModelScope.launch {
+                    fetchAlbumSongs { albumWithSongs ->
+                        if (albumWithSongs.album.artist == artist) {
+                            _albumsWithSongs.value += albumWithSongs
+                            _songCount.value += albumWithSongs.songs.size
+                            _totalDuration.value += albumWithSongs.songs.sumOf { it.duration ?: 0.0 }
+                        } else {
+                            _appearsOnAlbumsWithSongs.value += albumWithSongs
+                            albumWithSongs.songs.filter { it.artist == artist }.also { songs ->
+                                _songCount.value += songs.size
+                                _totalDuration.value += songs.sumOf { it.duration ?: 0.0 }
+                            }
+                        }
+                        if (_gridAlbumArt.value.size < 16) {
+                            albumWithSongs.albumArtKey?.let { key ->
+                                repo.getAlbumArt(key, ImageRequestType.FULL) { albumArt ->
+                                    _gridAlbumArt.value += albumArt.fullImage
+                                }
+                            }
                         }
                     }
-                    if (++finishedImages >= 16) return@forEach
                 }
             }
         }
     }
 
-    private fun fetchAlbumWithSongsListsByAlbumList(
-        albums: List<MPDAlbum>,
-        onFinish: (List<MPDAlbumWithSongs>) -> Unit,
-    ) {
-        val albumsWithSongs = mutableListOf<MPDAlbumWithSongs>()
-        var i = 0
+    private fun fetchAlbumSongs(onEach: (MPDAlbumWithSongs) -> Unit) {
+        val appearsOnAlbumsMap = _appearsOnAlbums.value.groupBy { it.artist }
 
-        if (albums.isEmpty()) onFinish(albumsWithSongs)
-
-        albums.forEach { album ->
-            repo.client.enqueueMultiMap(album.searchFilter.find()) { response ->
-                val albumWithSongs = response.extractSongs().groupByAlbum()[0]
-
-                albumsWithSongs.add(albumWithSongs)
-                if (++i == albums.size) onFinish(albumsWithSongs)
-            }
+        repo.client.enqueueMultiMap(mpdFind { equals("albumartist", artist) }) { response ->
+            response.extractSongs().groupByAlbum().forEach(onEach)
         }
-    }
 
-    private fun fetchAlbumWithSongsListsByArtist(
-        artist: String,
-        onFinish: (List<MPDAlbumWithSongs>, List<MPDAlbumWithSongs>) -> Unit,
-    ) {
-        // Albums where the artist is _not_ the album artist:
-        var nonAlbumArtistAlbums = listOf<MPDAlbumWithSongs>()
-        // Albums where the artist _is_ the album artist:
-        var albumArtistAlbums = listOf<MPDAlbumWithSongs>()
+        appearsOnAlbumsMap.forEach { (albumArtist, albums) ->
+            val albumRegex = albums.map { "(^${it.name}$)" }.toSet().joinToString("|")
+            val command = mpdFind { equals("albumartist", albumArtist) and regex("album", albumRegex) }
 
-        repo.client.enqueueMultiMap(mpdFind { equals("artist", artist) }) { response ->
-            // We got songs where this artist is in the "artist" tag:
-            response.extractSongs().toMutableSet().also { songs ->
-                nonAlbumArtistAlbums = songs.filter { it.artist != it.album.artist }.groupByAlbum()
-                albumArtistAlbums = songs.filter { it.artist == it.album.artist }.groupByAlbum()
-            }
-            // The nonAlbumArtistAlbums are likely not complete (as they
-            // contain songs by other artists), so the songs for those will
-            // have to be fetched separately:
-            fetchAlbumWithSongsListsByAlbumList(nonAlbumArtistAlbums.map { it.album }) { aws ->
-                nonAlbumArtistAlbums = aws
-                repo.client.enqueueMultiMap(mpdFind { equals("albumartist", artist) }) { response ->
-                    albumArtistAlbums = albumArtistAlbums.plus(response.extractSongs().groupByAlbum())
-                    onFinish(albumArtistAlbums.sortedByYear(), nonAlbumArtistAlbums.sortedByYear())
-                }
+            repo.client.enqueueMultiMap(command) { response ->
+                response.extractSongs().groupByAlbum().forEach(onEach)
             }
         }
     }

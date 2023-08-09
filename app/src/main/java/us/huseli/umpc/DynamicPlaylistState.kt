@@ -35,6 +35,7 @@ class DynamicPlaylistState(
 
     init {
         log("DYNAMICPLAYLISTSTATE: init. currentOffset=$currentOffset, replaceCurrentQueue=$replaceCurrentQueue, playOnLoad=$playOnLoad")
+        repo.registerOnMPDChangeListener(this)
 
         ioScope.launch {
             mutex.withLock {
@@ -80,8 +81,6 @@ class DynamicPlaylistState(
             }
             onLoaded?.invoke()
         }
-
-        repo.registerOnMPDChangeListener(this@DynamicPlaylistState)
 
         songPositionListener = ioScope.launch {
             repo.currentSongPosition.filterNotNull().distinctUntilChanged().collect { position ->

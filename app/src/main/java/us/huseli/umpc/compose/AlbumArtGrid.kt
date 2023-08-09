@@ -12,7 +12,6 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import us.huseli.umpc.Logger
 import us.huseli.umpc.roundUpSqrt
 
 @Composable
@@ -35,10 +34,6 @@ fun AlbumArtGrid(modifier: Modifier = Modifier, albumArtList: List<ImageBitmap>)
                 if (sublist.size > 1 || index == 0) {
                     Row(modifier = Modifier.heightIn(min = 0.dp)) {
                         sublist.forEach { albumArt ->
-                            Logger.log(
-                                "AlbumArtGrid",
-                                "albumArtList.size=${slicedAlbumArtList.size}, sublist.size = ${sublist.size}, index=$index, itemsPerRow=$itemsPerRow, screenWidth=$screenWidth, screenWidth / sublist.size = ${screenWidth / sublist.size}"
-                            )
                             Image(
                                 bitmap = albumArt,
                                 contentDescription = null,

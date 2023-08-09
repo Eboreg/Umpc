@@ -1,11 +1,14 @@
 package us.huseli.umpc.viewmodels.abstr
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 import us.huseli.umpc.ImageRequestType
 import us.huseli.umpc.data.MPDAlbum
 import us.huseli.umpc.data.MPDAlbumArt
+import us.huseli.umpc.data.MPDAlbumWithSongs
 import us.huseli.umpc.data.MPDSong
 import us.huseli.umpc.mpd.response.MPDMapResponse
 import us.huseli.umpc.repository.MPDRepository
@@ -34,6 +37,10 @@ abstract class BaseViewModel(val repo: MPDRepository) : ViewModel() {
 
     fun enqueueSongLast(song: MPDSong, onFinish: (MPDMapResponse) -> Unit) =
         repo.enqueueSongLast(song.filename, onFinish)
+
+    fun getThumbnail(album: MPDAlbumWithSongs, onFinish: (MPDAlbumArt) -> Unit) = viewModelScope.launch {
+        album.albumArtKey?.let { repo.getAlbumArt(it, ImageRequestType.THUMBNAIL, onFinish) }
+    }
 
     private fun enqueueSongNextAndPlay(song: MPDSong) {
         val args =
