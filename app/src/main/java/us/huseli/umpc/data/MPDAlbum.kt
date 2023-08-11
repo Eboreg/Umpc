@@ -1,24 +1,28 @@
 package us.huseli.umpc.data
 
 import android.os.Parcelable
-import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
-import us.huseli.umpc.mpd.MPDFilter
+import us.huseli.umpc.mpd.BaseMPDFilter
 import us.huseli.umpc.mpd.mpdFilter
+import us.huseli.umpc.mpd.mpdFilterPre021
 import us.huseli.umpc.proto.MPDAlbumProto
 import us.huseli.umpc.replaceLeadingJunk
 
 @Parcelize
 data class MPDAlbum(val artist: String, val name: String) : Parcelable {
-    @IgnoredOnParcel
-    @Transient
-    val searchFilter: MPDFilter = mpdFilter { equals("album", name) and equals("albumartist", artist) }
-
     override fun equals(other: Any?) =
         other is MPDAlbum && other.artist == artist && other.name == name
 
     override fun hashCode() = 31 * artist.hashCode() + name.hashCode()
     override fun toString() = "${javaClass.simpleName}[artist: $artist, name: $name]"
+
+    fun getSearchFilter(protocolVersion: MPDVersion): BaseMPDFilter {
+        return if (protocolVersion < MPDVersion("0.21")) {
+            mpdFilterPre021 { equals("album", name) and equals("albumartist", artist) }
+        } else {
+            mpdFilter { equals("album", name) and equals("albumartist", artist) }
+        }
+    }
 
     fun toProto(): MPDAlbumProto? = MPDAlbumProto.newBuilder()
         .setArtist(artist)

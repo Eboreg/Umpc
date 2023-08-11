@@ -14,6 +14,7 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import us.huseli.umpc.LoggerInterface
 import us.huseli.umpc.data.MPDCredentials
+import us.huseli.umpc.data.MPDServer
 import us.huseli.umpc.data.MPDVersion
 import us.huseli.umpc.mpd.command.MPDBaseCommand
 import us.huseli.umpc.mpd.command.MPDBatchMapCommand
@@ -32,13 +33,14 @@ abstract class MPDBaseClient(
     private val ioScope: CoroutineScope,
     private val settingsRepository: SettingsRepository,
 ) : LoggerInterface {
-    enum class State { STARTED, PREPARED, READY, RUNNING, ERROR }
+    enum class State { STARTED, PREPARED, CONNECTING, READY, RUNNING, ERROR }
 
-    private var _protocolVersion = MutableStateFlow(MPDVersion())
+    private val _protocolVersion = MutableStateFlow(MPDVersion())
+    private val _server = MutableStateFlow<MPDServer?>(null)
     private val commandQueue = MutableStateFlow<List<MPDBaseCommand<*>>>(emptyList())
     private val commandMutex = Mutex()
     private val commandQueueMutex = Mutex()
-    private var credentials: MPDCredentials? = null
+    protected var credentials: MPDCredentials? = null
     private val wantedTagTypes = listOf(
         "Artist",
         "ArtistSort",
@@ -58,11 +60,15 @@ abstract class MPDBaseClient(
     protected var socket = Socket()
 
     val protocolVersion = _protocolVersion.asStateFlow()
+    val server = _server.asStateFlow()
 
     init {
         ioScope.launch {
             settingsRepository.credentials.collect { credentials ->
-                setCredentials(credentials)
+                if (credentials != this@MPDBaseClient.credentials) {
+                    this@MPDBaseClient.credentials = credentials
+                    state.value = State.PREPARED
+                }
                 start()
             }
         }
@@ -103,13 +109,6 @@ abstract class MPDBaseClient(
     fun enqueueMultiMap(command: String, arg: String, onFinish: ((MPDMultiMapResponse) -> Unit)? = null) =
         enqueue(MPDMultiMapCommand(command, args = listOf(arg), onFinish = onFinish))
 
-    private fun setCredentials(credentials: MPDCredentials) {
-        if (credentials != this.credentials) {
-            this.credentials = credentials
-            state.value = State.PREPARED
-        }
-    }
-
     open suspend fun start() {
         worker?.cancel()
         worker = workerScope.launch {
@@ -130,7 +129,7 @@ abstract class MPDBaseClient(
     }
 
     protected open suspend fun connect(failSilently: Boolean = false): Boolean {
-        state.value = State.PREPARED
+        state.value = State.CONNECTING
         return withContext(Dispatchers.IO) {
             try {
                 socket.close()
@@ -145,6 +144,7 @@ abstract class MPDBaseClient(
                 }
 
                 _protocolVersion.value = MPDVersion(responseLine.substringAfter("OK MPD "))
+                _server.value = credentials?.let { MPDServer(it.hostname, it.port) }
 
                 credentials?.password?.also { password ->
                     val response = MPDMapCommand("password", password).execute(socket)
@@ -175,7 +175,8 @@ abstract class MPDBaseClient(
             state.value = State.RUNNING
             val response = commandMutex.withLock { command.execute(socket) }
             if (response.status == MPDBaseResponse.Status.EMPTY_RESPONSE) {
-                connect(failSilently = true)
+                // connect(failSilently = true)
+                state.value = State.PREPARED
                 enqueue(command, force = true)
             } else {
                 state.value = State.READY

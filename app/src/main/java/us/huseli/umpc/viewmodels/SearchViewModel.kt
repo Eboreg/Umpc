@@ -6,8 +6,10 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import us.huseli.umpc.data.MPDSong
+import us.huseli.umpc.data.MPDVersion
 import us.huseli.umpc.mpd.command.MPDMapCommand
 import us.huseli.umpc.mpd.mpdSearch
+import us.huseli.umpc.mpd.mpdSearchPre021
 import us.huseli.umpc.mpd.response.MPDBatchMapResponse
 import us.huseli.umpc.repository.MPDRepository
 import us.huseli.umpc.viewmodels.abstr.SongSelectViewModel
@@ -61,7 +63,12 @@ class SearchViewModel @Inject constructor(repo: MPDRepository) : SongSelectViewM
          * filtering must be applied.
          */
         if (term.isNotEmpty()) {
-            repo.client.enqueueMultiMap(mpdSearch { contains("any", term) }) { response ->
+            // TODO: Maybe disable search all together in <0.21, or implement
+            // it in some completely different way
+            val command =
+                if (repo.protocolVersion.value < MPDVersion("0.21")) mpdSearchPre021 { equals("any", term) }
+                else mpdSearch { contains("any", term) }
+            repo.client.enqueueMultiMap(command) { response ->
                 onFinish(
                     response.extractSongs().filter {
                         it.album.name.contains(term, true) ||

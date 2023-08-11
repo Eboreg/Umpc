@@ -20,11 +20,13 @@ import androidx.compose.ui.unit.dp
 import us.huseli.umpc.R
 import us.huseli.umpc.data.DynamicPlaylist
 import us.huseli.umpc.data.DynamicPlaylistFilter
+import us.huseli.umpc.data.MPDVersion
 
 @Composable
 fun EditDynamicPlaylistDialog(
     modifier: Modifier = Modifier,
     playlist: DynamicPlaylist? = null,
+    protocolVerion: MPDVersion,
     onSave: (DynamicPlaylistFilter, Boolean) -> Unit,
     onCancel: () -> Unit,
 ) {
@@ -44,7 +46,11 @@ fun EditDynamicPlaylistDialog(
         dismissButton = { TextButton(onClick = onCancel) { Text(stringResource(R.string.cancel)) } },
         text = {
             Column {
-                DynamicPlaylistFilterSection(filter = filter, onChange = { filter = it })
+                DynamicPlaylistFilterSection(
+                    filter = filter,
+                    protocolVersion = protocolVerion,
+                    onChange = { filter = it }
+                )
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Checkbox(
                         modifier = Modifier.padding(start = 0.dp),

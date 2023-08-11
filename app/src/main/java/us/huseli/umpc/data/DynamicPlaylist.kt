@@ -7,6 +7,7 @@ import us.huseli.umpc.proto.DynamicPlaylistProto
 @Parcelize
 data class DynamicPlaylist(
     val filter: DynamicPlaylistFilter,
+    val server: MPDServer,
     val shuffle: Boolean = false,
     val songCount: Int? = null,
 ) : Parcelable {
@@ -23,6 +24,7 @@ data class DynamicPlaylist(
         it.filter = filter.toProto()
         it.shuffle = shuffle
         it.currentOffset = currentOffset
+        it.server = server.toString()
         it.clearFilenames()
         it.addAllFilenames(filenames)
         it.build()

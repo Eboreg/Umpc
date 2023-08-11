@@ -13,9 +13,12 @@ import us.huseli.umpc.Constants.NAV_ARG_ARTIST
 import us.huseli.umpc.ImageRequestType
 import us.huseli.umpc.data.MPDAlbum
 import us.huseli.umpc.data.MPDAlbumWithSongs
+import us.huseli.umpc.data.MPDVersion
 import us.huseli.umpc.data.groupByAlbum
 import us.huseli.umpc.mpd.mpdFind
+import us.huseli.umpc.mpd.mpdFindPre021
 import us.huseli.umpc.mpd.mpdList
+import us.huseli.umpc.mpd.mpdListPre021
 import us.huseli.umpc.repository.MPDRepository
 import us.huseli.umpc.viewmodels.abstr.AlbumSelectViewModel
 import javax.inject.Inject
@@ -50,9 +53,14 @@ class ArtistViewModel @Inject constructor(
     val listState = LazyListState()
 
     init {
-        repo.client.enqueueMultiMap(mpdList("albumsort") { equals("albumartist", artist) }) { response ->
+        val command =
+            if (repo.protocolVersion.value < MPDVersion("0.21"))
+                mpdListPre021("album") { equals("albumartist", artist) }
+            else mpdList("album") { equals("albumartist", artist) }
+
+        repo.client.enqueueMultiMap(command) { response ->
             _albums.value = response.extractAlbums(artist)
-            repo.client.enqueueMultiMap(mpdList("albumsort", "albumartist") { equals("artist", artist) }) { response2 ->
+            repo.client.enqueueMultiMap(mpdList("album", "albumartist") { equals("artist", artist) }) { response2 ->
                 _appearsOnAlbums.value = response2.extractAlbums().filter { it.artist != artist }
 
                 viewModelScope.launch {
@@ -83,17 +91,31 @@ class ArtistViewModel @Inject constructor(
 
     private fun fetchAlbumSongs(onEach: (MPDAlbumWithSongs) -> Unit) {
         val appearsOnAlbumsMap = _appearsOnAlbums.value.groupBy { it.artist }
+        val command =
+            if (repo.protocolVersion.value < MPDVersion("0.21")) mpdFindPre021 { equals("albumartist", artist) }
+            else mpdFind { equals("albumartist", artist) }
 
-        repo.client.enqueueMultiMap(mpdFind { equals("albumartist", artist) }) { response ->
+        repo.client.enqueueMultiMap(command) { response ->
             response.extractSongs().groupByAlbum().forEach(onEach)
         }
 
         appearsOnAlbumsMap.forEach { (albumArtist, albums) ->
-            val albumRegex = albums.map { "(^${it.name}$)" }.toSet().joinToString("|")
-            val command = mpdFind { equals("albumartist", albumArtist) and regex("album", albumRegex) }
+            if (repo.protocolVersion.value < MPDVersion("0.21")) {
+                albums.map { it.name }.toSet().forEach { albumName ->
+                    val command2 = mpdFindPre021 {
+                        equals("albumartist", albumArtist) and equals("album", albumName)
+                    }
+                    repo.client.enqueueMultiMap(command2) { response ->
+                        response.extractSongs().groupByAlbum().forEach(onEach)
+                    }
+                }
+            } else {
+                val albumRegex = albums.map { "(^${it.name}$)" }.toSet().joinToString("|")
+                val command2 = mpdFind { equals("albumartist", albumArtist) and regex("album", albumRegex) }
 
-            repo.client.enqueueMultiMap(command) { response ->
-                response.extractSongs().groupByAlbum().forEach(onEach)
+                repo.client.enqueueMultiMap(command2) { response ->
+                    response.extractSongs().groupByAlbum().forEach(onEach)
+                }
             }
         }
     }

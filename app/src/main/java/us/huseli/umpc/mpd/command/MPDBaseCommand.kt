@@ -5,7 +5,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import us.huseli.umpc.Constants.READ_BUFFER_SIZE
 import us.huseli.umpc.LoggerInterface
-import us.huseli.umpc.mpd.MPDFilterContext
+import us.huseli.umpc.mpd.escape
 import us.huseli.umpc.mpd.response.MPDBaseResponse
 import us.huseli.umpc.mpd.response.MPDBaseTextResponse
 import java.io.ByteArrayOutputStream
@@ -77,7 +77,7 @@ abstract class MPDBaseCommand<RT : MPDBaseResponse>(
 
     protected fun getCommand(command: String, args: Collection<String> = emptyList()) =
         if (args.isEmpty()) command
-        else "$command ${args.joinToString(" ") { "\"${MPDFilterContext.escape(it)}\"" }}"
+        else "$command ${args.joinToString(" ") { "\"${escape(it)}\"" }}"
 
     protected suspend fun readBinary(size: Int): ByteArray {
         val data = ByteArray(size)

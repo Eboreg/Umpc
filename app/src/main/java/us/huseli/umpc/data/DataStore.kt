@@ -66,4 +66,5 @@ fun DynamicPlaylistProto.toNative(): DynamicPlaylist = DynamicPlaylist(
     filter = filter.toNative(),
     shuffle = shuffle,
     songCount = filenamesCount,
+    server = MPDServer.fromString(server),
 )

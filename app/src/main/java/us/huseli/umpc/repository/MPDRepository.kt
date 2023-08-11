@@ -115,6 +115,7 @@ class MPDRepository @Inject constructor(
     val queue = _queue.asStateFlow()
     val randomState = _randomState.asStateFlow()
     val repeatState = _repeatState.asStateFlow()
+    val server = client.server
     val stopAfterCurrent = _stopAfterCurrent.asStateFlow()
     val storedPlaylists = _storedPlaylists.asStateFlow()
     val volume = _volume.asStateFlow()
@@ -279,8 +280,8 @@ class MPDRepository @Inject constructor(
     fun loadDynamicPlaylists() {
         val listType = object : TypeToken<List<DynamicPlaylist>>() {}
 
-        gson.fromJson(preferences.getString(PREF_DYNAMIC_PLAYLISTS, "[]"), listType)?.let {
-            _dynamicPlaylists.value = it
+        gson.fromJson(preferences.getString(PREF_DYNAMIC_PLAYLISTS, "[]"), listType)?.let { playlists ->
+            _dynamicPlaylists.value = playlists.filter { it.server == server.value }
         }
     }
 

@@ -47,7 +47,7 @@ class PlaylistListViewModel @Inject constructor(
     }
 
     fun createDynamicPlaylist(filter: DynamicPlaylistFilter, shuffle: Boolean) {
-        repo.addDynamicPlaylist(DynamicPlaylist(filter, shuffle))
+        repo.addDynamicPlaylist(DynamicPlaylist(filter, repo.server.value!!, shuffle))
         repo.saveDynamicPlaylists()
     }
 

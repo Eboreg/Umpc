@@ -10,6 +10,9 @@ import us.huseli.umpc.data.MPDAlbum
 import us.huseli.umpc.data.MPDAlbumArt
 import us.huseli.umpc.data.MPDAlbumWithSongs
 import us.huseli.umpc.data.MPDSong
+import us.huseli.umpc.data.MPDVersion
+import us.huseli.umpc.mpd.mpdFindAdd
+import us.huseli.umpc.mpd.mpdFindPre021
 import us.huseli.umpc.mpd.response.MPDMapResponse
 import us.huseli.umpc.repository.MPDRepository
 import us.huseli.umpc.repository.SnackbarMessage
@@ -33,7 +36,7 @@ abstract class BaseViewModel(val repo: MPDRepository) : ViewModel() {
     fun addMessage(message: SnackbarMessage) = repo.messageRepository.addMessage(message)
 
     fun enqueueAlbumLast(album: MPDAlbum, onFinish: (MPDMapResponse) -> Unit) =
-        repo.client.enqueue(album.searchFilter.findadd(), onFinish = onFinish)
+        repo.client.enqueue(album.getSearchFilter(repo.protocolVersion.value).findadd(), onFinish = onFinish)
 
     fun enqueueSongLast(song: MPDSong, onFinish: (MPDMapResponse) -> Unit) =
         repo.enqueueSongLast(song.filename, onFinish)
@@ -61,8 +64,12 @@ abstract class BaseViewModel(val repo: MPDRepository) : ViewModel() {
             repo.currentSongPosition.value?.plus(1) ?: repo.queue.value.size,
             repo.queue.value.size
         )
+        val command =
+            if (repo.protocolVersion.value < MPDVersion("0.21"))
+                mpdFindPre021 { equals("album", album.name) and equals("albumartist", album.artist) }
+            else mpdFindAdd(addPosition) { equals("album", album.name) and equals("albumartist", album.artist) }
 
-        repo.client.enqueue(album.searchFilter.findadd(addPosition)) { response ->
+        repo.client.enqueue(command) { response ->
             if (response.isSuccess) playSongByPosition(firstSongPosition)
         }
     }

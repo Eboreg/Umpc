@@ -75,7 +75,7 @@ class LibraryViewModel @Inject constructor(repo: MPDRepository) : AlbumSelectVie
 
         if (aws != null) onFinish(aws)
         else {
-            repo.client.enqueueMultiMap(album.searchFilter.find()) { response ->
+            repo.client.enqueueMultiMap(album.getSearchFilter(repo.protocolVersion.value).find()) { response ->
                 val songs = response.extractSongs()
                 MPDAlbumWithSongs(album, songs).also {
                     _albumsWithSongs.value = _albumsWithSongs.value.plus(it)

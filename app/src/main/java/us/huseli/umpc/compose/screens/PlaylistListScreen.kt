@@ -62,12 +62,14 @@ fun PlaylistListScreen(
 ) {
     val context = LocalContext.current
     val displayType by viewModel.displayType.collectAsStateWithLifecycle()
+    val protocolVersion by viewModel.protocolVersion.collectAsStateWithLifecycle()
     var isCreateDynamicPlaylistDialogOpen by rememberSaveable { mutableStateOf(false) }
     var editingDynamicPlaylist by rememberSaveable { mutableStateOf<DynamicPlaylist?>(null) }
     var deletingDynamicPlaylist by rememberSaveable { mutableStateOf<DynamicPlaylist?>(null) }
 
     if (isCreateDynamicPlaylistDialogOpen) {
         EditDynamicPlaylistDialog(
+            protocolVerion = protocolVersion,
             onSave = { filter, shuffle ->
                 isCreateDynamicPlaylistDialogOpen = false
                 viewModel.createDynamicPlaylist(filter, shuffle)
@@ -78,6 +80,7 @@ fun PlaylistListScreen(
         editingDynamicPlaylist?.let { playlist ->
             EditDynamicPlaylistDialog(
                 playlist = playlist,
+                protocolVerion = protocolVersion,
                 onSave = { filter, shuffle ->
                     isCreateDynamicPlaylistDialogOpen = false
                     viewModel.updateDynamicPlaylist(playlist, filter, shuffle)
@@ -260,6 +263,7 @@ fun DynamicPlaylistHelpDialog(modifier: Modifier = Modifier, onClose: () -> Unit
                 Text(stringResource(R.string.dynamic_playlist_help1))
                 Text(stringResource(R.string.dynamic_playlist_help2))
                 Text(stringResource(R.string.dynamic_playlist_help3))
+                Text(stringResource(R.string.dynamic_playlist_help4))
             }
         },
     )

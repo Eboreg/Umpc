@@ -30,7 +30,7 @@ class AlbumViewModel @Inject constructor(
     val albumArt = _albumArt.asStateFlow()
 
     init {
-        repo.client.enqueueMultiMap(album.searchFilter.find()) { response ->
+        repo.client.enqueueMultiMap(album.getSearchFilter(repo.protocolVersion.value).find()) { response ->
             val songs = response.extractSongs()
             val albumWithSongs = MPDAlbumWithSongs(album, songs)
 
@@ -42,7 +42,11 @@ class AlbumViewModel @Inject constructor(
     }
 
     fun addToPlaylist(playlistName: String, onFinish: (MPDMapResponse) -> Unit) =
-        repo.client.enqueue("searchaddpl", listOf(playlistName, album.searchFilter.toString()), onFinish)
+        repo.client.enqueue(
+            "searchaddpl",
+            listOf(playlistName, album.getSearchFilter(repo.protocolVersion.value).toString()),
+            onFinish
+        )
 
     fun enqueueLast(onFinish: (MPDMapResponse) -> Unit) = enqueueAlbumLast(album, onFinish)
 

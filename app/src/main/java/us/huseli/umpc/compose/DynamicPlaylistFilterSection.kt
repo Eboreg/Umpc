@@ -18,12 +18,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import us.huseli.umpc.R
 import us.huseli.umpc.data.DynamicPlaylistFilter
+import us.huseli.umpc.data.MPDVersion
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DynamicPlaylistFilterSection(
     modifier: Modifier = Modifier,
     filter: DynamicPlaylistFilter,
+    protocolVersion: MPDVersion,
     onChange: (DynamicPlaylistFilter) -> Unit,
 ) {
     var isKeyDropdownExpanded by rememberSaveable { mutableStateOf(false) }
@@ -80,7 +82,7 @@ fun DynamicPlaylistFilterSection(
                 expanded = isComparatorDropdownExpanded,
                 onDismissRequest = { isComparatorDropdownExpanded = false },
             ) {
-                DynamicPlaylistFilter.Comparator.values().forEach { comparator ->
+                DynamicPlaylistFilter.comparatorValuesByVersion(protocolVersion).forEach { comparator ->
                     DropdownMenuItem(
                         text = { Text(comparator.displayName) },
                         onClick = {

@@ -38,6 +38,7 @@ message DynamicPlaylistProto {
         NOT_EQUALS = 2;
         CONTAINS = 3;
         NOT_CONTAINS = 4;
+        EQUALS_PRE021 = 5;
     }
 
     message Filter {
@@ -50,6 +51,7 @@ message DynamicPlaylistProto {
     bool shuffle = 2;
     int32 current_offset = 3;
     repeated string filenames = 4;
+    string server = 5;
 }
 
 message QueueProto {

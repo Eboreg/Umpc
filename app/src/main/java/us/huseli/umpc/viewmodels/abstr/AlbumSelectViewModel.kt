@@ -14,7 +14,10 @@ abstract class AlbumSelectViewModel(repo: MPDRepository) : BaseViewModel(repo) {
     fun addSelectedAlbumsToPlaylist(playlistName: String, onFinish: (MPDBatchMapResponse) -> Unit) =
         repo.client.enqueueBatch(
             commands = _selectedAlbums.value.map {
-                MPDMapCommand("searchaddpl", listOf(playlistName, it.searchFilter.toString()))
+                MPDMapCommand(
+                    "searchaddpl",
+                    listOf(playlistName, it.getSearchFilter(repo.protocolVersion.value).toString())
+                )
             },
             onFinish = onFinish,
         )
@@ -25,7 +28,9 @@ abstract class AlbumSelectViewModel(repo: MPDRepository) : BaseViewModel(repo) {
 
     fun enqueueSelectedAlbums(onFinish: (MPDBatchMapResponse) -> Unit) =
         repo.client.enqueueBatch(
-            commands = _selectedAlbums.value.map { MPDMapCommand(it.searchFilter.findadd()) },
+            commands = _selectedAlbums.value.map {
+                MPDMapCommand(it.getSearchFilter(repo.protocolVersion.value).findadd())
+            },
             onFinish = onFinish,
         )
 
