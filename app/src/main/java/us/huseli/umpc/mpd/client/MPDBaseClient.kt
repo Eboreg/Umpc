@@ -18,10 +18,14 @@ import us.huseli.umpc.data.MPDServer
 import us.huseli.umpc.data.MPDVersion
 import us.huseli.umpc.mpd.command.MPDBaseCommand
 import us.huseli.umpc.mpd.command.MPDBatchMapCommand
+import us.huseli.umpc.mpd.command.MPDBatchMultiMapCommand
+import us.huseli.umpc.mpd.command.MPDListCommand
 import us.huseli.umpc.mpd.command.MPDMapCommand
 import us.huseli.umpc.mpd.command.MPDMultiMapCommand
 import us.huseli.umpc.mpd.response.MPDBaseResponse
 import us.huseli.umpc.mpd.response.MPDBatchMapResponse
+import us.huseli.umpc.mpd.response.MPDBatchMultiMapResponse
+import us.huseli.umpc.mpd.response.MPDListResponse
 import us.huseli.umpc.mpd.response.MPDMapResponse
 import us.huseli.umpc.mpd.response.MPDMultiMapResponse
 import us.huseli.umpc.repository.SettingsRepository
@@ -75,14 +79,14 @@ abstract class MPDBaseClient(
     }
 
     fun enqueue(command: String, onFinish: ((MPDMapResponse) -> Unit)? = null) =
-        enqueue(command, listOf(), onFinish)
+        enqueue(command, emptyList<Any>(), onFinish)
 
-    fun enqueue(command: String, arg: String, onFinish: ((MPDMapResponse) -> Unit)? = null) =
+    fun enqueue(command: String, arg: Any, onFinish: ((MPDMapResponse) -> Unit)? = null) =
         enqueue(command, listOf(arg), onFinish)
 
-    open fun enqueue(
+    fun enqueue(
         command: String,
-        args: Collection<String> = emptyList(),
+        args: Collection<*> = emptyList<Any>(),
         onFinish: ((MPDMapResponse) -> Unit)? = null,
     ) = enqueue(MPDMapCommand(command, args, onFinish))
 
@@ -97,17 +101,30 @@ abstract class MPDBaseClient(
         }
     }
 
-    fun enqueueBatch(
-        commands: Collection<MPDMapCommand>,
-        successCriteria: MPDBatchMapCommand.SuccessCriteria = MPDBatchMapCommand.SuccessCriteria.ANY_SUCCEEDED,
-        onFinish: ((MPDBatchMapResponse) -> Unit)? = null,
-    ) = enqueue(MPDBatchMapCommand(commands = commands, successCriteria = successCriteria, onFinish = onFinish))
+    fun enqueueBatch(commands: Collection<String>, onFinish: ((MPDBatchMapResponse) -> Unit)? = null) =
+        enqueue(MPDBatchMapCommand(commands, onFinish))
+
+    fun enqueueBatchMultiMap(commands: Collection<String>, onFinish: ((MPDBatchMultiMapResponse) -> Unit)? = null) =
+        enqueue(MPDBatchMultiMapCommand(commands, onFinish))
+
+    fun enqueueList(
+        command: String,
+        key: String,
+        args: Collection<Any> = emptyList(),
+        onFinish: (MPDListResponse) -> Unit,
+    ) = enqueue(MPDListCommand(command, key, args, onFinish))
 
     fun enqueueMultiMap(command: String, onFinish: ((MPDMultiMapResponse) -> Unit)? = null) =
-        enqueue(MPDMultiMapCommand(command, onFinish = onFinish))
+        enqueueMultiMap(command, emptyList<Any>(), onFinish)
 
-    fun enqueueMultiMap(command: String, arg: String, onFinish: ((MPDMultiMapResponse) -> Unit)? = null) =
-        enqueue(MPDMultiMapCommand(command, args = listOf(arg), onFinish = onFinish))
+    fun enqueueMultiMap(command: String, arg: Any, onFinish: ((MPDMultiMapResponse) -> Unit)? = null) =
+        enqueueMultiMap(command, listOf(arg), onFinish)
+
+    fun enqueueMultiMap(
+        command: String,
+        args: Collection<*> = emptyList<Any>(),
+        onFinish: ((MPDMultiMapResponse) -> Unit)? = null,
+    ) = enqueue(MPDMultiMapCommand(command, args, onFinish))
 
     open suspend fun start() {
         worker?.cancel()

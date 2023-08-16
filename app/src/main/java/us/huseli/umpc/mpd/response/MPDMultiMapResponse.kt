@@ -1,6 +1,7 @@
 package us.huseli.umpc.mpd.response
 
 import us.huseli.umpc.data.MPDAlbum
+import us.huseli.umpc.data.MPDError
 import us.huseli.umpc.data.MPDOutput
 import us.huseli.umpc.data.MPDPlaylist
 import us.huseli.umpc.data.MPDSong
@@ -13,9 +14,6 @@ class MPDMultiMapResponse : MPDBaseTextResponse() {
     private val _responseMaps = mutableListOf<Map<String, List<String>>>()
     private var _currentMap = mutableMapOf<String, List<String>>()
     private var _startKey: String? = null
-
-    private val responseMaps: List<Map<String, List<String>>>
-        get() = _responseMaps
 
     override fun putLine(line: String) {
         if (responseRegex.matches(line)) {
@@ -30,9 +28,14 @@ class MPDMultiMapResponse : MPDBaseTextResponse() {
         }
     }
 
-    override fun <RT : MPDBaseResponse> finish(status: Status, exception: Throwable?, error: String?): RT {
+    override fun <RT : MPDBaseResponse> finish(
+        status: Status,
+        exception: Throwable?,
+        mpdError: MPDError?,
+        error: String?,
+    ): RT {
         if (_startKey != null) _responseMaps.add(_currentMap)
-        return super.finish(status, exception, error)
+        return super.finish(status, exception, mpdError, error)
     }
 
     fun extractAlbums(): List<MPDAlbum> = _responseMaps.flatMap { it.toMPDAlbums() }
@@ -54,5 +57,5 @@ class MPDMultiMapResponse : MPDBaseTextResponse() {
         }
 
     override fun toString() =
-        "${javaClass.simpleName}[status=$status, error=$error, responseMaps=$responseMaps]"
+        "${javaClass.simpleName}[status=$status, error=$error, responseMaps=$_responseMaps]"
 }

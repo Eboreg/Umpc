@@ -5,8 +5,12 @@ fun escape(string: String) = string
     .replace("'", "\\'")
     .replace("\\\\\"", "\\\\\\\"")
 
-object MPDFilterContext {
-    fun equals(tag: String, value: String) = MPDFilter("($tag == \"${escape(value)}\")")
+abstract class BaseMPDFilterContext {
+    abstract fun equals(tag: String, value: String): BaseMPDFilter
+}
+
+object MPDFilterContext : BaseMPDFilterContext() {
+    override fun equals(tag: String, value: String) = MPDFilter("($tag == \"${escape(value)}\")")
 
     fun notEquals(tag: String, value: String) = MPDFilter("($tag != \"${escape(value)}\")")
 
@@ -15,8 +19,8 @@ object MPDFilterContext {
     fun regex(tag: String, value: String) = MPDFilter("($tag =~ \"${escape(value)}\")")
 }
 
-object MPDFilterContextPre021 {
-    fun equals(tag: String, value: String) = MPDFilterPre021("$tag \"${escape(value)}\"")
+object MPDFilterContextPre021 : BaseMPDFilterContext() {
+    override fun equals(tag: String, value: String) = MPDFilterPre021("$tag \"${escape(value)}\"")
 }
 
 abstract class BaseMPDFilter(protected val term: String) {
@@ -43,8 +47,9 @@ class MPDFilter(term: String) : BaseMPDFilter(term) {
 
     override fun findadd() = "findadd \"${escape(term)}\""
 
-    fun findadd(position: Int?): String {
-        if (position == null) return findadd()
+    fun findadd(position: Int): String = "findadd \"${escape(term)}\" position $position"
+
+    fun findaddRelative(position: Int): String {
         val pos = if (position >= 0) "+${position}" else position.toString()
         return "findadd \"${escape(term)}\" position $pos"
     }
@@ -72,26 +77,13 @@ inline fun mpdFilter(block: MPDFilterContext.() -> MPDFilter) = with(MPDFilterCo
 inline fun mpdFilterPre021(block: MPDFilterContextPre021.() -> MPDFilterPre021) =
     with(MPDFilterContextPre021) { block() }
 
-inline fun mpdSearch(block: MPDFilterContext.() -> MPDFilter) = with(MPDFilterContext) { block().search() }
+inline fun mpdFindAdd(position: Int? = null, block: MPDFilterContext.() -> MPDFilter) = with(MPDFilterContext) {
+    if (position != null) block().findadd(position)
+    else block().findadd()
+}
 
-inline fun mpdSearchPre021(block: MPDFilterContextPre021.() -> MPDFilterPre021) =
-    with(MPDFilterContextPre021) { block().search() }
+inline fun mpdFindAddRelative(position: Int, block: MPDFilterContext.() -> MPDFilter) =
+    with(MPDFilterContext) { block().findaddRelative(position) }
 
-inline fun mpdFind(block: MPDFilterContext.() -> MPDFilter) = with(MPDFilterContext) { block().find() }
-
-inline fun mpdFindAdd(position: Int?, block: MPDFilterContext.() -> MPDFilter) =
-    with(MPDFilterContext) { block().findadd(position) }
-
-inline fun mpdFindPre021(block: MPDFilterContextPre021.() -> MPDFilterPre021) =
-    with(MPDFilterContextPre021) { block().find() }
-
-inline fun mpdList(type: String, group: List<String>, block: MPDFilterContext.() -> MPDFilter) =
-    with(MPDFilterContext) { block().list(type, group) }
-
-inline fun mpdList(type: String, group: String, block: MPDFilterContext.() -> MPDFilter) =
-    mpdList(type, listOf(group), block)
-
-inline fun mpdList(type: String, block: MPDFilterContext.() -> MPDFilter) = mpdList(type, emptyList(), block)
-
-inline fun mpdListPre021(type: String, block: MPDFilterContextPre021.() -> MPDFilterPre021) =
-    with(MPDFilterContextPre021) { block().list(type) }
+inline fun mpdFindAddPre021(block: MPDFilterContextPre021.() -> MPDFilterPre021) =
+    with(MPDFilterContextPre021) { block().findadd() }

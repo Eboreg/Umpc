@@ -1,11 +1,14 @@
 package us.huseli.umpc.mpd.command
 
 import android.util.Log
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.withContext
 import us.huseli.umpc.Constants.READ_BUFFER_SIZE
 import us.huseli.umpc.LoggerInterface
-import us.huseli.umpc.mpd.escape
+import us.huseli.umpc.data.MPDError
 import us.huseli.umpc.mpd.response.MPDBaseResponse
 import us.huseli.umpc.mpd.response.MPDBaseTextResponse
 import java.io.ByteArrayOutputStream
@@ -22,12 +25,15 @@ abstract class MPDBaseCommand<RT : MPDBaseResponse>(
 ) : LoggerInterface {
     private val readBuffer = ByteArray(READ_BUFFER_SIZE)
     private val lineBuffer = ByteArrayOutputStream()
+    private val scope = CoroutineScope(Job() + Dispatchers.IO)
 
     private var readBufferReadPos = 0
     private var readBufferWritePos = 0
 
     private lateinit var inputStream: InputStream
     private lateinit var writer: PrintWriter
+
+    val stringChannel = Channel<String?>()
 
     /**************************************************************************
      * ABSTRACT METHODS
@@ -47,6 +53,17 @@ abstract class MPDBaseCommand<RT : MPDBaseResponse>(
     /**************************************************************************
      * PROTECTED METHODS
      *************************************************************************/
+    private suspend fun streamLines() {
+        var line: String?
+
+        do {
+            line = readLine()
+            stringChannel.send(line)
+        } while (line != null && line != "OK" && !line.startsWith("ACK "))
+
+        stringChannel.close()
+    }
+
     protected suspend fun <RT : MPDBaseTextResponse> fillTextResponse(command: String, response: RT): RT {
         var line: String?
 
@@ -63,21 +80,19 @@ abstract class MPDBaseCommand<RT : MPDBaseResponse>(
                 return response.finish(status = MPDBaseResponse.Status.ERROR_NET, exception = e)
             }
             if (line != null) {
-                if (line == "OK")
+                if (line == "OK") {
                     return response.finish(status = MPDBaseResponse.Status.OK)
-                else if (line.startsWith("ACK ")) {
+                } else if (line.startsWith("ACK ")) {
                     return response.finish(
                         status = MPDBaseResponse.Status.ERROR_MPD,
-                        error = line.substring(4)
+                        mpdError = MPDError.fromString(line),
                     )
                 } else response.putLine(line)
-            } else return response.finish(status = MPDBaseResponse.Status.EMPTY_RESPONSE)
+            } else {
+                return response.finish(status = MPDBaseResponse.Status.EMPTY_RESPONSE)
+            }
         }
     }
-
-    protected fun getCommand(command: String, args: Collection<String> = emptyList()) =
-        if (args.isEmpty()) command
-        else "$command ${args.joinToString(" ") { "\"${escape(it)}\"" }}"
 
     protected suspend fun readBinary(size: Int): ByteArray {
         val data = ByteArray(size)
@@ -94,7 +109,7 @@ abstract class MPDBaseCommand<RT : MPDBaseResponse>(
             if (dataReady() == 0 && dataRead != size) fillReadBuffer()
         }
 
-        skipBytes(1)
+        skipByte()
         return data
     }
 
@@ -152,18 +167,17 @@ abstract class MPDBaseCommand<RT : MPDBaseResponse>(
         }
     }
 
-    @Suppress("SameParameterValue")
-    private suspend fun skipBytes(size: Int) {
+    private suspend fun skipByte() {
         var dataRead = 0
         var readyData: Int
         var dataToRead: Int
 
-        while (dataRead < size) {
+        while (dataRead < 1) {
             readyData = dataReady()
-            dataToRead = min(readyData, size - dataRead)
+            dataToRead = min(readyData, 1 - dataRead)
             dataRead += dataToRead
             readBufferReadPos += dataToRead
-            if (dataReady() == 0 && dataRead != size) fillReadBuffer()
+            if (dataReady() == 0 && dataRead != 1) fillReadBuffer()
         }
     }
 }

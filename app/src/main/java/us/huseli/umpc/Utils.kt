@@ -14,6 +14,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import us.huseli.umpc.mpd.escape
 import java.io.File
 import java.time.Instant
 import java.time.ZoneId
@@ -97,4 +98,11 @@ fun String.highlight(term: String?): AnnotatedString {
         matches.forEach { builder.addStyle(style, it.range.first, it.range.last + 1) }
     }
     return builder.toAnnotatedString()
+}
+
+fun formatMPDCommand(command: String, vararg args: Any): String = formatMPDCommand(command, args.asList())
+
+fun formatMPDCommand(command: String, args: Collection<Any> = emptyList()): String {
+    if (args.isEmpty()) return command
+    return "$command " + args.joinToString(" ") { "\"${escape(it.toString())}\"" }
 }

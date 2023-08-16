@@ -1,30 +1,15 @@
 package us.huseli.umpc.mpd.command
 
-import us.huseli.umpc.mpd.response.MPDBaseResponse
 import us.huseli.umpc.mpd.response.MPDBatchMapResponse
-import us.huseli.umpc.mpd.response.MPDMapResponse
 import java.net.Socket
 
 class MPDBatchMapCommand(
-    val commands: Collection<MPDMapCommand>,
-    private val successCriteria: SuccessCriteria = SuccessCriteria.ANY_SUCCEEDED,
+    val commands: Collection<String>,
     onFinish: ((MPDBatchMapResponse) -> Unit)? = null
 ) : MPDBaseCommand<MPDBatchMapResponse>(onFinish) {
-    enum class SuccessCriteria { ANY_SUCCEEDED, ALL_SUCCEEDED }
-
     override suspend fun getResponse(socket: Socket): MPDBatchMapResponse {
-        val commandResponses = mutableListOf<MPDMapResponse>()
-
-        commands.forEach { command ->
-            commandResponses.add(command.getResponse(socket))
-        }
-        return MPDBatchMapResponse(commandResponses = commandResponses).finish(
-            status = when {
-                successCriteria == SuccessCriteria.ALL_SUCCEEDED && commandResponses.any { !it.isSuccess } -> MPDBaseResponse.Status.ERROR_OTHER
-                successCriteria == SuccessCriteria.ANY_SUCCEEDED && commandResponses.none { it.isSuccess } -> MPDBaseResponse.Status.ERROR_OTHER
-                else -> MPDBaseResponse.Status.OK
-            }
-        )
+        val command = (listOf("command_list_ok_begin") + commands + listOf("command_list_end")).joinToString("\n")
+        return withSocket(socket) { fillTextResponse(command, MPDBatchMapResponse()) }
     }
 
     override fun equals(other: Any?) =

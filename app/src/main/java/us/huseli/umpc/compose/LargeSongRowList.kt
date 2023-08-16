@@ -30,6 +30,7 @@ import org.burnoutcrew.reorderable.detectReorder
 import org.burnoutcrew.reorderable.rememberReorderableLazyListState
 import org.burnoutcrew.reorderable.reorderable
 import us.huseli.umpc.AddToPlaylistItemType
+import us.huseli.umpc.ImageRequestType
 import us.huseli.umpc.PlayerState
 import us.huseli.umpc.R
 import us.huseli.umpc.compose.utils.ListWithNumericBar
@@ -153,7 +154,9 @@ fun LargeSongRowList(
                             var isExpanded by rememberSaveable { mutableStateOf(false) }
 
                             LaunchedEffect(song) {
-                                viewModel.getAlbumArt(song) { albumArt = it.fullImage }
+                                viewModel.getAlbumArt(song.albumArtKey, ImageRequestType.FULL) {
+                                    albumArt = it.fullImage
+                                }
                             }
 
                             LargeSongRow(

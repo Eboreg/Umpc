@@ -14,7 +14,9 @@ import us.huseli.umpc.PlaylistType
 import us.huseli.umpc.data.DynamicPlaylist
 import us.huseli.umpc.data.DynamicPlaylistFilter
 import us.huseli.umpc.mpd.OnMPDChangeListener
+import us.huseli.umpc.repository.DynamicPlaylistRepository
 import us.huseli.umpc.repository.MPDRepository
+import us.huseli.umpc.repository.MessageRepository
 import us.huseli.umpc.viewmodels.abstr.BaseViewModel
 import java.time.Instant
 import javax.inject.Inject
@@ -22,18 +24,20 @@ import javax.inject.Inject
 @HiltViewModel
 class PlaylistListViewModel @Inject constructor(
     repo: MPDRepository,
+    messageRepo: MessageRepository,
     @ApplicationContext context: Context,
-) : BaseViewModel(repo), OnMPDChangeListener {
+    private val dynamicPlaylistRepo: DynamicPlaylistRepository,
+) : BaseViewModel(repo, messageRepo, context), OnMPDChangeListener {
     private val preferences = PreferenceManager.getDefaultSharedPreferences(context)
     private val gson: Gson = GsonBuilder().registerTypeAdapter(Instant::class.java, InstantAdapter()).create()
     private val _displayType = MutableStateFlow(PlaylistType.STORED)
 
     val displayType = _displayType.asStateFlow()
-    val dynamicPlaylists = repo.dynamicPlaylists
+    val dynamicPlaylists = dynamicPlaylistRepo.dynamicPlaylists
 
     init {
-        repo.loadDynamicPlaylists()
-        repo.loadStoredPlaylists()
+        dynamicPlaylistRepo.loadDynamicPlaylists()
+        repo.loadPlaylists()
         repo.registerOnMPDChangeListener(this)
     }
 
@@ -47,19 +51,17 @@ class PlaylistListViewModel @Inject constructor(
     }
 
     fun createDynamicPlaylist(filter: DynamicPlaylistFilter, shuffle: Boolean) {
-        repo.addDynamicPlaylist(DynamicPlaylist(filter, repo.server.value!!, shuffle))
-        repo.saveDynamicPlaylists()
+        dynamicPlaylistRepo.addDynamicPlaylist(DynamicPlaylist(filter, repo.server.value!!, shuffle))
+        dynamicPlaylistRepo.saveDynamicPlaylists()
     }
 
     fun deleteDynamicPlaylist(playlist: DynamicPlaylist) {
-        repo.deleteDynamicPlaylist(playlist)
-        repo.saveDynamicPlaylists()
+        dynamicPlaylistRepo.deleteDynamicPlaylist(playlist)
+        dynamicPlaylistRepo.saveDynamicPlaylists()
     }
 
     fun getStoredPlaylistSongCount(playlistName: String, onFinish: (Int) -> Unit) =
-        repo.client.enqueueMultiMap("listplaylistinfo", playlistName) { response ->
-            onFinish(response.extractSongsWithPosition().size)
-        }
+        repo.getPlaylistSongs(playlistName) { songs -> onFinish(songs.size) }
 
     fun setDisplayType(value: PlaylistType) {
         _displayType.value = value
@@ -69,9 +71,9 @@ class PlaylistListViewModel @Inject constructor(
         playlist: DynamicPlaylist,
         filter: DynamicPlaylistFilter,
         shuffle: Boolean,
-    ) = repo.updateDynamicPlaylist(playlist, filter, shuffle)
+    ) = dynamicPlaylistRepo.updateDynamicPlaylist(playlist, filter, shuffle)
 
     override fun onMPDChanged(subsystems: List<String>) {
-        if (subsystems.contains("stored_playlist")) repo.loadStoredPlaylists()
+        if (subsystems.contains("stored_playlist")) repo.loadPlaylists()
     }
 }

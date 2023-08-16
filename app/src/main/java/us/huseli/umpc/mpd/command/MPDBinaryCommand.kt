@@ -1,12 +1,14 @@
 package us.huseli.umpc.mpd.command
 
+import us.huseli.umpc.data.MPDError
+import us.huseli.umpc.formatMPDCommand
 import us.huseli.umpc.mpd.response.MPDBaseResponse
 import us.huseli.umpc.mpd.response.MPDBinaryResponse
 import java.net.Socket
 
 class MPDBinaryCommand(
     val command: String,
-    val args: Collection<String> = emptyList(),
+    val args: Collection<Any> = emptyList(),
     onFinish: ((MPDBinaryResponse) -> Unit)? = null,
 ) : MPDBaseCommand<MPDBinaryResponse>(onFinish) {
     override suspend fun getResponse(socket: Socket): MPDBinaryResponse {
@@ -29,7 +31,7 @@ class MPDBinaryCommand(
 
         // Outer loop makes server requests until all chunks are fetched:
         while (dataToRead > 0 || firstRun) {
-            writeLine(getCommand(command, args.plus((length - dataToRead).toString())))
+            writeLine(formatMPDCommand(command, args.plus((length - dataToRead).toString())))
             line = readLine()
 
             if (line != null) {
@@ -42,7 +44,7 @@ class MPDBinaryCommand(
                 if (line.startsWith("ACK ")) {
                     return response.finish(
                         status = MPDBaseResponse.Status.ERROR_MPD,
-                        error = line.substring(4)
+                        mpdError = MPDError.fromString(line),
                     )
                 }
             } else return response.finish(status = MPDBaseResponse.Status.EMPTY_RESPONSE)
@@ -82,5 +84,5 @@ class MPDBinaryCommand(
 
     override fun hashCode(): Int = 31 * command.hashCode() + args.hashCode()
 
-    override fun toString() = "${javaClass.simpleName}[${getCommand(command, args)}]"
+    override fun toString() = "${javaClass.simpleName}[${formatMPDCommand(command, args)}]"
 }

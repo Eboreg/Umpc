@@ -33,41 +33,24 @@ fun BatchAddToPlaylistDialog(
         playlists = playlists,
         onConfirm = {
             addFunction(it) { response ->
-                if (response.successCount == 0 && response.errorCount > 0) addError(
+                if (!response.isSuccess) addError(
                     SnackbarMessage(
-                        message = context.resources.getQuantityString(
+                        message = context.getString(
                             when (itemType) {
-                                AddToPlaylistItemType.SONG -> R.plurals.add_songs_playlist_fail
-                                AddToPlaylistItemType.ALBUM -> R.plurals.add_albums_playlist_fail
+                                AddToPlaylistItemType.SONG -> R.string.add_songs_playlist_fail
+                                AddToPlaylistItemType.ALBUM -> R.string.add_albums_playlist_fail
                             },
-                            response.errorCount,
-                            response.errorCount
                         ),
                     )
-                )
-                else if (response.successCount > 0 && response.errorCount == 0) addMessage(
+                ) else addMessage(
                     SnackbarMessage(
-                        message = context.resources.getQuantityString(
+                        message = context.getString(
                             when (itemType) {
                                 AddToPlaylistItemType.SONG -> R.plurals.add_songs_playlist_success
                                 AddToPlaylistItemType.ALBUM -> R.plurals.add_albums_playlist_success
                             },
-                            response.successCount,
-                            response.successCount
-                        ),
-                        actionLabel = context.getString(R.string.go_to_playlist),
-                        onActionPerformed = { onGotoPlaylistClick(it) },
-                    )
-                )
-                else addMessage(
-                    SnackbarMessage(
-                        message = context.getString(
-                            when (itemType) {
-                                AddToPlaylistItemType.SONG -> R.string.add_songs_playlist_success_and_fail
-                                AddToPlaylistItemType.ALBUM -> R.string.add_albums_playlist_success_and_fail
-                            },
-                            response.successCount,
-                            response.errorCount
+                            response.responseMaps.size,
+                            response.responseMaps.size,
                         ),
                         actionLabel = context.getString(R.string.go_to_playlist),
                         onActionPerformed = { onGotoPlaylistClick(it) },

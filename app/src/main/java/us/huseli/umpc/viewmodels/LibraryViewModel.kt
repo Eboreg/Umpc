@@ -1,8 +1,10 @@
 package us.huseli.umpc.viewmodels
 
+import android.content.Context
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
@@ -16,12 +18,19 @@ import us.huseli.umpc.data.MPDArtistWithAlbums
 import us.huseli.umpc.data.groupByArtist
 import us.huseli.umpc.leadingChars
 import us.huseli.umpc.mpd.OnMPDChangeListener
+import us.huseli.umpc.repository.AlbumArtRepository
 import us.huseli.umpc.repository.MPDRepository
+import us.huseli.umpc.repository.MessageRepository
 import us.huseli.umpc.viewmodels.abstr.AlbumSelectViewModel
 import javax.inject.Inject
 
 @HiltViewModel
-class LibraryViewModel @Inject constructor(repo: MPDRepository) : AlbumSelectViewModel(repo), OnMPDChangeListener {
+class LibraryViewModel @Inject constructor(
+    repo: MPDRepository,
+    messageRepo: MessageRepository,
+    albumArtRepo: AlbumArtRepository,
+    @ApplicationContext context: Context,
+) : AlbumSelectViewModel(repo, messageRepo, albumArtRepo, context), OnMPDChangeListener {
     private val _activeLibrarySearchType = MutableStateFlow(LibrarySearchType.NONE)
     private val _albums = MutableStateFlow<List<MPDAlbum>>(emptyList())
     private val _albumsWithSongs = MutableStateFlow<List<MPDAlbumWithSongs>>(emptyList())
@@ -75,12 +84,9 @@ class LibraryViewModel @Inject constructor(repo: MPDRepository) : AlbumSelectVie
 
         if (aws != null) onFinish(aws)
         else {
-            repo.client.enqueueMultiMap(album.getSearchFilter(repo.protocolVersion.value).find()) { response ->
-                val songs = response.extractSongs()
-                MPDAlbumWithSongs(album, songs).also {
-                    _albumsWithSongs.value = _albumsWithSongs.value.plus(it)
-                    onFinish(it)
-                }
+            repo.getAlbumWithSongs(album) { albumWithSongs ->
+                _albumsWithSongs.value += albumWithSongs
+                onFinish(albumWithSongs)
             }
         }
     }

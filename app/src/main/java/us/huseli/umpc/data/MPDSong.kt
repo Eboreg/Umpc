@@ -66,7 +66,7 @@ fun Map<String, String>.toMPDSong(position: Int? = null) = try {
         artist = this["Artist"] ?: "(Unknown)",
         title = (this["Title"] ?: Paths.get(this["file"]!!).nameWithoutExtension),
         album = MPDAlbum(this["AlbumArtist"] ?: this["Artist"] ?: "(Unknown)", this["Album"] ?: "(Unknown)"),
-        trackNumber = this["Track"]?.toInt(),
+        trackNumber = this["Track"]?.split("/")?.first()?.toInt(),
         discNumber = this["Disc"]?.toInt(),
         duration = this["duration"]?.toDouble(),
         year = this["Date"]?.parseYear(),

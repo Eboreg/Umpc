@@ -24,7 +24,7 @@ class MPDBinaryClient @Inject constructor(
 
     private fun enqueueBinary(
         command: String,
-        args: Collection<String>,
+        args: Collection<Any>,
         onFinish: ((MPDBinaryResponse) -> Unit)?
     ) = enqueue(MPDBinaryCommand(command, args, onFinish))
 

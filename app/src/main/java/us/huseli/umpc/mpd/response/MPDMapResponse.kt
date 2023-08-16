@@ -1,5 +1,8 @@
 package us.huseli.umpc.mpd.response
 
+import us.huseli.umpc.data.MPDSong
+import us.huseli.umpc.data.toMPDSong
+
 class MPDMapResponse : MPDBaseTextResponse() {
     private val _responseMap = mutableMapOf<String, List<String>>()
 
@@ -15,7 +18,9 @@ class MPDMapResponse : MPDBaseTextResponse() {
     }
 
     fun extractChanged(): List<String> = _responseMap["changed"] ?: emptyList()
-    fun extractFilenames(): List<String> = _responseMap["file"] ?: emptyList()
+
+    fun extractSong(): MPDSong? = responseMap.mapValues { it.value.first() }.toMPDSong()
+
     fun extractTagTypes(): List<String> = _responseMap["tagtype"] ?: emptyList()
 
     override fun toString() =

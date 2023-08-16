@@ -1,5 +1,7 @@
 package us.huseli.umpc.mpd.response
 
+import us.huseli.umpc.data.MPDError
+
 abstract class MPDBaseResponse {
     enum class Status { PENDING, OK, ERROR_MPD, ERROR_NET, ERROR_OTHER, EMPTY_RESPONSE }
 
@@ -9,7 +11,10 @@ abstract class MPDBaseResponse {
         private set
     var error: String? = null
         private set
+    var mpdError: MPDError? = null
+        private set
 
+    @Suppress("BooleanMethodIsAlwaysInverted")
     val isSuccess: Boolean
         get() = status == Status.OK
 
@@ -17,11 +22,13 @@ abstract class MPDBaseResponse {
     open fun <RT : MPDBaseResponse> finish(
         status: Status,
         exception: Throwable? = null,
-        error: String? = exception?.toString(),
+        mpdError: MPDError? = null,
+        error: String? = null,
     ): RT {
         this.status = status
         this.exception = exception
-        this.error = error
+        this.error = error ?: exception?.toString() ?: mpdError?.message
+        this.mpdError = mpdError
         return this as RT
     }
 
@@ -30,7 +37,8 @@ abstract class MPDBaseResponse {
     companion object {
         val responseRegex = Regex("^([^:]*): (.*)$")
 
-        fun parseResponseLine(line: String): Pair<String, String>? =
-            responseRegex.find(line)?.groupValues?.let { if (it.size == 3) it[1] to it[2] else null }
+        fun parseResponseLine(line: String?): Pair<String, String>? =
+            if (line != null) responseRegex.find(line)?.groupValues?.let { if (it.size == 3) it[1] to it[2] else null }
+            else null
     }
 }

@@ -27,6 +27,7 @@ import kotlinx.coroutines.sync.withLock
 import us.huseli.umpc.Constants.MEDIASERVICE_ROOT_ID
 import us.huseli.umpc.Constants.NOTIFICATION_CHANNEL_ID_NOW_PLAYING
 import us.huseli.umpc.Constants.NOTIFICATION_ID_NOW_PLAYING
+import us.huseli.umpc.repository.AlbumArtRepository
 import us.huseli.umpc.repository.MPDRepository
 import javax.inject.Inject
 
@@ -36,6 +37,8 @@ class MediaService : MediaBrowserServiceCompat(), LoggerInterface {
     private var notification: Notification? = null
     @Inject
     lateinit var repo: MPDRepository
+    @Inject
+    lateinit var albumArtRepo: AlbumArtRepository
     @Inject
     lateinit var ioScope: CoroutineScope
     private val mutex = Mutex()
@@ -163,7 +166,7 @@ class MediaService : MediaBrowserServiceCompat(), LoggerInterface {
 
     private fun updateWidget() {
         val context = this
-        val bitmap = repo.currentSongAlbumArt.value?.fullImage?.asAndroidBitmap()
+        val bitmap = albumArtRepo.currentSongAlbumArt.value?.fullImage?.asAndroidBitmap()
         val appWidgetManager = AppWidgetManager.getInstance(context)
         val componentName = ComponentName(context, WidgetProvider::class.java)
         val pendingIntent: PendingIntent = PendingIntent.getActivity(
@@ -235,7 +238,7 @@ class MediaService : MediaBrowserServiceCompat(), LoggerInterface {
         }
 
         ioScope.launch {
-            repo.currentSongAlbumArt.collect { albumArt ->
+            albumArtRepo.currentSongAlbumArt.collect { albumArt ->
                 val bitmap = albumArt?.fullImage?.asAndroidBitmap()
                 log("bitmap: width=${bitmap?.width}, height=${bitmap?.height}")
                 mutex.withLock {

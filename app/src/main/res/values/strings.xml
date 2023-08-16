@@ -2,9 +2,7 @@
     <string name="a_playlist_with_this_name_already_exists">A playlist with this name already exists.</string>
     <string name="about_dynamic_playlists">About dynamic playlists</string>
     <string name="active_dynamic_playlist_x">Active dynamic playlist: %1$s</string>
-    <string name="add_albums_playlist_success_and_fail">Added %1$d album(s) to playlist, but failed to add %2$d album(s).</string>
     <string name="add_all_to_playlist">Add all to playlist</string>
-    <string name="add_songs_playlist_success_and_fail">Added %1$d song(s) to playlist, but failed to add %2$d song(s).</string>
     <string name="add_to_playlist">Add to playlist</string>
     <string name="add_x_to_playlist">Add %1$s to playlist:</string>
     <string name="album_was_added_to_playlist">Album was added to playlist.</string>
@@ -112,17 +110,11 @@
     <string name="value">Value</string>
     <string name="x_kbps">%1$d Kbps</string>
     <string name="yes">Yes</string>
-    <plurals name="add_albums_playlist_fail">
-        <item quantity="one">Failed to add album to playlist.</item>
-        <item quantity="other">Failed to add %1$d albums to playlist.</item>
-    </plurals>
+    <string name="add_albums_playlist_fail">Failed to add album(s) to playlist.</string>
+    <string name="add_songs_playlist_fail">Failed to add song(s) to playlist.</string>
     <plurals name="add_albums_playlist_success">
         <item quantity="one">Album was added to playlist.</item>
         <item quantity="other">%1$d albums were added to playlist.</item>
-    </plurals>
-    <plurals name="add_songs_playlist_fail">
-        <item quantity="one">Failed to add song to playlist.</item>
-        <item quantity="other">Failed to add %1$d songs to playlist.</item>
     </plurals>
     <plurals name="add_songs_playlist_success">
         <item quantity="one">Song was added to playlist.</item>

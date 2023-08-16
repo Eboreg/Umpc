@@ -10,6 +10,7 @@ import android.widget.RemoteViews
 import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.media.session.MediaButtonReceiver
 import dagger.hilt.android.AndroidEntryPoint
+import us.huseli.umpc.repository.AlbumArtRepository
 import us.huseli.umpc.repository.MPDRepository
 import javax.inject.Inject
 
@@ -17,16 +18,19 @@ import javax.inject.Inject
 class WidgetProvider : AppWidgetProvider(), LoggerInterface {
     @Inject
     lateinit var repo: MPDRepository
+    @Inject
+    lateinit var albumArtRepo: AlbumArtRepository
 
     override fun onUpdate(context: Context, appWidgetManager: AppWidgetManager, appWidgetIds: IntArray) {
         appWidgetIds.forEach { appWidgetId ->
-            updateAppWidget(repo, context, appWidgetManager, appWidgetId)
+            updateAppWidget(repo, albumArtRepo, context, appWidgetManager, appWidgetId)
         }
     }
 }
 
 internal fun updateAppWidget(
     repo: MPDRepository,
+    albumArtRepo: AlbumArtRepository,
     context: Context,
     appWidgetManager: AppWidgetManager,
     appWidgetId: Int,
@@ -37,7 +41,7 @@ internal fun updateAppWidget(
         Intent(context, MainActivity::class.java),
         PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
     )
-    val bitmap = repo.currentSongAlbumArt.value?.fullImage?.asAndroidBitmap()
+    val bitmap = albumArtRepo.currentSongAlbumArt.value?.fullImage?.asAndroidBitmap()
     // Construct the RemoteViews object
     val views = RemoteViews(context.packageName, R.layout.widget).apply {
         if (bitmap != null) setImageViewBitmap(R.id.albumArt, bitmap)

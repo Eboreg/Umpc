@@ -9,30 +9,34 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.launch
 import us.huseli.umpc.Constants
 import us.huseli.umpc.data.MPDSong
-import us.huseli.umpc.data.MPDVersion
 import us.huseli.umpc.mpd.OnMPDChangeListener
-import us.huseli.umpc.mpd.command.MPDMapCommand
 import us.huseli.umpc.mpd.response.MPDMapResponse
+import us.huseli.umpc.repository.AlbumArtRepository
+import us.huseli.umpc.repository.DynamicPlaylistRepository
 import us.huseli.umpc.repository.MPDRepository
+import us.huseli.umpc.repository.MessageRepository
 import us.huseli.umpc.viewmodels.abstr.SongSelectViewModel
 import javax.inject.Inject
 
 @HiltViewModel
 class QueueViewModel @Inject constructor(
     repo: MPDRepository,
+    messageRepo: MessageRepository,
+    albumArtRepo: AlbumArtRepository,
+    dynamicPlaylistRepo: DynamicPlaylistRepository,
     @ApplicationContext context: Context,
-) : SongSelectViewModel(repo), OnMPDChangeListener {
+) : SongSelectViewModel(repo, messageRepo, albumArtRepo, context), OnMPDChangeListener {
     private val preferences = PreferenceManager.getDefaultSharedPreferences(context)
     private val removedSongs = mutableListOf<MPDSong>()
 
-    val activeDynamicPlaylist = repo.activeDynamicPlaylist
+    val activeDynamicPlaylist = dynamicPlaylistRepo.activeDynamicPlaylist
     val currentSongPosition = repo.currentSongPosition
     val listState = LazyListState()
     val queue = repo.queue
 
     init {
         repo.loadQueue()
-        repo.loadActiveDynamicPlaylist(playOnLoad = false, replaceCurrentQueue = false)
+        dynamicPlaylistRepo.loadActiveDynamicPlaylist(playOnLoad = false, replaceCurrentQueue = false)
         repo.registerOnMPDChangeListener(this)
     }
 
@@ -48,40 +52,31 @@ class QueueViewModel @Inject constructor(
             .apply()
     }
 
-    fun moveSong(fromIdx: Int, toIdx: Int) = repo.client.enqueue("move $fromIdx $toIdx")
+    fun moveSong(fromIdx: Int, toIdx: Int) = repo.moveSongInQueue(fromIdx, toIdx)
 
     fun removeSelectedSongs() {
         removedSongs.clear()
         removedSongs.addAll(selectedSongs.value)
-        repo.client.enqueueBatch(
-            commands = selectedSongs.value.filter { it.id != null }.map { MPDMapCommand("deleteid ${it.id}") },
-            onFinish = { deselectAllSongs() },
-        )
+        repo.removeSongsFromQueue(selectedSongs.value) { response ->
+            if (response.isSuccess) deselectAllSongs()
+        }
     }
 
     fun removeSong(song: MPDSong) {
         removedSongs.clear()
         removedSongs.add(song)
-        song.id?.let { repo.client.enqueue("deleteid $it") }
+        repo.removeSongFromQueue(song)
     }
 
     fun undoRemoveSongs() =
-        repo.client.enqueueBatch(
-            commands = removedSongs
-                .filter { it.position != null }
-                .map { MPDMapCommand("add", listOf(it.filename, it.position.toString())) },
-            onFinish = { removedSongs.clear() },
-        )
+        repo.enqueueSongs(removedSongs) { response ->
+            if (response.isSuccess) removedSongs.clear()
+        }
 
     override fun onMPDChanged(subsystems: List<String>) {
         if (subsystems.contains("playlist")) repo.loadQueue()
     }
 
-    fun addQueueToPlaylist(playlistName: String, onFinish: (MPDMapResponse) -> Unit) {
-        repo.client.enqueue("save", playlistName) { response ->
-            if (!response.isSuccess && repo.protocolVersion.value >= MPDVersion("0.24.0"))
-                repo.client.enqueue("save", listOf(playlistName, "append"), onFinish)
-            else onFinish(response)
-        }
-    }
+    fun addQueueToPlaylist(playlistName: String, onFinish: (MPDMapResponse) -> Unit) =
+        repo.addQueueToPlaylist(playlistName, onFinish)
 }
