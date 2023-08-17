@@ -10,7 +10,7 @@ import kotlinx.coroutines.launch
 import us.huseli.umpc.Constants
 import us.huseli.umpc.data.MPDSong
 import us.huseli.umpc.mpd.OnMPDChangeListener
-import us.huseli.umpc.mpd.response.MPDMapResponse
+import us.huseli.umpc.mpd.response.MPDTextResponse
 import us.huseli.umpc.repository.AlbumArtRepository
 import us.huseli.umpc.repository.DynamicPlaylistRepository
 import us.huseli.umpc.repository.MPDRepository
@@ -40,7 +40,7 @@ class QueueViewModel @Inject constructor(
         repo.registerOnMPDChangeListener(this)
     }
 
-    fun clearQueue(onFinish: (MPDMapResponse) -> Unit) = repo.clearQueue { response ->
+    fun clearQueue(onFinish: (MPDTextResponse) -> Unit) = repo.clearQueue { response ->
         viewModelScope.launch { listState.scrollToItem(0) }
         onFinish(response)
     }
@@ -77,6 +77,6 @@ class QueueViewModel @Inject constructor(
         if (subsystems.contains("playlist")) repo.loadQueue()
     }
 
-    fun addQueueToPlaylist(playlistName: String, onFinish: (MPDMapResponse) -> Unit) =
+    fun addQueueToPlaylist(playlistName: String, onFinish: (MPDTextResponse) -> Unit) =
         repo.addQueueToPlaylist(playlistName, onFinish)
 }

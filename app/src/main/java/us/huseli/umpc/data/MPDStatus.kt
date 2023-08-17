@@ -33,6 +33,8 @@ data class MPDStatus(
     val xfade: Int?,
     val mixRampDelay: Int?,
     val error: String?,
+    // Only when a DB update is in progress:
+    val dbUpdateId: Int?,
 )
 
 fun Map<String, String>.toMPDStatus() = try {
@@ -58,6 +60,7 @@ fun Map<String, String>.toMPDStatus() = try {
         xfade = this["xfade"]?.toInt(),
         mixRampDelay = this["mixrampdelay"]?.toInt(),
         error = this["error"],
+        dbUpdateId = this["updating_db"]?.toInt(),
     )
 } catch (e: Exception) {
     Logger.log("MPDStatus", "fromMap: $e", Log.ERROR)

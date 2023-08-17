@@ -100,6 +100,7 @@ fun ArtistScreen(
             },
             onDeselectAllClick = { viewModel.deselectAllAlbums() },
             onAddToPlaylistClick = { isAddAlbumsToPlaylistDialogOpen = true },
+            onPlayClick = { viewModel.playSelectedAlbums() },
         )
     }
 
@@ -162,7 +163,7 @@ fun ArtistScreen(
                 var thumbnail by remember { mutableStateOf<ImageBitmap?>(null) }
 
                 LaunchedEffect(album) {
-                    viewModel.getThumbnail(album) { thumbnail = it.thumbnail }
+                    viewModel.getAlbumArt(album) { thumbnail = it.thumbnail }
                 }
 
                 AlbumRow(
@@ -192,7 +193,7 @@ fun ArtistScreen(
                 var thumbnail by remember { mutableStateOf<ImageBitmap?>(null) }
 
                 LaunchedEffect(album) {
-                    viewModel.getThumbnail(album) { thumbnail = it.thumbnail }
+                    viewModel.getAlbumArt(album) { thumbnail = it.thumbnail }
                 }
 
                 AlbumRow(

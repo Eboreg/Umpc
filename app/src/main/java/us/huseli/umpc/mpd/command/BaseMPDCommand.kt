@@ -9,8 +9,8 @@ import kotlinx.coroutines.withContext
 import us.huseli.umpc.Constants.READ_BUFFER_SIZE
 import us.huseli.umpc.LoggerInterface
 import us.huseli.umpc.data.MPDError
-import us.huseli.umpc.mpd.response.MPDBaseResponse
-import us.huseli.umpc.mpd.response.MPDBaseTextResponse
+import us.huseli.umpc.mpd.response.BaseMPDResponse
+import us.huseli.umpc.mpd.response.MPDTextResponse
 import java.io.ByteArrayOutputStream
 import java.io.InputStream
 import java.io.PrintWriter
@@ -18,11 +18,7 @@ import java.net.Socket
 import kotlin.math.max
 import kotlin.math.min
 
-abstract class MPDBaseCommand<RT : MPDBaseResponse>(
-    // val command: String,
-    // val args: Collection<String> = emptyList(),
-    val onFinish: ((RT) -> Unit)? = null,
-) : LoggerInterface {
+abstract class BaseMPDCommand<T : BaseMPDResponse>(val onFinish: ((T) -> Unit)? = null) : LoggerInterface {
     private val readBuffer = ByteArray(READ_BUFFER_SIZE)
     private val lineBuffer = ByteArrayOutputStream()
     private val scope = CoroutineScope(Job() + Dispatchers.IO)
@@ -38,12 +34,12 @@ abstract class MPDBaseCommand<RT : MPDBaseResponse>(
     /**************************************************************************
      * ABSTRACT METHODS
      *************************************************************************/
-    abstract suspend fun getResponse(socket: Socket): RT
+    abstract suspend fun getResponse(socket: Socket): T
 
     /**************************************************************************
      * PUBLIC METHODS
      *************************************************************************/
-    suspend fun execute(socket: Socket): RT {
+    suspend fun execute(socket: Socket): T {
         log("START $this")
         val response = getResponse(socket)
         log("FINISH $this, response=$response", level = if (response.isSuccess) Log.INFO else Log.ERROR)
@@ -51,48 +47,40 @@ abstract class MPDBaseCommand<RT : MPDBaseResponse>(
     }
 
     /**************************************************************************
-     * PROTECTED METHODS
+     * PROTECTED/PRIVATE METHODS
      *************************************************************************/
-    private suspend fun streamLines() {
-        var line: String?
-
-        do {
-            line = readLine()
-            stringChannel.send(line)
-        } while (line != null && line != "OK" && !line.startsWith("ACK "))
-
-        stringChannel.close()
-    }
-
-    protected suspend fun <RT : MPDBaseTextResponse> fillTextResponse(command: String, response: RT): RT {
+    protected suspend fun fillTextResponse(command: String, response: MPDTextResponse): MPDTextResponse {
         var line: String?
 
         try {
             writeLine(command)
         } catch (e: Exception) {
-            return response.finish(status = MPDBaseResponse.Status.ERROR_NET, exception = e)
+            return response.finish(status = BaseMPDResponse.Status.ERROR_NET, exception = e)
         }
 
         while (true) {
             try {
                 line = readLine()
             } catch (e: Exception) {
-                return response.finish(status = MPDBaseResponse.Status.ERROR_NET, exception = e)
+                return response.finish(status = BaseMPDResponse.Status.ERROR_NET, exception = e)
             }
             if (line != null) {
                 if (line == "OK") {
-                    return response.finish(status = MPDBaseResponse.Status.OK)
+                    return response.finish(status = BaseMPDResponse.Status.OK)
                 } else if (line.startsWith("ACK ")) {
                     return response.finish(
-                        status = MPDBaseResponse.Status.ERROR_MPD,
+                        status = BaseMPDResponse.Status.ERROR_MPD,
                         mpdError = MPDError.fromString(line),
                     )
                 } else response.putLine(line)
             } else {
-                return response.finish(status = MPDBaseResponse.Status.EMPTY_RESPONSE)
+                return response.finish(status = BaseMPDResponse.Status.EMPTY_RESPONSE)
             }
         }
     }
+
+    protected suspend fun getTextResponse(socket: Socket, command: String): MPDTextResponse =
+        withSocket(socket) { fillTextResponse(command, MPDTextResponse()) }
 
     protected suspend fun readBinary(size: Int): ByteArray {
         val data = ByteArray(size)
@@ -135,7 +123,18 @@ abstract class MPDBaseCommand<RT : MPDBaseResponse>(
         return lineBuffer.toString().takeIf { it.isNotEmpty() }
     }
 
-    protected suspend fun <RT : MPDBaseResponse> withSocket(socket: Socket, onFinish: suspend () -> RT): RT {
+    private suspend fun streamLines() {
+        var line: String?
+
+        do {
+            line = readLine()
+            stringChannel.send(line)
+        } while (line != null && line != "OK" && !line.startsWith("ACK "))
+
+        stringChannel.close()
+    }
+
+    protected suspend fun <RT : BaseMPDResponse> withSocket(socket: Socket, onFinish: suspend () -> RT): RT {
         return withContext(Dispatchers.IO) {
             inputStream = socket.getInputStream()
             writer = PrintWriter(socket.getOutputStream())

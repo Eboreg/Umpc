@@ -43,6 +43,7 @@ import us.huseli.umpc.ArtistDestination
 import us.huseli.umpc.BuildConfig
 import us.huseli.umpc.ContentScreen
 import us.huseli.umpc.DebugDestination
+import us.huseli.umpc.InfoDestination
 import us.huseli.umpc.LibraryDestination
 import us.huseli.umpc.MediaService
 import us.huseli.umpc.PlaylistDetailsDestination
@@ -55,6 +56,7 @@ import us.huseli.umpc.compose.screens.AlbumScreen
 import us.huseli.umpc.compose.screens.ArtistScreen
 import us.huseli.umpc.compose.screens.CoverScreen
 import us.huseli.umpc.compose.screens.DebugScreen
+import us.huseli.umpc.compose.screens.InfoScreen
 import us.huseli.umpc.compose.screens.LibraryScreen
 import us.huseli.umpc.compose.screens.PlaylistListScreen
 import us.huseli.umpc.compose.screens.QueueScreen
@@ -221,6 +223,7 @@ fun App(
                 ContentScreen.SEARCH -> navController.navigate(SearchDestination.route)
                 ContentScreen.NONE -> {}
                 ContentScreen.PLAYLISTS -> navController.navigate(PlaylistListDestination.route)
+                ContentScreen.INFO -> navController.navigate(InfoDestination.route)
             }
             isCoverShown = false
         },
@@ -338,6 +341,11 @@ fun App(
                     onGotoQueueClick = onGotoQueueClick,
                     onGotoPlaylistClick = onGotoPlaylistClick,
                 )
+            }
+
+            composable(route = InfoDestination.route) {
+                activeScreen = ContentScreen.INFO
+                InfoScreen()
             }
         }
 

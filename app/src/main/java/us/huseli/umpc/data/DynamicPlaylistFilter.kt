@@ -66,8 +66,9 @@ data class DynamicPlaylistFilter(
         .build()
 
     companion object {
-        fun comparatorValuesByVersion(protocolVersion: MPDVersion): Array<Comparator> =
-            if (protocolVersion >= MPDVersion("0.21")) Comparator.values()
-            else arrayOf(Comparator.EQUALS_PRE021)
+        fun comparatorValuesByVersion(protocolVersion: MPDVersion): List<Comparator> =
+            if (protocolVersion >= MPDVersion("0.21"))
+                Comparator.values().filter { it != Comparator.EQUALS_PRE021 }
+            else listOf(Comparator.EQUALS_PRE021)
     }
 }

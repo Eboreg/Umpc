@@ -32,12 +32,12 @@ android {
     }
 
     namespace = "us.huseli.umpc"
-    compileSdk = 33
+    compileSdk = 34
 
     defaultConfig {
         applicationId = "us.huseli.umpc"
         minSdk = 26
-        targetSdk = 33
+        targetSdk = 34
         versionCode = 7
         versionName = "1.0.0-beta.7"
         // multiDexEnabled = true
@@ -110,19 +110,19 @@ protobuf {
 
 dependencies {
     implementation("androidx.core:core-ktx:1.10.1")
-    implementation("androidx.preference:preference-ktx:1.2.0")
+    implementation("androidx.preference:preference-ktx:1.2.1")
 
     // Compose:
-    implementation("androidx.compose.ui:ui:1.4.3")
-    implementation("androidx.compose.ui:ui-graphics:1.4.3")
+    implementation("androidx.compose.ui:ui:1.5.0")
+    implementation("androidx.compose.ui:ui-graphics:1.5.0")
     implementation("androidx.activity:activity-compose:1.7.2")
-    implementation("androidx.navigation:navigation-compose:2.6.0")
+    implementation("androidx.navigation:navigation-compose:2.7.0")
     // implementation("androidx.compose.foundation:foundation-layout-android:1.6.0-alpha01")
 
     // Material:
-    implementation("androidx.compose.material:material:1.4.3")
+    implementation("androidx.compose.material:material:1.5.0")
     implementation("androidx.compose.material3:material3:1.1.1")
-    implementation("androidx.compose.material:material-icons-extended:1.4.3")
+    implementation("androidx.compose.material:material-icons-extended:1.5.0")
 
     // Lifecycle:
     implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.6.1")
@@ -154,5 +154,5 @@ dependencies {
     implementation("androidx.core:core-splashscreen:1.0.1")
 
     // Theme:
-    implementation("com.github.Eboreg:RetainTheme:1.1.1")
+    implementation("com.github.Eboreg:RetainTheme:1.1.3")
 }

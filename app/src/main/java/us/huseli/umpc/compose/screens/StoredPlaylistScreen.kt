@@ -55,7 +55,6 @@ fun StoredPlaylistScreen(
 ) {
     val context = LocalContext.current
     val playlist by viewModel.playlist.collectAsStateWithLifecycle(null)
-    val songs by viewModel.songs.collectAsStateWithLifecycle()
     val currentSong by viewModel.currentSong.collectAsStateWithLifecycle()
     val playerState by viewModel.playerState.collectAsStateWithLifecycle()
     var isRenameDialogOpen by rememberSaveable { mutableStateOf(false) }
@@ -111,7 +110,7 @@ fun StoredPlaylistScreen(
     LargeSongRowList(
         modifier = modifier,
         viewModel = viewModel,
-        songs = songs,
+        songs = playlist?.songs ?: emptyList(),
         listState = viewModel.listState,
         currentSong = currentSong,
         playerState = playerState,
@@ -186,10 +185,12 @@ fun StoredPlaylistScreen(
                             modifier = Modifier.fillMaxWidth().padding(end = 10.dp),
                             horizontalArrangement = Arrangement.SpaceBetween,
                         ) {
-                            Text(
-                                text = pluralStringResource(R.plurals.x_songs, songs.size, songs.size),
-                                style = MaterialTheme.typography.bodySmall,
-                            )
+                            it.songs?.let { songs ->
+                                Text(
+                                    text = pluralStringResource(R.plurals.x_songs, songs.size, songs.size),
+                                    style = MaterialTheme.typography.bodySmall,
+                                )
+                            }
                             it.lastModified?.let { lastModified ->
                                 Text(
                                     text = stringResource(R.string.last_modified, lastModified.formatDateTime()),

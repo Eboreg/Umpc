@@ -8,7 +8,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import us.huseli.umpc.data.MPDSong
-import us.huseli.umpc.mpd.response.MPDBatchMapResponse
+import us.huseli.umpc.mpd.response.MPDTextResponse
 import us.huseli.umpc.repository.AlbumArtRepository
 import us.huseli.umpc.repository.MPDRepository
 import us.huseli.umpc.repository.MessageRepository
@@ -31,14 +31,15 @@ class SearchViewModel @Inject constructor(
     val isSearching = _isSearching.asStateFlow()
     val listState = LazyListState()
 
-    fun addAllToPlaylist(playlistName: String, onFinish: (MPDBatchMapResponse) -> Unit) =
+    fun addAllToPlaylist(playlistName: String, onFinish: (MPDTextResponse) -> Unit) =
         repo.addSongsToPlaylist(_songSearchResults.value, playlistName, onFinish)
 
     fun clearSearchTerm() {
         _songSearchTerm.value = _songSearchTerm.value.copy(text = "")
     }
 
-    fun enqueueAll(onFinish: (MPDBatchMapResponse) -> Unit) = repo.enqueueSongsLast(_songSearchResults.value, onFinish)
+    fun enqueueAll(onFinish: (MPDTextResponse) -> Unit) =
+        repo.enqueueSongsLast(_songSearchResults.value.map { it.filename }, onFinish)
 
     fun setSongSearchTerm(value: TextFieldValue) {
         _songSearchTerm.value = value

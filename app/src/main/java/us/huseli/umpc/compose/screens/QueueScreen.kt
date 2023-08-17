@@ -189,7 +189,7 @@ fun QueueScreenSubMenu(
                             .padding(horizontal = 10.dp)
                             .padding(top = if (isInLandscapeMode()) 10.dp else 0.dp, bottom = 5.dp),
                         horizontalArrangement = Arrangement.SpaceAround,
-                        verticalAlignment = Alignment.CenterVertically,
+                        verticalArrangement = Arrangement.Center,
                     ) {
                         if (currentSongPosition != null) {
                             SmallOutlinedButton(
@@ -225,7 +225,7 @@ fun QueueScreenSubMenu(
                         .padding(top = if (isInLandscapeMode()) 10.dp else 0.dp)
                         .padding(bottom = 16.dp),
                     horizontalArrangement = Arrangement.SpaceAround,
-                    verticalAlignment = Alignment.CenterVertically,
+                    verticalArrangement = Arrangement.Center,
                 ) {
                     Badge { Text(pluralStringResource(R.plurals.x_songs, queueSize, queueSize)) }
                     if (activeDynamicPlaylist != null) {

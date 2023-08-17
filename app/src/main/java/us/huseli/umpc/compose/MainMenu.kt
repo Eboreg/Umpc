@@ -3,7 +3,7 @@ package us.huseli.umpc.compose
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.sharp.BugReport
+import androidx.compose.material.icons.sharp.Info
 import androidx.compose.material.icons.sharp.LibraryMusic
 import androidx.compose.material.icons.sharp.PlaylistPlay
 import androidx.compose.material.icons.sharp.QueueMusic
@@ -23,7 +23,6 @@ import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import us.huseli.umpc.BuildConfig
 import us.huseli.umpc.ContentScreen
 import us.huseli.umpc.R
 
@@ -34,18 +33,14 @@ class MainMenuItem(
 )
 
 @Composable
-fun getMainMenuItems(): List<MainMenuItem> {
-    val items = mutableListOf(
-        MainMenuItem(ContentScreen.SETTINGS, Icons.Sharp.Settings, stringResource(R.string.settings)),
-        MainMenuItem(ContentScreen.LIBRARY, Icons.Sharp.LibraryMusic, stringResource(R.string.library)),
-        MainMenuItem(ContentScreen.QUEUE, Icons.Sharp.PlaylistPlay, stringResource(R.string.queue)),
-        MainMenuItem(ContentScreen.PLAYLISTS, Icons.Sharp.QueueMusic, stringResource(R.string.playlists)),
-        MainMenuItem(ContentScreen.SEARCH, Icons.Sharp.Search, stringResource(R.string.search)),
-    )
-    if (BuildConfig.DEBUG)
-        items.add(0, MainMenuItem(ContentScreen.DEBUG, Icons.Sharp.BugReport, stringResource(R.string.debug)))
-    return items
-}
+fun getMainMenuItems(): List<MainMenuItem> = listOf(
+    MainMenuItem(ContentScreen.INFO, Icons.Sharp.Info, stringResource(R.string.info)),
+    MainMenuItem(ContentScreen.SETTINGS, Icons.Sharp.Settings, stringResource(R.string.settings)),
+    MainMenuItem(ContentScreen.LIBRARY, Icons.Sharp.LibraryMusic, stringResource(R.string.library)),
+    MainMenuItem(ContentScreen.QUEUE, Icons.Sharp.PlaylistPlay, stringResource(R.string.queue)),
+    MainMenuItem(ContentScreen.PLAYLISTS, Icons.Sharp.QueueMusic, stringResource(R.string.playlists)),
+    MainMenuItem(ContentScreen.SEARCH, Icons.Sharp.Search, stringResource(R.string.search)),
+)
 
 @Composable
 fun HorizontalMainMenu(

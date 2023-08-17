@@ -242,7 +242,7 @@ fun CoverScreenButtons(viewModel: CurrentSongViewModel = hiltViewModel()) {
     FlowRow(
         modifier = Modifier.padding(horizontal = 10.dp).fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceEvenly,
-        verticalAlignment = Alignment.CenterVertically,
+        verticalArrangement = Arrangement.Center,
     ) {
         FilterChip(
             shape = ShapeDefaults.ExtraSmall,

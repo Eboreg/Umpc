@@ -2,7 +2,7 @@ package us.huseli.umpc.mpd.response
 
 import java.io.ByteArrayInputStream
 
-class MPDBinaryResponse : MPDBaseResponse() {
+class MPDBinaryResponse : BaseMPDResponse() {
     private var _length = 0
     private var _data = ByteArray(0)
     val stream: ByteArrayInputStream

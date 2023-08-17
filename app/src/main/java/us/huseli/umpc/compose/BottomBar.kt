@@ -95,10 +95,7 @@ fun BottomBar(
                                     viewModel.addMessage(
                                         if (started) {
                                             streamingUrl?.let {
-                                                context.getString(
-                                                    R.string.streaming_from_x_started,
-                                                    it
-                                                )
+                                                context.getString(R.string.streaming_from_x_started, it)
                                             }
                                             ?: context.getString(R.string.streaming_started)
                                         } else context.getString(R.string.streaming_stopped)

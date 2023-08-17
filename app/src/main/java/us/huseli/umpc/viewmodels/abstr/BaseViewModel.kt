@@ -8,7 +8,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import us.huseli.umpc.data.MPDAlbum
 import us.huseli.umpc.data.MPDSong
-import us.huseli.umpc.mpd.response.MPDBatchMapResponse
+import us.huseli.umpc.mpd.response.MPDTextResponse
 import us.huseli.umpc.repository.MPDRepository
 import us.huseli.umpc.repository.MessageRepository
 import us.huseli.umpc.repository.SnackbarMessage
@@ -44,10 +44,10 @@ abstract class BaseViewModel(
 
     fun addMessage(message: SnackbarMessage) = messageRepo.addMessage(message)
 
-    fun enqueueAlbumLast(album: MPDAlbum, onFinish: (MPDBatchMapResponse) -> Unit) =
+    fun enqueueAlbumLast(album: MPDAlbum, onFinish: (MPDTextResponse) -> Unit) =
         repo.enqueueAlbumLast(album, onFinish)
 
-    fun enqueueSongLast(song: MPDSong, onFinish: (MPDBatchMapResponse) -> Unit) =
+    fun enqueueSongLast(song: MPDSong, onFinish: (MPDTextResponse) -> Unit) =
         repo.enqueueSongLast(song, onFinish)
 
     fun playAlbum(album: MPDAlbum?) = album?.let { repo.enqueueAlbumNextAndPlay(album) }
@@ -55,9 +55,10 @@ abstract class BaseViewModel(
     fun playOrPause() = repo.playOrPause()
 
     fun playOrPauseSong(song: MPDSong) {
-        if (song == repo.currentSong.value) playOrPause()
-        else if (song.id != null) repo.playSong(song)
-        else repo.enqueueSongNext(song) { repo.playSong(song) }
+        if (song.id != null) {
+            if (song.id == repo.currentSongId.value) playOrPause()
+            else repo.playSongById(song.id)
+        } else repo.enqueueSongNextAndPlay(song)
     }
 
     fun playSongByPosition(pos: Int) = repo.playSongByPosition(pos)

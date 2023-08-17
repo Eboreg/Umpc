@@ -100,9 +100,15 @@ fun String.highlight(term: String?): AnnotatedString {
     return builder.toAnnotatedString()
 }
 
-fun formatMPDCommand(command: String, vararg args: Any): String = formatMPDCommand(command, args.asList())
-
-fun formatMPDCommand(command: String, args: Collection<Any> = emptyList()): String {
+fun formatMPDCommand(command: String, vararg args: Any): String {
     if (args.isEmpty()) return command
     return "$command " + args.joinToString(" ") { "\"${escape(it.toString())}\"" }
 }
+
+fun formatMPDCommand(command: String, args: Collection<*> = emptyList<Any>()): String {
+    if (args.isEmpty()) return command
+    return "$command " + args.joinToString(" ") { "\"${escape(it.toString())}\"" }
+}
+
+fun <T : Any> Collection<T>.containsAny(vararg elements: T): Boolean =
+    elements.map { this.contains(it) }.contains(true)

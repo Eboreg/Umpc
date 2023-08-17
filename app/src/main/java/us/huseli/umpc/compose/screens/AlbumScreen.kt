@@ -143,6 +143,7 @@ fun AlbumScreen(
             },
             onDeselectAllClick = { viewModel.deselectAllSongs() },
             onAddToPlaylistClick = { isAddSongsToPlaylistDialogOpen = true },
+            onPlayClick = { viewModel.playSelectedSongs() },
         )
     }
 

@@ -9,10 +9,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import us.huseli.umpc.Constants.NAV_ARG_ALBUM
 import us.huseli.umpc.Constants.NAV_ARG_ARTIST
-import us.huseli.umpc.ImageRequestType
 import us.huseli.umpc.data.MPDAlbum
 import us.huseli.umpc.data.MPDAlbumWithSongs
-import us.huseli.umpc.mpd.response.MPDBatchMapResponse
+import us.huseli.umpc.mpd.response.MPDTextResponse
 import us.huseli.umpc.repository.AlbumArtRepository
 import us.huseli.umpc.repository.MPDRepository
 import us.huseli.umpc.repository.MessageRepository
@@ -40,15 +39,15 @@ class AlbumViewModel @Inject constructor(
         repo.getAlbumWithSongs(album) { albumWithSongs ->
             _albumWithSongs.value = albumWithSongs
             albumWithSongs.albumArtKey?.let { albumArtKey ->
-                getAlbumArt(albumArtKey, ImageRequestType.FULL) { _albumArt.value = it.fullImage }
+                getAlbumArt(albumArtKey) { _albumArt.value = it.fullImage }
             }
         }
     }
 
-    fun addToPlaylist(playlistName: String, onFinish: (MPDBatchMapResponse) -> Unit) =
+    fun addToPlaylist(playlistName: String, onFinish: (MPDTextResponse) -> Unit) =
         repo.addAlbumToPlaylist(album, playlistName, onFinish)
 
-    fun enqueueLast(onFinish: (MPDBatchMapResponse) -> Unit) = enqueueAlbumLast(album, onFinish)
+    fun enqueueLast(onFinish: (MPDTextResponse) -> Unit) = enqueueAlbumLast(album, onFinish)
 
     fun play() = playAlbum(album)
 }

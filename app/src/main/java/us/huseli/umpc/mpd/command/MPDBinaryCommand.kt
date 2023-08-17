@@ -2,7 +2,7 @@ package us.huseli.umpc.mpd.command
 
 import us.huseli.umpc.data.MPDError
 import us.huseli.umpc.formatMPDCommand
-import us.huseli.umpc.mpd.response.MPDBaseResponse
+import us.huseli.umpc.mpd.response.BaseMPDResponse
 import us.huseli.umpc.mpd.response.MPDBinaryResponse
 import java.net.Socket
 
@@ -10,13 +10,13 @@ class MPDBinaryCommand(
     val command: String,
     val args: Collection<Any> = emptyList(),
     onFinish: ((MPDBinaryResponse) -> Unit)? = null,
-) : MPDBaseCommand<MPDBinaryResponse>(onFinish) {
+) : BaseMPDCommand<MPDBinaryResponse>(onFinish) {
     override suspend fun getResponse(socket: Socket): MPDBinaryResponse {
         return try {
             withSocket(socket) { getBinaryResponse() }
         } catch (e: Exception) {
             MPDBinaryResponse().finish(
-                status = MPDBaseResponse.Status.ERROR_NET,
+                status = BaseMPDResponse.Status.ERROR_NET,
                 exception = e,
             )
         }
@@ -37,21 +37,21 @@ class MPDBinaryCommand(
             if (line != null) {
                 if (firstRun && line.startsWith("OK")) {
                     return response.finish(
-                        status = MPDBaseResponse.Status.ERROR_OTHER,
+                        status = BaseMPDResponse.Status.ERROR_OTHER,
                         error = "No binary data returned"
                     )
                 }
                 if (line.startsWith("ACK ")) {
                     return response.finish(
-                        status = MPDBaseResponse.Status.ERROR_MPD,
+                        status = BaseMPDResponse.Status.ERROR_MPD,
                         mpdError = MPDError.fromString(line),
                     )
                 }
-            } else return response.finish(status = MPDBaseResponse.Status.EMPTY_RESPONSE)
+            } else return response.finish(status = BaseMPDResponse.Status.EMPTY_RESPONSE)
 
             // Inner loop handles individual server responses:
             while (line != null && !line.startsWith("OK")) {
-                MPDBaseResponse.parseResponseLine(line)?.also { (key, value) ->
+                BaseMPDResponse.parseResponseLine(line)?.also { (key, value) ->
                     if (firstRun && key == "size") {
                         length = value.toInt()
                         dataToRead = length
@@ -64,7 +64,7 @@ class MPDBinaryCommand(
 
                         if (dataToRead - chunkSize < 0) {
                             return response.finish(
-                                status = MPDBaseResponse.Status.ERROR_OTHER,
+                                status = BaseMPDResponse.Status.ERROR_OTHER,
                                 error = "Got too much data"
                             )
                         } else {
@@ -76,7 +76,7 @@ class MPDBinaryCommand(
                 line = readLine()
             }
         }
-        return response.finish(status = MPDBaseResponse.Status.OK)
+        return response.finish(status = BaseMPDResponse.Status.OK)
     }
 
     override fun equals(other: Any?) =

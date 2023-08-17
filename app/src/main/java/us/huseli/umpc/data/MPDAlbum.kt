@@ -30,6 +30,17 @@ data class MPDAlbum(val artist: String, val name: String) : Parcelable {
         .build()
 }
 
+fun Map<String, String>.toMPDAlbum(artist: String): MPDAlbum? =
+    (this["AlbumSort"] ?: this["Album"])?.takeIf { it.isNotBlank() }?.let { MPDAlbum(artist, it) }
+
+fun Map<String, String>.toMPDAlbum(): MPDAlbum? {
+    val artist = this["AlbumArtistSort"] ?: this["AlbumArtist"] ?: this["ArtistSort"] ?: this["Artist"]
+    val album = this["AlbumSort"] ?: this["Album"]
+
+    return if (artist != null && album != null && artist.isNotBlank() && album.isNotBlank()) MPDAlbum(artist, album)
+    else null
+}
+
 fun Map<String, List<String>>.toMPDAlbums(artist: String): List<MPDAlbum> = try {
     val getAlbums: (String) -> List<String>? =
         { key -> this[key]?.filter { it.isNotBlank() }?.takeUnless { it.isEmpty() } }

@@ -2,7 +2,7 @@ package us.huseli.umpc.mpd.response
 
 import us.huseli.umpc.data.MPDError
 
-abstract class MPDBaseResponse {
+abstract class BaseMPDResponse {
     enum class Status { PENDING, OK, ERROR_MPD, ERROR_NET, ERROR_OTHER, EMPTY_RESPONSE }
 
     var status = Status.PENDING
@@ -19,7 +19,7 @@ abstract class MPDBaseResponse {
         get() = status == Status.OK
 
     @Suppress("UNCHECKED_CAST")
-    open fun <RT : MPDBaseResponse> finish(
+    open fun <RT : BaseMPDResponse> finish(
         status: Status,
         exception: Throwable? = null,
         mpdError: MPDError? = null,

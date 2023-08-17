@@ -49,6 +49,7 @@ import us.huseli.umpc.compose.utils.ListWithAlphabetBar
 import us.huseli.umpc.compose.utils.SubMenuScreen
 import us.huseli.umpc.data.MPDAlbum
 import us.huseli.umpc.data.MPDAlbumWithSongs
+import us.huseli.umpc.replaceLeadingJunk
 import us.huseli.umpc.repository.SnackbarMessage
 import us.huseli.umpc.viewmodels.LibraryViewModel
 import kotlin.math.roundToInt
@@ -122,6 +123,7 @@ fun LibraryScreen(
                     }
                 },
                 onAddToPlaylistClick = { isAddAlbumsToPlaylistDialogOpen = true },
+                onPlayClick = { viewModel.playSelectedAlbums() },
             )
         }
 
@@ -163,7 +165,7 @@ fun LibraryScreen(
                     characters = artistLeadingChars,
                     listState = viewModel.artistListState,
                     items = artists,
-                    selector = { it.name },
+                    selector = { it.name.replaceLeadingJunk() },
                     minItems = (LocalConfiguration.current.screenHeightDp * 0.042).roundToInt(),
                 ) {
                     LazyColumn(state = viewModel.artistListState, modifier = Modifier.fillMaxWidth()) {
@@ -187,7 +189,7 @@ fun LibraryScreen(
                     characters = albumLeadingChars,
                     listState = viewModel.albumListState,
                     items = albums,
-                    selector = { it.name },
+                    selector = { it.name.replaceLeadingJunk() },
                     minItems = (LocalConfiguration.current.screenHeightDp * 0.042).roundToInt(),
                 ) {
                     LazyColumn(state = viewModel.albumListState) {
@@ -264,7 +266,7 @@ fun LibraryScreenAlbumRow(
     }
 
     LaunchedEffect(albumWithSongs) {
-        viewModel.getThumbnail(albumWithSongs) { thumbnail = it.thumbnail }
+        viewModel.getAlbumArt(albumWithSongs) { thumbnail = it.thumbnail }
     }
 
     AlbumRow(

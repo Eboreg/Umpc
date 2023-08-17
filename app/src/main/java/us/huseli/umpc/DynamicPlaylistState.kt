@@ -50,6 +50,7 @@ class DynamicPlaylistState(
                                 filenames = songs.subList(0, songsToAdd).map { it.filename },
                                 replaceCurrentQueue = replaceCurrentQueue,
                                 playOnLoad = playOnLoad,
+                                onFinish = onLoaded,
                             )
                             updateCurrentOffset(currentOffset + songsToAdd)
                         }
@@ -75,12 +76,12 @@ class DynamicPlaylistState(
                             filenames = filteredFilenames,
                             replaceCurrentQueue = replaceCurrentQueue,
                             playOnLoad = playOnLoad,
+                            onFinish = onLoaded,
                         )
                         updateCurrentOffset(currentOffset + filenames.size)
                     }
                 }
             }
-            onLoaded?.invoke()
         }
 
         songPositionListener = ioScope.launch {
@@ -103,6 +104,7 @@ class DynamicPlaylistState(
         filenames: List<String>,
         replaceCurrentQueue: Boolean = false,
         playOnLoad: Boolean = false,
+        onFinish: (() -> Unit)? = null,
     ) {
         val firstPosition = if (replaceCurrentQueue) 0 else getQueue().songsCount + 1
 
@@ -110,6 +112,7 @@ class DynamicPlaylistState(
         if (replaceCurrentQueue) repo.clearQueue()
         repo.enqueueSongsLast(filenames) { response ->
             if (response.isSuccess && playOnLoad) repo.playSongByPosition(firstPosition)
+            onFinish?.invoke()
         }
     }
 

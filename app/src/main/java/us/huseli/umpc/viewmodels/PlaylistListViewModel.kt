@@ -37,7 +37,7 @@ class PlaylistListViewModel @Inject constructor(
 
     init {
         dynamicPlaylistRepo.loadDynamicPlaylists()
-        repo.loadPlaylists()
+        repo.loadPlaylists(details = true)
         repo.registerOnMPDChangeListener(this)
     }
 
@@ -60,9 +60,6 @@ class PlaylistListViewModel @Inject constructor(
         dynamicPlaylistRepo.saveDynamicPlaylists()
     }
 
-    fun getStoredPlaylistSongCount(playlistName: String, onFinish: (Int) -> Unit) =
-        repo.getPlaylistSongs(playlistName) { songs -> onFinish(songs.size) }
-
     fun setDisplayType(value: PlaylistType) {
         _displayType.value = value
     }
@@ -74,6 +71,6 @@ class PlaylistListViewModel @Inject constructor(
     ) = dynamicPlaylistRepo.updateDynamicPlaylist(playlist, filter, shuffle)
 
     override fun onMPDChanged(subsystems: List<String>) {
-        if (subsystems.contains("stored_playlist")) repo.loadPlaylists()
+        if (subsystems.contains("stored_playlist")) repo.loadPlaylists(details = true)
     }
 }

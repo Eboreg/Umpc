@@ -41,8 +41,15 @@ object PlaylistDetailsDestination {
 }
 
 object LibraryDestination : Destination("library")
+
 object QueueDestination : Destination("queue")
+
 object DebugDestination : Destination("debug")
+
 object SettingsDestination : Destination("settings")
+
 object SearchDestination : Destination("search")
+
 object PlaylistListDestination : Destination("playlists")
+
+object InfoDestination : Destination("info")

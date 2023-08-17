@@ -14,7 +14,6 @@ import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import us.huseli.umpc.Constants
-import us.huseli.umpc.ImageRequestType
 import us.huseli.umpc.data.AlbumArtKey
 import us.huseli.umpc.data.MPDAlbumArt
 import us.huseli.umpc.toBitmap
@@ -34,12 +33,14 @@ class AlbumArtRepository @Inject constructor(
     private val _currentSongAlbumArt = MutableStateFlow<MPDAlbumArt?>(null)
     private val albumArtDirectory = File(context.cacheDir, "albumArt").apply { mkdirs() }
     private val thumbnailDirectory = File(albumArtDirectory, "thumbnails").apply { mkdirs() }
+    private val onReadyCallbacks = mutableMapOf<AlbumArtKey, List<(MPDAlbumArt) -> Unit>>()
+    private val pendingKeys = mutableListOf<AlbumArtKey>()
 
     init {
         ioScope.launch {
             mpdRepo.currentSong.map { it?.albumArtKey }.filterNotNull().distinctUntilChanged().collect { key ->
                 _currentSongAlbumArt.value = null
-                getAlbumArt(key, ImageRequestType.BOTH) {
+                getAlbumArt(key) {
                     _currentSongAlbumArt.value = it
                 }
             }
@@ -48,23 +49,40 @@ class AlbumArtRepository @Inject constructor(
 
     val currentSongAlbumArt = _currentSongAlbumArt.asStateFlow()
 
+    private fun addOnReadyCallback(key: AlbumArtKey, callback: (MPDAlbumArt) -> Unit) {
+        onReadyCallbacks[key] = onReadyCallbacks[key]?.let { it + callback } ?: listOf(callback)
+    }
+
+    private fun runOnReadyCallbacks(key: AlbumArtKey, albumArt: MPDAlbumArt) {
+        pendingKeys.remove(key)
+        onReadyCallbacks.remove(key)?.forEach { it.invoke(albumArt) }
+    }
+
     fun getAlbumArt(
         key: AlbumArtKey,
-        requestType: ImageRequestType,
-        onFinish: (MPDAlbumArt) -> Unit
+        onFinish: (MPDAlbumArt) -> Unit,
     ) = ioScope.launch {
-        val fullImage: Bitmap? = File(albumArtDirectory, key.imageFilename).toBitmap()
-        var thumbnail: Bitmap? = null
+        if (pendingKeys.contains(key)) {
+            addOnReadyCallback(key, onFinish)
+        } else {
+            pendingKeys.add(key)
 
-        if (requestType == ImageRequestType.THUMBNAIL || requestType == ImageRequestType.BOTH)
-            thumbnail = File(thumbnailDirectory, key.imageFilename).toBitmap()
+            val fullImage: Bitmap? = File(albumArtDirectory, key.imageFilename).toBitmap()
+            val thumbnail: Bitmap? = File(thumbnailDirectory, key.imageFilename).toBitmap()
 
-        if (fullImage != null && requestType == ImageRequestType.FULL)
-            onFinish(MPDAlbumArt(key, fullImage = fullImage.asImageBitmap()))
-        else if (thumbnail != null && fullImage != null)
-            onFinish(MPDAlbumArt(key, fullImage = fullImage.asImageBitmap(), thumbnail = thumbnail.asImageBitmap()))
-        else mpdRepo.getAlbumArt(key) { response ->
-            if (response.isSuccess) saveAlbumArt(key = key, stream = response.stream, onFinish = onFinish)
+            if (thumbnail != null && fullImage != null) {
+                val albumArt =
+                    MPDAlbumArt(key, fullImage = fullImage.asImageBitmap(), thumbnail = thumbnail.asImageBitmap())
+                onFinish(albumArt)
+                runOnReadyCallbacks(key, albumArt)
+            } else {
+                mpdRepo.getAlbumArt(key) { response ->
+                    if (response.isSuccess) saveAlbumArt(key = key, stream = response.stream) { albumArt ->
+                        onFinish(albumArt)
+                        runOnReadyCallbacks(key, albumArt)
+                    }
+                }
+            }
         }
     }
 

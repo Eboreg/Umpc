@@ -3,21 +3,21 @@ package us.huseli.umpc.viewmodels
 import android.content.Context
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.lifecycle.SavedStateHandle
+import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 import us.huseli.umpc.Constants.NAV_ARG_PLAYLIST
 import us.huseli.umpc.data.MPDSong
 import us.huseli.umpc.mpd.OnMPDChangeListener
-import us.huseli.umpc.mpd.response.MPDMapResponse
+import us.huseli.umpc.mpd.response.MPDTextResponse
 import us.huseli.umpc.repository.AlbumArtRepository
 import us.huseli.umpc.repository.MPDRepository
 import us.huseli.umpc.repository.MessageRepository
 import us.huseli.umpc.viewmodels.abstr.SongSelectViewModel
 import javax.inject.Inject
-import kotlin.math.min
 
 @HiltViewModel
 class StoredPlaylistViewModel @Inject constructor(
@@ -29,37 +29,26 @@ class StoredPlaylistViewModel @Inject constructor(
 ) : SongSelectViewModel(repo, messageRepo, albumArtRepo, context), OnMPDChangeListener {
     private val playlistName: String = savedStateHandle.get<String>(NAV_ARG_PLAYLIST)!!
     private val _removedSongs = mutableListOf<MPDSong>()
-    private val _songs = MutableStateFlow<List<MPDSong>>(emptyList())
 
     val listState = LazyListState()
-    val songs = _songs.asStateFlow()
-    val playlist = repo.playlists.map { playlists -> playlists.find { it.name == playlistName } }
+    val playlist = repo.playlists.map { playlists ->
+        playlists.find { it.name == playlistName }?.also { repo.loadPlaylistSongs(it) }
+    }
 
     init {
-        loadSongs()
         repo.registerOnMPDChangeListener(this)
     }
 
-    fun delete(onFinish: (MPDMapResponse) -> Unit) = repo.deletePlaylist(playlistName, onFinish)
+    fun delete(onFinish: (MPDTextResponse) -> Unit) = repo.deletePlaylist(playlistName, onFinish)
 
-    fun enqueue(onFinish: (MPDMapResponse) -> Unit) = repo.enqueuePlaylistNext(playlistName, onFinish)
+    fun enqueue(onFinish: (MPDTextResponse) -> Unit) = repo.enqueuePlaylistLast(playlistName, onFinish)
 
     fun moveSong(fromIdx: Int, toIdx: Int) = repo.moveSongInPlaylist(playlistName, fromIdx, toIdx)
 
     fun rename(newName: String, onFinish: (Boolean) -> Unit) =
         repo.renamePlaylist(playlistName, newName) { onFinish(it.isSuccess) }
 
-    private fun loadSongs() = repo.getPlaylistSongs(playlistName) { _songs.value = it }
-
-    fun play() {
-        val firstSongPosition = min(
-            repo.currentSongPosition.value?.plus(1) ?: repo.queue.value.size,
-            repo.queue.value.size
-        )
-        repo.enqueuePlaylistNext(playlistName) { response ->
-            if (response.isSuccess) repo.playSongByPosition(firstSongPosition)
-        }
-    }
+    fun play() = repo.enqueuePlaylistNextAndPlay(playlistName)
 
     fun removeSelectedSongs() {
         _removedSongs.clear()
@@ -79,6 +68,10 @@ class StoredPlaylistViewModel @Inject constructor(
         repo.addSongsToPlaylistPositioned(_removedSongs, playlistName) { response ->
             if (response.isSuccess) _removedSongs.clear()
         }
+
+    private fun loadSongs() = viewModelScope.launch {
+        playlist.first()?.let { repo.loadPlaylistSongs(it) }
+    }
 
     override fun onMPDChanged(subsystems: List<String>) {
         if (subsystems.contains("stored_playlist")) loadSongs()

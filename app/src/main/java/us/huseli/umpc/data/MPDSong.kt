@@ -78,6 +78,8 @@ fun Map<String, String>.toMPDSong(position: Int? = null) = try {
     null
 }
 
+fun List<Map<String, String>>.toMPDSongs(): List<MPDSong> = mapNotNull { it.toMPDSong() }
+
 fun Iterable<MPDSong>.sorted(): List<MPDSong> = sortedWith(compareBy({ it.discNumber }, { it.trackNumber }))
 
 fun Iterable<MPDSong>.groupByAlbum(): List<MPDAlbumWithSongs> =

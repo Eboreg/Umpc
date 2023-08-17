@@ -19,9 +19,7 @@ import us.huseli.umpc.data.DynamicPlaylist
 import us.huseli.umpc.data.DynamicPlaylistFilter
 import us.huseli.umpc.mpd.BaseMPDFilter
 import us.huseli.umpc.mpd.OnMPDChangeListener
-import us.huseli.umpc.mpd.response.MPDBatchMapResponse
-import us.huseli.umpc.mpd.response.MPDMapResponse
-import us.huseli.umpc.mpd.response.MPDMultiMapResponse
+import us.huseli.umpc.mpd.response.MPDTextResponse
 import java.time.Instant
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -54,7 +52,7 @@ class DynamicPlaylistRepository @Inject constructor(
         _dynamicPlaylists.value = _dynamicPlaylists.value.toMutableList().apply { add(playlist) }
     }
 
-    fun clearQueue(onFinish: ((MPDMapResponse) -> Unit)? = null) = mpdRepo.clearQueue(onFinish)
+    fun clearQueue(onFinish: ((MPDTextResponse) -> Unit)? = null) = mpdRepo.clearQueue(onFinish)
 
     fun deactivateDynamicPlaylist() {
         preferences
@@ -67,7 +65,7 @@ class DynamicPlaylistRepository @Inject constructor(
         _dynamicPlaylists.value = _dynamicPlaylists.value.toMutableList().apply { remove(playlist) }
     }
 
-    fun enqueueSongsLast(filenames: Collection<String>, onFinish: ((MPDBatchMapResponse) -> Unit)? = null) =
+    fun enqueueSongsLast(filenames: Collection<String>, onFinish: ((MPDTextResponse) -> Unit)? = null) =
         mpdRepo.enqueueSongsLast(filenames, onFinish)
 
     fun loadActiveDynamicPlaylist(playOnLoad: Boolean, replaceCurrentQueue: Boolean) {
@@ -101,7 +99,7 @@ class DynamicPlaylistRepository @Inject constructor(
         }
     }
 
-    fun playSongByPosition(pos: Int, onFinish: ((MPDMapResponse) -> Unit)? = null) =
+    fun playSongByPosition(pos: Int, onFinish: ((MPDTextResponse) -> Unit)? = null) =
         mpdRepo.playSongByPosition(pos, onFinish)
 
     fun registerOnMPDChangeListener(listener: OnMPDChangeListener) = mpdRepo.registerOnMPDChangeListener(listener)
@@ -115,7 +113,7 @@ class DynamicPlaylistRepository @Inject constructor(
             .apply()
     }
 
-    fun search(filter: BaseMPDFilter, onFinish: ((MPDMultiMapResponse) -> Unit)? = null) =
+    fun search(filter: BaseMPDFilter, onFinish: ((MPDTextResponse) -> Unit)? = null) =
         mpdRepo.search(filter, onFinish)
 
     fun updateDynamicPlaylist(

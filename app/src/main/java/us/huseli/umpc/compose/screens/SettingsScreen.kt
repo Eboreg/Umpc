@@ -1,6 +1,9 @@
 package us.huseli.umpc.compose.screens
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -30,6 +33,7 @@ import us.huseli.umpc.R
 import us.huseli.umpc.compose.utils.SimpleResponsiveBlock
 import us.huseli.umpc.viewmodels.SettingsViewModel
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun SettingsScreen(
     modifier: Modifier = Modifier,
@@ -112,25 +116,40 @@ fun SettingsScreen(
                     Spacer(modifier = Modifier.height(20.dp))
                 }
 
-                OutlinedButton(
-                    onClick = {
-                        viewModel.clearAlbumArtCache {
-                            viewModel.addMessage(context.getString(R.string.all_locally_stored_album_art_was_cleared))
-                        }
-                    },
-                    shape = MaterialTheme.shapes.extraSmall
-                ) {
-                    Text(stringResource(R.string.clear_album_art_cache))
-                }
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                    OutlinedButton(
+                        onClick = {
+                            viewModel.clearAlbumArtCache {
+                                viewModel.addMessage(context.getString(R.string.all_locally_stored_album_art_was_cleared))
+                            }
+                        },
+                        shape = MaterialTheme.shapes.extraSmall,
+                        content = { Text(stringResource(R.string.clear_album_art_cache)) },
+                    )
 
-                Button(
-                    onClick = {
-                        viewModel.save()
-                        viewModel.addMessage(context.getString(R.string.settings_saved))
-                    },
-                    shape = MaterialTheme.shapes.extraSmall
-                ) {
-                    Text(stringResource(R.string.save))
+                    OutlinedButton(
+                        onClick = {
+                            viewModel.updateDatabase(
+                                onFinish = {
+                                    viewModel.addMessage(context.getString(R.string.database_update_has_started))
+                                },
+                                onUpdateFinish = {
+                                    viewModel.addMessage(context.getString(R.string.database_update_finished))
+                                }
+                            )
+                        },
+                        shape = MaterialTheme.shapes.extraSmall,
+                        content = { Text(stringResource(R.string.update_database)) },
+                    )
+
+                    Button(
+                        onClick = {
+                            viewModel.save()
+                            viewModel.addMessage(context.getString(R.string.settings_saved))
+                        },
+                        shape = MaterialTheme.shapes.extraSmall,
+                        content = { Text(stringResource(R.string.save)) },
+                    )
                 }
             }
         )

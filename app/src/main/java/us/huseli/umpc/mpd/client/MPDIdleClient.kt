@@ -5,7 +5,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import us.huseli.umpc.mpd.OnMPDChangeListener
-import us.huseli.umpc.mpd.command.MPDMapCommand
+import us.huseli.umpc.mpd.command.MPDCommand
 import us.huseli.umpc.repository.SettingsRepository
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -22,7 +22,7 @@ class MPDIdleClient @Inject constructor(
     }
 
     override suspend fun start() {
-        val command = MPDMapCommand("idle")
+        val command = MPDCommand("idle")
         worker?.cancel()
 
         worker = workerScope.launch {
@@ -33,7 +33,7 @@ class MPDIdleClient @Inject constructor(
                         val response = command.execute(socket)
                         if (!response.isSuccess) connect(failSilently = true)
                         else {
-                            val subsystems = response.extractChanged()
+                            val subsystems = response.extractValues("changed")
                             onMPDChangeListeners.forEach { it.onMPDChanged(subsystems) }
                         }
                     }

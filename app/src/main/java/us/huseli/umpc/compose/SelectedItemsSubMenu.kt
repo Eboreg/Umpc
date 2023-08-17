@@ -29,10 +29,13 @@ fun SelectedItemsSubMenu(
     @PluralsRes pluralsResId: Int,
     padding: PaddingValues = PaddingValues(start = 10.dp, end = 10.dp, bottom = 5.dp),
     onEnqueueClick: () -> Unit,
+    onPlayClick: () -> Unit,
     onAddToPlaylistClick: () -> Unit,
     onDeselectAllClick: () -> Unit,
     onRemoveClick: (() -> Unit)? = null,
 ) {
+    val buttonModifier = Modifier.padding(bottom = 5.dp)
+
     Surface(tonalElevation = 2.dp, modifier = modifier.fillMaxWidth().zIndex(1f)) {
         Column(
             modifier = Modifier.fillMaxWidth().padding(padding),
@@ -45,27 +48,32 @@ fun SelectedItemsSubMenu(
             )
             FlowRow(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly,
-                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(5.dp, Alignment.CenterHorizontally),
+                verticalArrangement = Arrangement.Center,
             ) {
                 SmallOutlinedButton(
-                    modifier = Modifier.padding(bottom = 5.dp),
+                    modifier = buttonModifier,
                     onClick = onEnqueueClick,
                     text = stringResource(R.string.enqueue),
                 )
                 SmallOutlinedButton(
-                    modifier = Modifier.padding(bottom = 5.dp),
+                    modifier = buttonModifier,
+                    onClick = onPlayClick,
+                    text = stringResource(R.string.play),
+                )
+                SmallOutlinedButton(
+                    modifier = buttonModifier,
                     onClick = onAddToPlaylistClick,
                     text = stringResource(R.string.add_to_playlist),
                 )
                 SmallOutlinedButton(
-                    modifier = Modifier.padding(bottom = 5.dp),
+                    modifier = buttonModifier,
                     onClick = onDeselectAllClick,
                     text = stringResource(R.string.deselect_all),
                 )
                 onRemoveClick?.let {
                     SmallOutlinedButton(
-                        modifier = Modifier.padding(bottom = 5.dp),
+                        modifier = buttonModifier,
                         onClick = it,
                         text = stringResource(R.string.remove),
                     )

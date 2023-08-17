@@ -16,18 +16,10 @@ import us.huseli.umpc.LoggerInterface
 import us.huseli.umpc.data.MPDCredentials
 import us.huseli.umpc.data.MPDServer
 import us.huseli.umpc.data.MPDVersion
-import us.huseli.umpc.mpd.command.MPDBaseCommand
-import us.huseli.umpc.mpd.command.MPDBatchMapCommand
-import us.huseli.umpc.mpd.command.MPDBatchMultiMapCommand
-import us.huseli.umpc.mpd.command.MPDListCommand
-import us.huseli.umpc.mpd.command.MPDMapCommand
-import us.huseli.umpc.mpd.command.MPDMultiMapCommand
-import us.huseli.umpc.mpd.response.MPDBaseResponse
-import us.huseli.umpc.mpd.response.MPDBatchMapResponse
-import us.huseli.umpc.mpd.response.MPDBatchMultiMapResponse
-import us.huseli.umpc.mpd.response.MPDListResponse
-import us.huseli.umpc.mpd.response.MPDMapResponse
-import us.huseli.umpc.mpd.response.MPDMultiMapResponse
+import us.huseli.umpc.formatMPDCommand
+import us.huseli.umpc.mpd.command.BaseMPDCommand
+import us.huseli.umpc.mpd.command.MPDCommand
+import us.huseli.umpc.mpd.response.BaseMPDResponse
 import us.huseli.umpc.repository.SettingsRepository
 import java.io.BufferedReader
 import java.io.InputStreamReader
@@ -41,7 +33,7 @@ abstract class MPDBaseClient(
 
     private val _protocolVersion = MutableStateFlow(MPDVersion())
     private val _server = MutableStateFlow<MPDServer?>(null)
-    private val commandQueue = MutableStateFlow<List<MPDBaseCommand<*>>>(emptyList())
+    private val commandQueue = MutableStateFlow<List<BaseMPDCommand<*>>>(emptyList())
     private val commandMutex = Mutex()
     private val commandQueueMutex = Mutex()
     protected var credentials: MPDCredentials? = null
@@ -78,19 +70,7 @@ abstract class MPDBaseClient(
         }
     }
 
-    fun enqueue(command: String, onFinish: ((MPDMapResponse) -> Unit)? = null) =
-        enqueue(command, emptyList<Any>(), onFinish)
-
-    fun enqueue(command: String, arg: Any, onFinish: ((MPDMapResponse) -> Unit)? = null) =
-        enqueue(command, listOf(arg), onFinish)
-
-    fun enqueue(
-        command: String,
-        args: Collection<*> = emptyList<Any>(),
-        onFinish: ((MPDMapResponse) -> Unit)? = null,
-    ) = enqueue(MPDMapCommand(command, args, onFinish))
-
-    fun <RT : MPDBaseResponse> enqueue(command: MPDBaseCommand<RT>, force: Boolean = false) {
+    protected fun <RT : BaseMPDResponse> enqueue(command: BaseMPDCommand<RT>, force: Boolean = false) {
         ioScope.launch {
             commandQueueMutex.withLock {
                 if (force || !commandQueue.value.contains(command)) {
@@ -100,31 +80,6 @@ abstract class MPDBaseClient(
             }
         }
     }
-
-    fun enqueueBatch(commands: Collection<String>, onFinish: ((MPDBatchMapResponse) -> Unit)? = null) =
-        enqueue(MPDBatchMapCommand(commands, onFinish))
-
-    fun enqueueBatchMultiMap(commands: Collection<String>, onFinish: ((MPDBatchMultiMapResponse) -> Unit)? = null) =
-        enqueue(MPDBatchMultiMapCommand(commands, onFinish))
-
-    fun enqueueList(
-        command: String,
-        key: String,
-        args: Collection<Any> = emptyList(),
-        onFinish: (MPDListResponse) -> Unit,
-    ) = enqueue(MPDListCommand(command, key, args, onFinish))
-
-    fun enqueueMultiMap(command: String, onFinish: ((MPDMultiMapResponse) -> Unit)? = null) =
-        enqueueMultiMap(command, emptyList<Any>(), onFinish)
-
-    fun enqueueMultiMap(command: String, arg: Any, onFinish: ((MPDMultiMapResponse) -> Unit)? = null) =
-        enqueueMultiMap(command, listOf(arg), onFinish)
-
-    fun enqueueMultiMap(
-        command: String,
-        args: Collection<*> = emptyList<Any>(),
-        onFinish: ((MPDMultiMapResponse) -> Unit)? = null,
-    ) = enqueue(MPDMultiMapCommand(command, args, onFinish))
 
     open suspend fun start() {
         worker?.cancel()
@@ -164,14 +119,15 @@ abstract class MPDBaseClient(
                 _server.value = credentials?.let { MPDServer(it.hostname, it.port) }
 
                 credentials?.password?.also { password ->
-                    val response = MPDMapCommand("password", password).execute(socket)
+                    val response = MPDCommand(formatMPDCommand("password", password)).execute(socket)
                     if (!response.isSuccess) {
                         throw MPDClientException(this@MPDBaseClient, "Error on password command: ${response.error}")
                     }
                 }
 
-                MPDMapCommand("tagtypes").execute(socket).extractTagTypes().also {
-                    MPDMapCommand("tagtypes disable", it.minus(wantedTagTypes.toSet())).execute(socket)
+                MPDCommand("tagtypes").execute(socket).extractValues("tagtype").also {
+                    val command = formatMPDCommand("tagtypes disable", it.minus(wantedTagTypes.toSet()))
+                    MPDCommand(command).execute(socket)
                 }
 
                 state.value = State.READY
@@ -187,11 +143,11 @@ abstract class MPDBaseClient(
         }
     }
 
-    private suspend fun <RT : MPDBaseResponse> runCommand(command: MPDBaseCommand<RT>) {
+    private suspend fun <RT : BaseMPDResponse> runCommand(command: BaseMPDCommand<RT>) {
         try {
             state.value = State.RUNNING
             val response = commandMutex.withLock { command.execute(socket) }
-            if (response.status == MPDBaseResponse.Status.EMPTY_RESPONSE) {
+            if (response.status == BaseMPDResponse.Status.EMPTY_RESPONSE) {
                 // connect(failSilently = true)
                 state.value = State.PREPARED
                 enqueue(command, force = true)

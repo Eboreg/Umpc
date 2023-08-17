@@ -9,7 +9,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import us.huseli.umpc.Constants
 import us.huseli.umpc.LoggerInterface
-import us.huseli.umpc.mpd.response.MPDBaseResponse
+import us.huseli.umpc.mpd.response.BaseMPDResponse
 import java.io.ByteArrayOutputStream
 import java.io.InputStream
 import java.io.PrintWriter
@@ -26,7 +26,7 @@ data class MPDResponseLine(val string: String?) {
         else -> Type.PAIR
     }
     val pair: Pair<String, String>?
-        get() = MPDBaseResponse.parseResponseLine(string)
+        get() = BaseMPDResponse.parseResponseLine(string)
 }
 
 class MPDStreamCommand : LoggerInterface {
@@ -73,7 +73,7 @@ class MPDStreamCommand : LoggerInterface {
         }
     }
 
-    protected suspend fun readLine(inputStream: InputStream): String? {
+    private suspend fun readLine(inputStream: InputStream): String? {
         var localReadPos = readBufferReadPos
         lineBuffer.reset()
 

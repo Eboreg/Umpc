@@ -29,7 +29,6 @@ import androidx.compose.material3.ShapeDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -130,15 +129,8 @@ fun PlaylistListScreen(
 
                 Column(modifier = Modifier.fillMaxWidth().verticalScroll(storedPlaylistScrollState)) {
                     storedPlaylists.forEach { playlist ->
-                        var soungCount by rememberSaveable { mutableStateOf<Int?>(null) }
-
-                        LaunchedEffect(playlist) {
-                            viewModel.getStoredPlaylistSongCount(playlist.name) { soungCount = it }
-                        }
-
                         StoredPlaylistRow(
                             playlist = playlist,
-                            songCount = soungCount,
                             onClick = { onGotoStoredPlaylistClick(playlist) },
                         )
                     }
@@ -226,7 +218,6 @@ fun DynamicPlaylistRow(
 fun StoredPlaylistRow(
     modifier: Modifier = Modifier,
     playlist: MPDPlaylist,
-    songCount: Int?,
     onClick: () -> Unit,
 ) {
     Divider()
@@ -239,12 +230,15 @@ fun StoredPlaylistRow(
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(playlist.name)
-        if (songCount != null) {
-            Column(horizontalAlignment = Alignment.End) {
+        Column(horizontalAlignment = Alignment.End) {
+            playlist.songCount?.let { songCount ->
                 Text(
                     text = pluralStringResource(R.plurals.x_songs, songCount, songCount),
                     style = MaterialTheme.typography.bodySmall
                 )
+            }
+            playlist.totalDuration?.let { totalDuration ->
+                Text(totalDuration.toString(), style = MaterialTheme.typography.bodySmall)
             }
         }
     }

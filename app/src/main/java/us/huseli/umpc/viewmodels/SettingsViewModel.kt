@@ -6,6 +6,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.launch
 import us.huseli.umpc.mpd.OnMPDChangeListener
+import us.huseli.umpc.mpd.response.MPDTextResponse
 import us.huseli.umpc.repository.MPDRepository
 import us.huseli.umpc.repository.MessageRepository
 import us.huseli.umpc.repository.SettingsRepository
@@ -47,6 +48,9 @@ class SettingsViewModel @Inject constructor(
     fun setPort(value: Int) = settingsRepository.setPort(value)
 
     fun setStreamingUrl(value: String) = settingsRepository.setStreamingUrl(value)
+
+    fun updateDatabase(onFinish: (MPDTextResponse) -> Unit, onUpdateFinish: () -> Unit) =
+        repo.updateDatabase(onFinish, onUpdateFinish)
 
     override fun onMPDChanged(subsystems: List<String>) {
         if (subsystems.contains("output")) repo.loadOutputs()

@@ -12,7 +12,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import us.huseli.umpc.Constants.NAV_ARG_ARTIST
-import us.huseli.umpc.ImageRequestType
 import us.huseli.umpc.data.MPDAlbum
 import us.huseli.umpc.data.MPDAlbumWithSongs
 import us.huseli.umpc.repository.AlbumArtRepository
@@ -55,11 +54,7 @@ class ArtistViewModel @Inject constructor(
 
     private fun getGridAlbumArt(albums: Collection<MPDAlbumWithSongs>) {
         albums.mapNotNull { it.albumArtKey }.forEach { key ->
-            if (_gridAlbumArt.value.size < 16) {
-                getAlbumArt(key, ImageRequestType.FULL) { albumArt ->
-                    _gridAlbumArt.value += albumArt.fullImage
-                }
-            }
+            if (_gridAlbumArt.value.size < 16) getAlbumArt(key) { _gridAlbumArt.value += it.fullImage }
         }
     }
 

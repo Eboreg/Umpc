@@ -1,6 +1,6 @@
 package us.huseli.umpc
 
-enum class ContentScreen { DEBUG, QUEUE, LIBRARY, SETTINGS, SEARCH, PLAYLISTS, NONE }
+enum class ContentScreen { DEBUG, QUEUE, LIBRARY, SETTINGS, SEARCH, PLAYLISTS, INFO, NONE }
 
 enum class SingleState { OFF, ON, ONESHOT }
 
@@ -9,8 +9,6 @@ enum class ConsumeState { OFF, ON, ONESHOT }
 enum class PlayerState { UNKNOWN, PLAY, STOP, PAUSE }
 
 enum class LibraryGrouping { ARTIST, ALBUM }
-
-enum class ImageRequestType { FULL, THUMBNAIL, BOTH }
 
 enum class LibrarySearchType { ARTIST, ALBUM, NONE }
 

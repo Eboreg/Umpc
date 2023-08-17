@@ -7,7 +7,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import us.huseli.umpc.data.MPDSong
 import us.huseli.umpc.mpd.MPDStreamPlayer
-import us.huseli.umpc.mpd.response.MPDBatchMapResponse
+import us.huseli.umpc.mpd.response.MPDTextResponse
 import us.huseli.umpc.repository.DynamicPlaylistRepository
 import us.huseli.umpc.repository.MPDRepository
 import us.huseli.umpc.repository.MessageRepository
@@ -32,7 +32,7 @@ class MPDViewModel @Inject constructor(
     val message = messageRepo.message
     val showVolumeFlash = _showVolumeFlash.asStateFlow()
 
-    fun addSongToStoredPlaylist(song: MPDSong, playlistName: String, onFinish: (MPDBatchMapResponse) -> Unit) =
+    fun addSongToStoredPlaylist(song: MPDSong, playlistName: String, onFinish: (MPDTextResponse) -> Unit) =
         repo.addSongToPlaylist(song, playlistName, onFinish)
 
     fun clearError() {
