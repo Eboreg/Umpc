@@ -145,8 +145,8 @@ class DynamicPlaylistState(
         }
 
     private fun saveSongsToDisk(songs: List<MPDSong>) = ioScope.launch {
-        context.dynamicPlaylistDataStore.updateData {
-            playlist.toProto(filenames = songs.map { it.filename }, currentOffset = currentOffset)
+        playlist.toProto(filenames = songs.map { it.filename }, currentOffset = currentOffset)?.let {
+            context.dynamicPlaylistDataStore.updateData { it }
         }
     }
 

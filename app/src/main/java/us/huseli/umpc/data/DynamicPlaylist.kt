@@ -20,13 +20,17 @@ data class DynamicPlaylist(
     fun toProto(
         filenames: List<String> = emptyList(),
         currentOffset: Int = 0,
-    ): DynamicPlaylistProto = DynamicPlaylistProto.newBuilder().let {
-        it.filter = filter.toProto()
-        it.shuffle = shuffle
-        it.currentOffset = currentOffset
-        it.server = server.toString()
-        it.clearFilenames()
-        it.addAllFilenames(filenames)
-        it.build()
+    ): DynamicPlaylistProto? = try {
+        DynamicPlaylistProto.newBuilder().let {
+            it.filter = filter.toProto()
+            it.shuffle = shuffle
+            it.currentOffset = currentOffset
+            it.server = server.toString()
+            it.clearFilenames()
+            it.addAllFilenames(filenames)
+            it.build()
+        }
+    } catch (e: Exception) {
+        null
     }
 }
