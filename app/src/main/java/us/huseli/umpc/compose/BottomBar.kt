@@ -45,6 +45,7 @@ fun BottomBar(
     val albumArt by viewModel.currentSongAlbumArt.collectAsStateWithLifecycle()
     val currentSong by viewModel.currentSong.collectAsStateWithLifecycle()
     val playerState by viewModel.playerState.collectAsStateWithLifecycle()
+    val isConnected by viewModel.isConnected.collectAsStateWithLifecycle()
     val isStreaming by viewModel.isStreaming.collectAsStateWithLifecycle()
     val currentSongDuration by viewModel.currentSongDuration.collectAsStateWithLifecycle()
     val currentSongElapsed by viewModel.currentSongElapsed.collectAsStateWithLifecycle()
@@ -67,6 +68,7 @@ fun BottomBar(
                         elapsed = currentSongElapsed ?: 0.0,
                         duration = currentSongDuration ?: 0.0,
                         playerState = playerState,
+                        enabled = isConnected,
                     )
                 }
 
@@ -90,6 +92,7 @@ fun BottomBar(
                     if (streamingUrl != null) {
                         IconToggleButton(
                             checked = isStreaming,
+                            enabled = isConnected,
                             onCheckedChange = {
                                 viewModel.toggleStream { started ->
                                     viewModel.addMessage(
@@ -116,7 +119,8 @@ fun BottomBar(
 
                     IconButton(
                         onClick = { viewModel.playOrPause() },
-                        modifier = Modifier.padding(end = 10.dp)
+                        modifier = Modifier.padding(end = 10.dp),
+                        enabled = isConnected,
                     ) {
                         if (playerState == PlayerState.PLAY) {
                             Icon(

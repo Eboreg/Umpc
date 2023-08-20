@@ -42,10 +42,8 @@ import kotlin.time.toDuration
 @Composable
 fun InfoScreen(modifier: Modifier = Modifier, viewModel: InfoViewModel = hiltViewModel()) {
     val stats by viewModel.stats.collectAsStateWithLifecycle()
-    val protocolVersion by viewModel.protocolVersion.collectAsStateWithLifecycle()
     val playerState by viewModel.playerState.collectAsStateWithLifecycle()
-
-    viewModel.loadStats()
+    val connectedServer by viewModel.connectedServer.collectAsStateWithLifecycle()
 
     Column(modifier = modifier.verticalScroll(rememberScrollState())) {
         Text(
@@ -58,32 +56,14 @@ fun InfoScreen(modifier: Modifier = Modifier, viewModel: InfoViewModel = hiltVie
             InfoRow(stringResource(R.string.number_of_artists), stats?.artists?.toString())
             InfoRow(stringResource(R.string.number_of_albums), stats?.albums?.toString())
             InfoRow(stringResource(R.string.number_of_songs), stats?.songs?.toString())
-            InfoRow(stringResource(R.string.server_uptime)) {
-                var uptime by remember(stats) { mutableStateOf(stats?.uptime) }
-
-                LaunchedEffect(stats) {
-                    while (true) {
-                        delay(1000)
-                        uptime?.let { uptime = it + 1.toDuration(DurationUnit.SECONDS) }
-                    }
-                }
-
-                Text(uptime?.toString() ?: "-", fontWeight = FontWeight.Bold)
-            }
-            InfoRow(stringResource(R.string.play_time_since_restart)) {
-                var playTime by remember(stats) { mutableStateOf(stats?.playtime ?: Duration.ZERO) }
-
-                LaunchedEffect(stats, playerState) {
-                    while (playerState == PlayerState.PLAY) {
-                        delay(1000)
-                        playTime += 1.toDuration(DurationUnit.SECONDS)
-                    }
-                }
-
-                Text(playTime.toString(), fontWeight = FontWeight.Bold)
-            }
+            InfoRowCountUpSeconds(stringResource(R.string.server_uptime), stats?.uptime)
+            InfoRowCountUpSeconds(
+                stringResource(R.string.play_time_since_restart),
+                stats?.playtime,
+                playerState == PlayerState.PLAY
+            )
             InfoRow(stringResource(R.string.total_library_play_time), stats?.dbPlaytime?.toString())
-            InfoRow(stringResource(R.string.mpd_version), protocolVersion.toString())
+            InfoRow(stringResource(R.string.mpd_version), connectedServer?.protocolVersion?.toString())
             InfoRow(stringResource(R.string.app_version), BuildConfig.VERSION_NAME)
         }
 
@@ -193,10 +173,23 @@ fun AlternatingTableScope.InfoRow(title: String, value: String?) {
 }
 
 @Composable
-fun AlternatingTableScope.InfoRow(title: String, cell2: @Composable () -> Unit) {
-    Row {
-        Cell { Text(title) }
-        Cell { cell2() }
+fun AlternatingTableScope.InfoRowCountUpSeconds(title: String, initialValue: Duration?, count: Boolean = true) {
+    if (initialValue != null) {
+        var duration by remember(initialValue) { mutableStateOf(initialValue) }
+
+        if (count) {
+            LaunchedEffect(initialValue) {
+                while (true) {
+                    delay(1000)
+                    duration += 1.toDuration(DurationUnit.SECONDS)
+                }
+            }
+        }
+
+        Row {
+            Cell { Text(title) }
+            Cell { Text(duration.toString(), fontWeight = FontWeight.Bold) }
+        }
     }
 }
 

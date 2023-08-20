@@ -16,18 +16,18 @@ data class MPDError(private val code: Int, val commandIdx: Int, val command: Str
         EXIST(56),
     }
 
-    val type: Type = Type.values().first { it.code == code }
+    val type: Type? = Type.values().firstOrNull { it.code == code }
 
-    companion object {
-        private val ACK_REGEX = Regex("^ACK \\[(\\d+)@(\\d+)] \\{(.*)\\} (.*)$")
-
-        fun fromString(value: String) = ACK_REGEX.find(value)?.groupValues?.let { values ->
-            MPDError(
-                code = values[1].toInt(),
-                commandIdx = values[2].toInt(),
-                command = values[3],
-                message = values[4],
-            )
-        }
-    }
+    override fun toString() =
+        "MPDError[code=$code, commandIdx=$commandIdx, command=$command, type=$type, message=$message]"
 }
+
+fun String.toMPDError(): MPDError? =
+    Regex("^ACK \\[(\\d+)@(\\d+)] \\{(.*)\\} (.*)$").find(this)?.groupValues?.let { values ->
+        MPDError(
+            code = values[1].toInt(),
+            commandIdx = values[2].toInt(),
+            command = values[3],
+            message = values[4],
+        )
+    }

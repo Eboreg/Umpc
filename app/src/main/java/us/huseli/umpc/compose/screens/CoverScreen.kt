@@ -77,6 +77,7 @@ fun CoverScreen(
     val currentSong by viewModel.currentSong.collectAsStateWithLifecycle()
     val duration by viewModel.currentSongDuration.collectAsStateWithLifecycle()
     val elapsed by viewModel.currentSongElapsed.collectAsStateWithLifecycle()
+    val isConnected by viewModel.isConnected.collectAsStateWithLifecycle()
     val isDynamicPlaylistActive by viewModel.isDynamicPlaylistActive.collectAsStateWithLifecycle(false)
     val playerState by viewModel.playerState.collectAsStateWithLifecycle()
     val volume by viewModel.volume.collectAsStateWithLifecycle()
@@ -135,6 +136,7 @@ fun CoverScreen(
                 shape = MaterialTheme.shapes.medium.copy(topStart = CornerSize(0.dp), topEnd = CornerSize(0.dp)),
                 padding = PaddingValues(top = 15.dp),
                 onVolumeChange = { viewModel.setVolume(it.toInt()) },
+                enabled = isConnected,
             )
             CoverScreenSongTechInfo(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 10.dp),
@@ -150,6 +152,7 @@ fun CoverScreen(
                 PlayerControls(
                     playerState = playerState,
                     stopAfterCurrent = stopAfterCurrent,
+                    enabled = isConnected,
                     onPreviousClick = { viewModel.previousOrRestart() },
                     onPlayPauseClick = { viewModel.playOrPause() },
                     onStopClick = { viewModel.stop() },
@@ -167,6 +170,7 @@ fun CoverScreen(
                         bottomEnd = CornerSize(0.dp),
                         bottomStart = CornerSize(0.dp),
                     ),
+                    enabled = isConnected,
                     onManualChange = { viewModel.seek(it) },
                 )
             }

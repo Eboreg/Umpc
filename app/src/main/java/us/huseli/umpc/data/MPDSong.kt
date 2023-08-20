@@ -62,23 +62,23 @@ data class MPDSong(
 fun Map<String, String>.toMPDSong(position: Int? = null) = try {
     MPDSong(
         filename = this["file"]!!,
-        id = this["Id"]?.toInt(),
-        artist = this["Artist"] ?: "(Unknown)",
-        title = (this["Title"] ?: Paths.get(this["file"]!!).nameWithoutExtension),
-        album = MPDAlbum(this["AlbumArtist"] ?: this["Artist"] ?: "(Unknown)", this["Album"] ?: "(Unknown)"),
-        trackNumber = this["Track"]?.split("/")?.first()?.toInt(),
-        discNumber = this["Disc"]?.toInt(),
-        duration = this["duration"]?.toDouble(),
-        year = this["Date"]?.parseYear(),
-        audioFormat = this["Format"]?.toMPDAudioFormat(),
-        position = position ?: this["Pos"]?.toInt(),
+        id = this["id"]?.toInt(),
+        artist = this["artist"] ?: "(Unknown)",
+        title = (this["title"] ?: Paths.get(this["file"]!!).nameWithoutExtension),
+        album = MPDAlbum(this["albumartist"] ?: this["artist"] ?: "(Unknown)", this["album"] ?: "(Unknown)"),
+        trackNumber = this["track"]?.split("/")?.first()?.toInt(),
+        discNumber = this["disc"]?.toInt(),
+        duration = this["duration"]?.toDouble() ?: this["time"]?.toDouble(),
+        year = this["date"]?.parseYear(),
+        audioFormat = this["format"]?.toMPDAudioFormat(),
+        position = position ?: this["pos"]?.toInt(),
     )
 } catch (e: NullPointerException) {
     Logger.log("MPDSong", "$e, $this", Log.ERROR)
     null
 }
 
-fun List<Map<String, String>>.toMPDSongs(): List<MPDSong> = mapNotNull { it.toMPDSong() }
+fun Iterable<Map<String, String>>.toMPDSongs(): List<MPDSong> = mapNotNull { it.toMPDSong() }
 
 fun Iterable<MPDSong>.sorted(): List<MPDSong> = sortedWith(compareBy({ it.discNumber }, { it.trackNumber }))
 

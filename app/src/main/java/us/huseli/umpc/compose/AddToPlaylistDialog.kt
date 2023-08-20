@@ -91,7 +91,12 @@ fun AddToPlaylistDialog(
                     }
                 }
 
-                Text(stringResource(if (allowExistingPlaylist) R.string.or_enter_the_name_of_a_new_playlist else R.string.enter_the_name_of_a_new_playlist))
+                Text(
+                    stringResource(
+                        if (allowExistingPlaylist) R.string.or_enter_the_name_of_a_new_playlist
+                        else R.string.enter_the_name_of_a_new_playlist
+                    )
+                )
                 OutlinedTextField(
                     value = newPlaylistName,
                     isError = !allowExistingPlaylist && nameIsDuplicate,

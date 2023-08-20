@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import us.huseli.umpc.Constants
+import us.huseli.umpc.LoggerInterface
 import us.huseli.umpc.data.AlbumArtKey
 import us.huseli.umpc.data.MPDAlbumArt
 import us.huseli.umpc.toBitmap
@@ -29,7 +30,7 @@ class AlbumArtRepository @Inject constructor(
     private val mpdRepo: MPDRepository,
     private val ioScope: CoroutineScope,
     @ApplicationContext context: Context,
-) {
+) : LoggerInterface {
     private val _currentSongAlbumArt = MutableStateFlow<MPDAlbumArt?>(null)
     private val albumArtDirectory = File(context.cacheDir, "albumArt").apply { mkdirs() }
     private val thumbnailDirectory = File(albumArtDirectory, "thumbnails").apply { mkdirs() }
@@ -37,6 +38,11 @@ class AlbumArtRepository @Inject constructor(
     private val pendingKeys = mutableListOf<AlbumArtKey>()
 
     init {
+        ioScope.launch {
+            mpdRepo.isIOError.collect {
+                if (it) _currentSongAlbumArt.value = null
+            }
+        }
         ioScope.launch {
             mpdRepo.currentSong.map { it?.albumArtKey }.filterNotNull().distinctUntilChanged().collect { key ->
                 _currentSongAlbumArt.value = null
@@ -58,10 +64,7 @@ class AlbumArtRepository @Inject constructor(
         onReadyCallbacks.remove(key)?.forEach { it.invoke(albumArt) }
     }
 
-    fun getAlbumArt(
-        key: AlbumArtKey,
-        onFinish: (MPDAlbumArt) -> Unit,
-    ) = ioScope.launch {
+    fun getAlbumArt(key: AlbumArtKey, onFinish: (MPDAlbumArt) -> Unit) = ioScope.launch {
         if (pendingKeys.contains(key)) {
             addOnReadyCallback(key, onFinish)
         } else {

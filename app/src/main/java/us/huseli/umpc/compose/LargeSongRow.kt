@@ -113,6 +113,7 @@ fun LargeSongRow(
                         onGotoAlbumClick = onGotoAlbumClick,
                         albumArt = albumArt,
                         highlight = highlight,
+                        onRemoveClick = onRemove,
                     )
                 } else {
                     LargeSongRowContent(

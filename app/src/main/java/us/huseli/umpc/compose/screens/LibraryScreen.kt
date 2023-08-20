@@ -25,6 +25,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
@@ -38,6 +39,7 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlinx.coroutines.flow.distinctUntilChanged
 import us.huseli.umpc.AddToPlaylistItemType
 import us.huseli.umpc.LibraryGrouping
 import us.huseli.umpc.R
@@ -71,6 +73,7 @@ fun LibraryScreen(
     val selectedAlbums by viewModel.selectedAlbums.collectAsStateWithLifecycle()
     var isAddAlbumsToPlaylistDialogOpen by rememberSaveable { mutableStateOf(false) }
     val playlists by viewModel.storedPlaylists.collectAsStateWithLifecycle()
+    val isConnected by viewModel.isConnected.collectAsStateWithLifecycle()
 
     if (isAddAlbumsToPlaylistDialogOpen) {
         BatchAddToPlaylistDialog(
@@ -104,6 +107,7 @@ fun LibraryScreen(
                 selectedItemCount = selectedAlbums.size,
                 pluralsResId = R.plurals.x_selected_albums,
                 onDeselectAllClick = { viewModel.deselectAllAlbums() },
+                isConnected = isConnected,
                 onEnqueueClick = {
                     viewModel.enqueueSelectedAlbums { response ->
                         if (response.isSuccess) viewModel.addMessage(
@@ -184,6 +188,15 @@ fun LibraryScreen(
                 val albums by viewModel.albums.collectAsStateWithLifecycle()
                 val albumLeadingChars by viewModel.albumLeadingChars.collectAsStateWithLifecycle(emptyList())
 
+                LaunchedEffect(viewModel.albumListState) {
+                    snapshotFlow { viewModel.albumListState.layoutInfo.visibleItemsInfo }
+                        .distinctUntilChanged()
+                        .collect { visibleItems ->
+                            @Suppress("UNCHECKED_CAST")
+                            viewModel.loadAlbumsWithSongs(visibleItems.map { it.key } as List<MPDAlbum>)
+                        }
+                }
+
                 ListWithAlphabetBar(
                     modifier = Modifier.fillMaxWidth(),
                     characters = albumLeadingChars,
@@ -193,7 +206,7 @@ fun LibraryScreen(
                     minItems = (LocalConfiguration.current.screenHeightDp * 0.042).roundToInt(),
                 ) {
                     LazyColumn(state = viewModel.albumListState) {
-                        items(albums, key = { it.hashCode() }) { album ->
+                        items(albums, key = { it }) { album ->
                             LibraryScreenAlbumRow(
                                 viewModel = viewModel,
                                 album = album,
@@ -259,11 +272,8 @@ fun LibraryScreenAlbumRow(
     onLongClick: () -> Unit,
 ) {
     var thumbnail by remember { mutableStateOf<ImageBitmap?>(null) }
-    var albumWithSongs by remember { mutableStateOf(MPDAlbumWithSongs(album, emptyList())) }
-
-    LaunchedEffect(album) {
-        viewModel.getAlbumWithSongsByAlbum(album) { albumWithSongs = it }
-    }
+    val albumWithSongs by viewModel.getAlbumWithSongsFlow(album)
+        .collectAsStateWithLifecycle(MPDAlbumWithSongs(album, emptyList()))
 
     LaunchedEffect(albumWithSongs) {
         viewModel.getAlbumArt(albumWithSongs) { thumbnail = it.thumbnail }

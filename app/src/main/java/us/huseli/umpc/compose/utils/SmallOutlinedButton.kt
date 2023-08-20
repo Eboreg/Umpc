@@ -24,12 +24,14 @@ fun SmallOutlinedButton(
     text: String,
     height: Dp = 25.dp,
     textStyle: TextStyle = MaterialTheme.typography.bodySmall,
+    enabled: Boolean = true,
 ) {
     OutlinedButton(
         modifier = modifier.height(height),
         onClick = onClick,
         shape = ShapeDefaults.ExtraSmall,
         contentPadding = PaddingValues(horizontal = 10.dp, vertical = 0.dp),
+        enabled = enabled,
         content = {
             leadingIcon?.let {
                 Icon(imageVector = it, contentDescription = null, modifier = Modifier.size(height).padding(end = 5.dp))

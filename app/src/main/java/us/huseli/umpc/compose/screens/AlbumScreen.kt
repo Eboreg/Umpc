@@ -63,6 +63,7 @@ fun AlbumScreen(
     var isAddAlbumToPlaylistDialogOpen by rememberSaveable { mutableStateOf(false) }
     var isAddSongsToPlaylistDialogOpen by rememberSaveable { mutableStateOf(false) }
     val selectedSongs by viewModel.selectedSongs.collectAsStateWithLifecycle()
+    val isConnected by viewModel.isConnected.collectAsStateWithLifecycle()
 
     val onEnqueueClick: () -> Unit = {
         viewModel.enqueueLast { response ->
@@ -123,6 +124,7 @@ fun AlbumScreen(
         SelectedItemsSubMenu(
             pluralsResId = R.plurals.x_selected_songs,
             selectedItemCount = selectedSongs.size,
+            isConnected = isConnected,
             onEnqueueClick = {
                 viewModel.enqueueSelectedSongs { response ->
                     if (response.isSuccess) viewModel.addMessage(

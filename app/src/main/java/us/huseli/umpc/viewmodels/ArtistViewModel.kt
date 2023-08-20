@@ -1,12 +1,10 @@
 package us.huseli.umpc.viewmodels
 
-import android.content.Context
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
-import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
@@ -26,8 +24,7 @@ class ArtistViewModel @Inject constructor(
     messageRepo: MessageRepository,
     albumArtRepo: AlbumArtRepository,
     savedStateHandle: SavedStateHandle,
-    @ApplicationContext context: Context,
-) : AlbumSelectViewModel(repo, messageRepo, albumArtRepo, context) {
+) : AlbumSelectViewModel(repo, messageRepo, albumArtRepo) {
     private val _albums = MutableStateFlow<List<MPDAlbum>>(emptyList())
     private val _appearsOnAlbums = MutableStateFlow<List<MPDAlbum>>(emptyList())
     private val _albumsWithSongs = MutableStateFlow<List<MPDAlbumWithSongs>>(emptyList())
@@ -52,21 +49,17 @@ class ArtistViewModel @Inject constructor(
     val gridAlbumArt = _gridAlbumArt.asStateFlow()
     val listState = LazyListState()
 
-    private fun getGridAlbumArt(albums: Collection<MPDAlbumWithSongs>) {
-        albums.mapNotNull { it.albumArtKey }.forEach { key ->
-            if (_gridAlbumArt.value.size < 16) getAlbumArt(key) { _gridAlbumArt.value += it.fullImage }
-        }
-    }
-
     init {
         repo.getAlbumsByAlbumArtist(artist) { albums ->
+            // TODO: albums empty bc mopidy doesn't give everything albumartist?
             _albums.value = albums
 
             repo.getAlbumsByArtist(artist) { appearsOnAlbums ->
                 _appearsOnAlbums.value = appearsOnAlbums.filter { it.artist != artist }
+                _albums.value += appearsOnAlbums.filter { it.artist == artist }.minus(_albums.value.toSet())
 
                 viewModelScope.launch {
-                    repo.getAlbumsWithSongs(albums) { albumsWithSongs ->
+                    repo.getAlbumsWithSongs(_albums.value) { albumsWithSongs ->
                         _albumsWithSongs.value = albumsWithSongs
                         _songCount.value += albumsWithSongs.sumOf { it.songs.size }
                         _totalDuration.value += albumsWithSongs.sumOf { aws -> aws.songs.sumOf { it.duration ?: 0.0 } }
@@ -83,6 +76,12 @@ class ArtistViewModel @Inject constructor(
                     }
                 }
             }
+        }
+    }
+
+    private fun getGridAlbumArt(albums: Collection<MPDAlbumWithSongs>) {
+        albums.mapNotNull { it.albumArtKey }.forEach { key ->
+            if (_gridAlbumArt.value.size < 16) getAlbumArt(key) { _gridAlbumArt.value += it.fullImage }
         }
     }
 }

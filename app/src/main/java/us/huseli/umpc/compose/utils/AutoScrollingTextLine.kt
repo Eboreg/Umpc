@@ -10,6 +10,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -37,8 +38,8 @@ fun AutoScrollingTextLine(
     delayMillis: Int = 2000,
 ) {
     val offset by remember { mutableStateOf(Animatable(0f)) }
-    var containerWidth by remember { mutableStateOf(0f) }
-    var textWidth by remember { mutableStateOf(0f) }
+    var containerWidth by remember { mutableFloatStateOf(0f) }
+    var textWidth by remember { mutableFloatStateOf(0f) }
     val target = containerWidth - textWidth
     val durationMillis = (1000 * (abs(target) / pixelsPerSecond)).toInt() + (2 * delayMillis)
 

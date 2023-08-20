@@ -1,3 +1,4 @@
+<!--suppress IncorrectFormatting-->
 <resources>
     <string name="a_playlist_with_this_name_already_exists">A playlist with this name already exists.</string>
     <string name="about_dynamic_playlists">About dynamic playlists</string>
@@ -125,6 +126,8 @@
     <string name="update_database">Update database</string>
     <string name="database_update_has_started">Database update has started.</string>
     <string name="database_update_finished">Database update finished.</string>
+    <string name="connection_failed">Connection failed!</string>
+    <string name="connected_to_protocol_version">Connected to %1$s:%2$d, protocol version %3$s.</string>
     <plurals name="add_albums_playlist_success">
         <item quantity="one">Album was added to playlist.</item>
         <item quantity="other">%1$d albums were added to playlist.</item>

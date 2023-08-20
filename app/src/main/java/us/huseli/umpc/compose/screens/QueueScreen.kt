@@ -20,6 +20,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableDoubleStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -59,14 +60,14 @@ fun QueueScreen(
 ) {
     val context = LocalContext.current
     val activeDynamicPlaylist by viewModel.activeDynamicPlaylist.collectAsStateWithLifecycle()
+    val connectedServer by viewModel.connectedServer.collectAsStateWithLifecycle()
     val queue by viewModel.queue.collectAsStateWithLifecycle()
     val currentSong by viewModel.currentSong.collectAsStateWithLifecycle()
     val currentSongPosition by viewModel.currentSongPosition.collectAsStateWithLifecycle()
     val playerState by viewModel.playerState.collectAsStateWithLifecycle()
     val playlists by viewModel.storedPlaylists.collectAsStateWithLifecycle()
-    val protocolVersion by viewModel.protocolVersion.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
-    var totalDuration by rememberSaveable { mutableStateOf(0.0) }
+    var totalDuration by rememberSaveable { mutableDoubleStateOf(0.0) }
     var isSubmenuExpanded by rememberSaveable { mutableStateOf(false) }
     var isAddToPlaylistDialogOpen by rememberSaveable { mutableStateOf(false) }
 
@@ -100,7 +101,7 @@ fun QueueScreen(
         AddToPlaylistDialog(
             title = stringResource(R.string.queue).lowercase(),
             playlists = playlists,
-            allowExistingPlaylist = protocolVersion >= MPDVersion("0.24.0"),
+            allowExistingPlaylist = connectedServer?.protocolVersion?.let { it >= MPDVersion("0.24.0") } == true,
             onConfirm = {
                 viewModel.addQueueToPlaylist(it) { response ->
                     if (response.isSuccess) viewModel.addMessage(

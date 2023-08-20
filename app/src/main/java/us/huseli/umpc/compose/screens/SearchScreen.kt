@@ -66,6 +66,7 @@ fun SearchScreen(
     val playerState by viewModel.playerState.collectAsStateWithLifecycle()
     val isSearching by viewModel.isSearching.collectAsStateWithLifecycle()
     val playlists by viewModel.storedPlaylists.collectAsStateWithLifecycle()
+    val isConnected by viewModel.isConnected.collectAsStateWithLifecycle()
     var isAddToPlaylistDialogOpen by rememberSaveable { mutableStateOf(false) }
 
     if (isAddToPlaylistDialogOpen) {
@@ -113,6 +114,7 @@ fun SearchScreen(
                             .focusRequester(searchFocusRequester)
                             .onPlaced { searchFocusRequester.requestFocus() },
                         value = searchTerm,
+                        enabled = isConnected,
                         onValueChange = { viewModel.setSongSearchTerm(it) },
                         keyboardOptions = KeyboardOptions.Default.copy(
                             imeAction = ImeAction.Search,

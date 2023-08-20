@@ -28,6 +28,7 @@ fun SelectedItemsSubMenu(
     selectedItemCount: Int,
     @PluralsRes pluralsResId: Int,
     padding: PaddingValues = PaddingValues(start = 10.dp, end = 10.dp, bottom = 5.dp),
+    isConnected: Boolean,
     onEnqueueClick: () -> Unit,
     onPlayClick: () -> Unit,
     onAddToPlaylistClick: () -> Unit,
@@ -55,27 +56,32 @@ fun SelectedItemsSubMenu(
                     modifier = buttonModifier,
                     onClick = onEnqueueClick,
                     text = stringResource(R.string.enqueue),
+                    enabled = isConnected,
                 )
                 SmallOutlinedButton(
                     modifier = buttonModifier,
                     onClick = onPlayClick,
                     text = stringResource(R.string.play),
+                    enabled = isConnected,
                 )
                 SmallOutlinedButton(
                     modifier = buttonModifier,
                     onClick = onAddToPlaylistClick,
                     text = stringResource(R.string.add_to_playlist),
+                    enabled = isConnected,
                 )
                 SmallOutlinedButton(
                     modifier = buttonModifier,
                     onClick = onDeselectAllClick,
                     text = stringResource(R.string.deselect_all),
+                    enabled = isConnected,
                 )
                 onRemoveClick?.let {
                     SmallOutlinedButton(
                         modifier = buttonModifier,
                         onClick = it,
                         text = stringResource(R.string.remove),
+                        enabled = isConnected,
                     )
                 }
             }

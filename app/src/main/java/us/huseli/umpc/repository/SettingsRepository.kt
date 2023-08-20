@@ -11,7 +11,7 @@ import us.huseli.umpc.Constants.PREF_OUTPUTS_ENABLED
 import us.huseli.umpc.Constants.PREF_PASSWORD
 import us.huseli.umpc.Constants.PREF_PORT
 import us.huseli.umpc.Constants.PREF_STREAMING_URL
-import us.huseli.umpc.data.MPDCredentials
+import us.huseli.umpc.data.MPDServerCredentials
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -24,7 +24,8 @@ class SettingsRepository @Inject constructor(
     private val _password = MutableStateFlow(preferences.getString(PREF_PASSWORD, "") ?: "")
     private val _port = MutableStateFlow(preferences.getInt(PREF_PORT, 6600))
     private val _streamingUrl = MutableStateFlow(preferences.getString(PREF_STREAMING_URL, null))
-    private val _credentials = MutableStateFlow(MPDCredentials(_hostname.value, _port.value, _password.value))
+    private val _credentials =
+        MutableStateFlow(MPDServerCredentials(_hostname.value, _port.value, _password.value))
     private val _enabledOutputs = MutableStateFlow<Set<Int>>(emptySet()).apply {
         preferences.getStringSet(PREF_OUTPUTS_ENABLED, emptySet())?.let { outputs ->
             value = outputs.map { it.toInt() }.toSet()
@@ -50,6 +51,7 @@ class SettingsRepository @Inject constructor(
             .putString(PREF_STREAMING_URL, _streamingUrl.value)
             .putStringSet(PREF_OUTPUTS_ENABLED, _enabledOutputs.value.map { it.toString() }.toSet())
             .apply()
+        _credentials.value = MPDServerCredentials(_hostname.value, _port.value, _password.value)
     }
 
     fun setHostname(value: String) {
@@ -78,6 +80,5 @@ class SettingsRepository @Inject constructor(
             }
             PREF_STREAMING_URL -> _streamingUrl.value = preferences.getString(key, null)
         }
-        _credentials.value = MPDCredentials(_hostname.value, _port.value, _password.value)
     }
 }

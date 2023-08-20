@@ -45,6 +45,7 @@ fun SettingsScreen(
     val password by viewModel.password.collectAsStateWithLifecycle()
     val port by viewModel.port.collectAsStateWithLifecycle()
     val streamingUrl by viewModel.streamingUrl.collectAsStateWithLifecycle()
+    val isConnected by viewModel.isConnected.collectAsStateWithLifecycle()
 
     Column(modifier = modifier.verticalScroll(rememberScrollState())) {
         SimpleResponsiveBlock(
@@ -120,7 +121,9 @@ fun SettingsScreen(
                     OutlinedButton(
                         onClick = {
                             viewModel.clearAlbumArtCache {
-                                viewModel.addMessage(context.getString(R.string.all_locally_stored_album_art_was_cleared))
+                                viewModel.addMessage(
+                                    context.getString(R.string.all_locally_stored_album_art_was_cleared)
+                                )
                             }
                         },
                         shape = MaterialTheme.shapes.extraSmall,
@@ -138,6 +141,7 @@ fun SettingsScreen(
                                 }
                             )
                         },
+                        enabled = isConnected,
                         shape = MaterialTheme.shapes.extraSmall,
                         content = { Text(stringResource(R.string.update_database)) },
                     )

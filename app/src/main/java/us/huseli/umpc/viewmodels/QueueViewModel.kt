@@ -25,20 +25,29 @@ class QueueViewModel @Inject constructor(
     albumArtRepo: AlbumArtRepository,
     dynamicPlaylistRepo: DynamicPlaylistRepository,
     @ApplicationContext context: Context,
-) : SongSelectViewModel(repo, messageRepo, albumArtRepo, context), OnMPDChangeListener {
+) : SongSelectViewModel(repo, messageRepo, albumArtRepo), OnMPDChangeListener {
     private val preferences = PreferenceManager.getDefaultSharedPreferences(context)
     private val removedSongs = mutableListOf<MPDSong>()
 
     val activeDynamicPlaylist = dynamicPlaylistRepo.activeDynamicPlaylist
     val currentSongPosition = repo.currentSongPosition
-    val listState = LazyListState()
+    var listState = LazyListState()
+        private set
     val queue = repo.queue
 
     init {
-        repo.loadQueue()
         dynamicPlaylistRepo.loadActiveDynamicPlaylist(playOnLoad = false, replaceCurrentQueue = false)
         repo.registerOnMPDChangeListener(this)
+
+        viewModelScope.launch {
+            repo.connectedServer.collect {
+                if (it != null) listState = LazyListState()
+            }
+        }
     }
+
+    fun addQueueToPlaylist(playlistName: String, onFinish: (MPDTextResponse) -> Unit) =
+        repo.addQueueToPlaylist(playlistName, onFinish)
 
     fun clearQueue(onFinish: (MPDTextResponse) -> Unit) = repo.clearQueue { response ->
         viewModelScope.launch { listState.scrollToItem(0) }
@@ -76,7 +85,4 @@ class QueueViewModel @Inject constructor(
     override fun onMPDChanged(subsystems: List<String>) {
         if (subsystems.contains("playlist")) repo.loadQueue()
     }
-
-    fun addQueueToPlaylist(playlistName: String, onFinish: (MPDTextResponse) -> Unit) =
-        repo.addQueueToPlaylist(playlistName, onFinish)
 }

@@ -10,19 +10,24 @@ import us.huseli.umpc.replaceLeadingJunk
 
 @Parcelize
 data class MPDAlbum(val artist: String, val name: String) : Parcelable {
-    override fun equals(other: Any?) =
-        other is MPDAlbum && other.artist == artist && other.name == name
+    override fun equals(other: Any?) = when (other) {
+        is MPDAlbum -> other.artist == artist && other.name == name
+        is MPDAlbumWithSongs -> other.album.artist == artist && other.album.name == name
+        else -> false
+    }
 
     override fun hashCode() = 31 * artist.hashCode() + name.hashCode()
     override fun toString() = "${javaClass.simpleName}[artist: $artist, name: $name]"
 
-    fun getSearchFilter(protocolVersion: MPDVersion): BaseMPDFilter {
-        return if (protocolVersion < MPDVersion("0.21")) {
-            mpdFilterPre021 { equals("album", name) and equals("albumartist", artist) }
+    fun getSearchFilter(artistTag: String, protocolVersion: MPDVersion?): BaseMPDFilter {
+        return if (protocolVersion == null || protocolVersion < MPDVersion("0.21")) {
+            mpdFilterPre021 { equals("album", name) and equals(artistTag, artist) }
         } else {
-            mpdFilter { equals("album", name) and equals("albumartist", artist) }
+            mpdFilter { equals("album", name) and equals(artistTag, artist) }
         }
     }
+
+    fun getSearchFilter(protocolVersion: MPDVersion?) = getSearchFilter("albumartist", protocolVersion)
 
     fun toProto(): MPDAlbumProto? = MPDAlbumProto.newBuilder()
         .setArtist(artist)
@@ -30,36 +35,21 @@ data class MPDAlbum(val artist: String, val name: String) : Parcelable {
         .build()
 }
 
-fun Map<String, String>.toMPDAlbum(artist: String): MPDAlbum? =
-    (this["AlbumSort"] ?: this["Album"])?.takeIf { it.isNotBlank() }?.let { MPDAlbum(artist, it) }
-
-fun Map<String, String>.toMPDAlbum(): MPDAlbum? {
-    val artist = this["AlbumArtistSort"] ?: this["AlbumArtist"] ?: this["ArtistSort"] ?: this["Artist"]
-    val album = this["AlbumSort"] ?: this["Album"]
-
-    return if (artist != null && album != null && artist.isNotBlank() && album.isNotBlank()) MPDAlbum(artist, album)
-    else null
-}
-
-fun Map<String, List<String>>.toMPDAlbums(artist: String): List<MPDAlbum> = try {
+fun Map<String, List<String>>.toMPDAlbums(artist: String): List<MPDAlbum> {
     val getAlbums: (String) -> List<String>? =
         { key -> this[key]?.filter { it.isNotBlank() }?.takeUnless { it.isEmpty() } }
-    val albums = getAlbums("AlbumSort") ?: getAlbums("Album")
+    val albums = getAlbums("albumsort") ?: getAlbums("album")
 
-    albums!!.map { MPDAlbum(artist, it) }
-} catch (e: NullPointerException) {
-    emptyList()
+    return albums?.map { MPDAlbum(artist, it) } ?: emptyList()
 }
 
-fun Map<String, List<String>>.toMPDAlbums(): List<MPDAlbum> = try {
+fun Map<String, List<String>>.toMPDAlbums(): List<MPDAlbum> {
     val getArtist: (String) -> String? =
         { key -> this[key]?.firstOrNull()?.takeIf { it.isNotBlank() } }
     val artist =
-        getArtist("AlbumArtistSort") ?: getArtist("AlbumArtist") ?: getArtist("ArtistSort") ?: getArtist("Artist")
+        getArtist("albumartistsort") ?: getArtist("albumartist") ?: getArtist("artistsort") ?: getArtist("artist")
 
-    toMPDAlbums(artist!!)
-} catch (e: NullPointerException) {
-    emptyList()
+    return artist?.let { toMPDAlbums(it) } ?: emptyList()
 }
 
 fun Iterable<MPDAlbum>.sorted() = sortedBy { it.name.lowercase().replaceLeadingJunk() }

@@ -100,6 +100,14 @@ fun String.highlight(term: String?): AnnotatedString {
     return builder.toAnnotatedString()
 }
 
+/**
+ * All `args` will be individually quoted and escaped. So if they already
+ * contain quotation marks, those will be escaped.
+ *
+ * Ex. formatMPDCommand("list artist", "album", "the duck who said \"quack\"")
+ * becomes the string:
+ * list artist "album" "the duck who said \"quack\""
+ */
 fun formatMPDCommand(command: String, vararg args: Any): String {
     if (args.isEmpty()) return command
     return "$command " + args.joinToString(" ") { "\"${escape(it.toString())}\"" }

@@ -42,6 +42,7 @@ fun PlayerControls(
     modifier: Modifier = Modifier,
     playerState: PlayerState?,
     stopAfterCurrent: Boolean,
+    enabled: Boolean,
     onPreviousClick: () -> Unit,
     onPlayPauseClick: () -> Unit,
     onStopClick: () -> Unit,
@@ -61,7 +62,7 @@ fun PlayerControls(
             IconButton(
                 modifier = Modifier.weight(0.6f).aspectRatio(1f, true),
                 onClick = onPreviousClick,
-                enabled = !isStopped
+                enabled = !isStopped && enabled,
             ) {
                 Icon(
                     modifier = Modifier.fillMaxSize(),
@@ -73,7 +74,7 @@ fun PlayerControls(
             IconButton(
                 modifier = Modifier.weight(0.8f).aspectRatio(1f, true),
                 onClick = onReverseClick,
-                enabled = !isStopped
+                enabled = !isStopped && enabled,
             ) {
                 Icon(
                     modifier = Modifier.fillMaxSize(),
@@ -84,6 +85,7 @@ fun PlayerControls(
 
             IconButton(
                 modifier = Modifier.weight(1f).aspectRatio(1f, true),
+                enabled = enabled,
                 onClick = onPlayPauseClick
             ) {
                 if (playerState == PlayerState.PLAY) {
@@ -106,7 +108,7 @@ fun PlayerControls(
                     .weight(1f)
                     .aspectRatio(1f, true)
                     .combinedClickable(
-                        enabled = !isStopped,
+                        enabled = !isStopped && enabled,
                         onClick = onStopClick,
                         onLongClick = onStopLongClick,
                         indication = rememberRipple(bounded = false, radius = 20.dp),
@@ -137,7 +139,7 @@ fun PlayerControls(
             IconButton(
                 modifier = Modifier.weight(0.8f).aspectRatio(1f, true),
                 onClick = onForwardClick,
-                enabled = !isStopped
+                enabled = !isStopped && enabled,
             ) {
                 Icon(
                     modifier = Modifier.fillMaxSize(),
@@ -149,7 +151,7 @@ fun PlayerControls(
             IconButton(
                 modifier = Modifier.weight(0.6f).aspectRatio(1f, true),
                 onClick = onNextClick,
-                enabled = !isStopped
+                enabled = !isStopped && enabled,
             ) {
                 Icon(
                     modifier = Modifier.fillMaxSize(),

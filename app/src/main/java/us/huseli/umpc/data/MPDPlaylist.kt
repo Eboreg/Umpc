@@ -33,7 +33,7 @@ data class MPDPlaylist(
 fun Map<String, String>.toMPDPlaylist() = try {
     MPDPlaylist(
         name = this["playlist"]!!,
-        lastModified = this["Last-Modified"]?.toInstant(),
+        lastModified = this["last-modified"]?.toInstant(),
     )
 } catch (e: NullPointerException) {
     null

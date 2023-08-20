@@ -61,12 +61,14 @@ fun PlaylistListScreen(
 ) {
     val context = LocalContext.current
     val displayType by viewModel.displayType.collectAsStateWithLifecycle()
-    val protocolVersion by viewModel.protocolVersion.collectAsStateWithLifecycle()
+    val connectedServer by viewModel.connectedServer.collectAsStateWithLifecycle()
+    val isConnected by viewModel.isConnected.collectAsStateWithLifecycle()
     var isCreateDynamicPlaylistDialogOpen by rememberSaveable { mutableStateOf(false) }
     var editingDynamicPlaylist by rememberSaveable { mutableStateOf<DynamicPlaylist?>(null) }
     var deletingDynamicPlaylist by rememberSaveable { mutableStateOf<DynamicPlaylist?>(null) }
+    val protocolVersion = connectedServer?.protocolVersion
 
-    if (isCreateDynamicPlaylistDialogOpen) {
+    if (isCreateDynamicPlaylistDialogOpen && protocolVersion != null) {
         EditDynamicPlaylistDialog(
             protocolVerion = protocolVersion,
             onSave = { filter, shuffle ->
@@ -75,7 +77,7 @@ fun PlaylistListScreen(
             },
             onCancel = { isCreateDynamicPlaylistDialogOpen = false },
         )
-    } else if (editingDynamicPlaylist != null) {
+    } else if (editingDynamicPlaylist != null && protocolVersion != null) {
         editingDynamicPlaylist?.let { playlist ->
             EditDynamicPlaylistDialog(
                 playlist = playlist,
@@ -169,6 +171,7 @@ fun PlaylistListScreen(
                             onDeleteClick = { deletingDynamicPlaylist = playlist },
                             onPlayClick = { viewModel.activateDynamicPlaylist(playlist) },
                             playlist = playlist,
+                            isConnected = isConnected,
                         )
                     }
                 }
@@ -181,6 +184,7 @@ fun PlaylistListScreen(
 fun DynamicPlaylistRow(
     modifier: Modifier = Modifier,
     playlist: DynamicPlaylist,
+    isConnected: Boolean,
     onEditClick: () -> Unit,
     onDeleteClick: () -> Unit,
     onPlayClick: () -> Unit,
@@ -207,7 +211,7 @@ fun DynamicPlaylistRow(
             IconButton(onClick = onDeleteClick) {
                 Icon(Icons.Sharp.Delete, stringResource(R.string.delete_dynamic_playlist))
             }
-            IconButton(onClick = onPlayClick) {
+            IconButton(onClick = onPlayClick, enabled = isConnected) {
                 Icon(Icons.Sharp.PlayArrow, stringResource(R.string.play_dynamic_playlist))
             }
         }

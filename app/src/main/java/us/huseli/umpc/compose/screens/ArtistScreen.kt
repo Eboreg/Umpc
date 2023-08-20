@@ -60,6 +60,7 @@ fun ArtistScreen(
     val playlists by viewModel.storedPlaylists.collectAsStateWithLifecycle()
     val landscape = isInLandscapeMode()
     val gridAlbumArt by viewModel.gridAlbumArt.collectAsStateWithLifecycle()
+    val isConnected by viewModel.isConnected.collectAsStateWithLifecycle()
 
     if (isAddAlbumsToPlaylistDialogOpen) {
         BatchAddToPlaylistDialog(
@@ -80,6 +81,7 @@ fun ArtistScreen(
         SelectedItemsSubMenu(
             pluralsResId = R.plurals.x_selected_albums,
             selectedItemCount = selectedAlbums.size,
+            isConnected = isConnected,
             onEnqueueClick = {
                 viewModel.enqueueSelectedAlbums { response ->
                     if (response.isSuccess) viewModel.addMessage(

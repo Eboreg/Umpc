@@ -1,10 +1,8 @@
 package us.huseli.umpc.viewmodels
 
-import android.content.Context
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
-import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
@@ -29,20 +27,23 @@ class LibraryViewModel @Inject constructor(
     repo: MPDRepository,
     messageRepo: MessageRepository,
     albumArtRepo: AlbumArtRepository,
-    @ApplicationContext context: Context,
-) : AlbumSelectViewModel(repo, messageRepo, albumArtRepo, context), OnMPDChangeListener {
+) : AlbumSelectViewModel(repo, messageRepo, albumArtRepo), OnMPDChangeListener {
     private val _activeLibrarySearchType = MutableStateFlow(LibrarySearchType.NONE)
     private val _albums = MutableStateFlow<List<MPDAlbum>>(emptyList())
     private val _albumsWithSongs = MutableStateFlow<List<MPDAlbumWithSongs>>(emptyList())
     private val _artists = MutableStateFlow<List<MPDArtistWithAlbums>>(emptyList())
     private var _grouping = MutableStateFlow(LibraryGrouping.ARTIST)
     private val _librarySearchTerm = MutableStateFlow("")
+    private val _pendingAlbumsWithSongs = mutableSetOf<MPDAlbum>()
+
+    var albumListState = LazyListState()
+        private set
+    var artistListState = LazyListState()
+        private set
 
     val albumLeadingChars = _albums.leadingChars { it.name }
-    val albumListState = LazyListState()
     val albums = _albums.asStateFlow()
     val artistLeadingChars = _artists.leadingChars { it.name }
-    val artistListState = LazyListState()
     val artists = _artists.asStateFlow()
     val grouping = _grouping.asStateFlow()
     val isLibrarySearchActive = _activeLibrarySearchType.map { it != LibrarySearchType.NONE }
@@ -51,6 +52,17 @@ class LibraryViewModel @Inject constructor(
     init {
         repo.loadAlbums()
         repo.registerOnMPDChangeListener(this)
+
+        viewModelScope.launch {
+            // Reload albums when reconnecting:
+            repo.connectedServer.collect {
+                if (it != null) {
+                    albumListState = LazyListState()
+                    artistListState = LazyListState()
+                    repo.loadAlbums()
+                }
+            }
+        }
 
         viewModelScope.launch {
             combine(repo.albums, _activeLibrarySearchType, _librarySearchTerm) { albums, searchType, searchTerm ->
@@ -79,17 +91,21 @@ class LibraryViewModel @Inject constructor(
         _activeLibrarySearchType.value = LibrarySearchType.NONE
     }
 
-    fun getAlbumWithSongsByAlbum(album: MPDAlbum, onFinish: (MPDAlbumWithSongs) -> Unit) {
-        val aws = _albumsWithSongs.value.find { it.album == album }
+    fun getAlbumWithSongsFlow(album: MPDAlbum) =
+        _albumsWithSongs.map { flow -> flow.find { it.album == album } ?: MPDAlbumWithSongs(album, emptyList()) }
 
-        if (aws != null) onFinish(aws)
-        else {
-            repo.getAlbumWithSongs(album) { albumWithSongs ->
-                _albumsWithSongs.value += albumWithSongs
-                onFinish(albumWithSongs)
+    fun loadAlbumsWithSongs(albums: List<MPDAlbum>) =
+        albums
+            .minus(_pendingAlbumsWithSongs)
+            .minus(_albumsWithSongs.value.map { it.album }.toSet())
+            .takeIf { it.isNotEmpty() }
+            ?.let { filteredAlbums ->
+                _pendingAlbumsWithSongs.addAll(filteredAlbums)
+                repo.getAlbumsWithSongs(filteredAlbums) { albumsWithSongs ->
+                    _albumsWithSongs.value += albumsWithSongs.minus(_albumsWithSongs.value.toSet())
+                    _pendingAlbumsWithSongs.removeAll(albumsWithSongs.map { it.album }.toSet())
+                }
             }
-        }
-    }
 
     fun searchLibrary() {
         when (_grouping.value) {

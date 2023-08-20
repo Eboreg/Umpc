@@ -69,11 +69,22 @@ import us.huseli.umpc.data.MPDAlbum
 import us.huseli.umpc.data.MPDPlaylist
 import us.huseli.umpc.data.MPDSong
 import us.huseli.umpc.getActivity
+import us.huseli.umpc.repository.SnackbarMessage
 import us.huseli.umpc.viewmodels.LibraryViewModel
 import us.huseli.umpc.viewmodels.MPDViewModel
-import us.huseli.umpc.viewmodels.PlaylistListViewModel
 import us.huseli.umpc.viewmodels.QueueViewModel
 import us.huseli.umpc.viewmodels.SearchViewModel
+
+suspend fun showSnackbarMessage(message: SnackbarMessage, hostState: SnackbarHostState, onFinish: () -> Unit) {
+    val result = hostState.showSnackbar(
+        message = message.message,
+        actionLabel = message.actionLabel,
+        withDismissAction = true,
+        duration = if (message.actionLabel != null) SnackbarDuration.Long else SnackbarDuration.Short,
+    )
+    if (result == SnackbarResult.ActionPerformed) message.onActionPerformed?.invoke()
+    onFinish()
+}
 
 @Composable
 fun App(
@@ -85,18 +96,24 @@ fun App(
     searchViewModel: SearchViewModel = hiltViewModel(),
     libraryViewModel: LibraryViewModel = hiltViewModel(),
     queueViewModel: QueueViewModel = hiltViewModel(),
-    playlistViewModel: PlaylistListViewModel = hiltViewModel(),
 ) {
     val onBackPressedDispatcher = LocalOnBackPressedDispatcherOwner.current?.onBackPressedDispatcher
     val lifecycleOwner = LocalLifecycleOwner.current
     val context = LocalContext.current
+    val onlineOnlyRoutes = listOf(
+        AlbumDestination.routeTemplate,
+        ArtistDestination.routeTemplate,
+        PlaylistDetailsDestination.routeTemplate,
+    )
 
+    val connectedServer by viewModel.connectedServer.collectAsStateWithLifecycle()
     val error by viewModel.error.collectAsStateWithLifecycle()
+    val isIOError by viewModel.isIOError.collectAsStateWithLifecycle()
+    val loadingDynamicPlaylist by viewModel.loadingDynamicPlaylist.collectAsStateWithLifecycle()
     val message by viewModel.message.collectAsStateWithLifecycle()
+    val playlists by viewModel.storedPlaylists.collectAsStateWithLifecycle()
     val showVolumeFlash by viewModel.showVolumeFlash.collectAsStateWithLifecycle()
     val volume by viewModel.volume.collectAsStateWithLifecycle()
-    val loadingDynamicPlaylist by viewModel.loadingDynamicPlaylist.collectAsStateWithLifecycle()
-    val playlists by viewModel.storedPlaylists.collectAsStateWithLifecycle()
 
     var activeScreen by rememberSaveable { mutableStateOf(ContentScreen.NONE) }
     var isCoverShown by rememberSaveable { mutableStateOf(false) }
@@ -131,7 +148,7 @@ fun App(
     }
 
     /**
-     * Q: What does the stuff below do?
+     * Q: What does the weird stuff below do?
      *
      * A: Glad you asked! `onBackPressedCallback` overrides the NavController's
      * backpress logic so a backpress only closes the cover screen and nothing
@@ -158,36 +175,52 @@ fun App(
     LaunchedEffect(isCoverShown) {
         onBackPressedCallback.isEnabled = isCoverShown
     }
+    /** End of weird onBackPressedCallback stuff */
 
-    LaunchedEffect(error) {
-        error?.let {
-            val result = errorSnackbarHostState.showSnackbar(
-                message = it.message,
-                actionLabel = it.actionLabel,
-                withDismissAction = true,
-                duration = if (it.actionLabel != null) SnackbarDuration.Long else SnackbarDuration.Short,
-            )
-            if (result == SnackbarResult.ActionPerformed) it.onActionPerformed?.invoke()
-            viewModel.clearError()
-        }
-    }
-
-    LaunchedEffect(message) {
-        message?.let {
-            val result = snackbarHostState.showSnackbar(
-                message = it.message,
-                actionLabel = it.actionLabel,
-                withDismissAction = true,
-                duration = if (it.actionLabel != null) SnackbarDuration.Long else SnackbarDuration.Short,
-            )
-            if (result == SnackbarResult.ActionPerformed) it.onActionPerformed?.invoke()
-            viewModel.clearMessage()
-        }
+    LaunchedEffect(error, message) {
+        /** Show snackbar messages when available */
+        error?.let { showSnackbarMessage(it, errorSnackbarHostState) { viewModel.clearError() } }
+        message?.let { showSnackbarMessage(it, snackbarHostState) { viewModel.clearMessage() } }
     }
 
     LaunchedEffect(Unit) {
+        /** Start media service */
         context.startService(Intent(context, MediaService::class.java))
         // context.startForegroundService(Intent(context, MediaService::class.java))
+    }
+
+    LaunchedEffect(isIOError) {
+        /**
+         * If the connection goes down while user is in a server-specific view
+         * (e.g. artist or album details), navigate back to the latest server-
+         * agnostic view.
+         *
+         * TODO: This is maybe not the best strategy. Think about it.
+         */
+        if (isIOError) {
+            isCoverShown = false
+            viewModel.addError(context.getString(R.string.connection_failed))
+            if (onlineOnlyRoutes.contains(navController.currentDestination?.route)) {
+                val lastOfflineSafeRoute =
+                    navController.currentBackStack.value.lastOrNull { !onlineOnlyRoutes.contains(it.destination.route) }
+                if (lastOfflineSafeRoute != null) {
+                    navController.popBackStack(lastOfflineSafeRoute.destination.id, false)
+                }
+            }
+        }
+    }
+
+    LaunchedEffect(connectedServer) {
+        connectedServer?.let {
+            viewModel.addMessage(
+                context.getString(
+                    R.string.connected_to_protocol_version,
+                    it.hostname,
+                    it.port,
+                    it.protocolVersion,
+                )
+            )
+        }
     }
 
     songToAddToPlaylist?.let { song ->
@@ -321,7 +354,6 @@ fun App(
             composable(route = PlaylistListDestination.route) {
                 activeScreen = ContentScreen.PLAYLISTS
                 PlaylistListScreen(
-                    viewModel = playlistViewModel,
                     onGotoStoredPlaylistClick = { navigate(PlaylistDetailsDestination.route(it)) }
                 )
             }

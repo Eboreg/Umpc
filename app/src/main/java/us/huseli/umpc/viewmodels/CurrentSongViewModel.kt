@@ -1,10 +1,8 @@
 package us.huseli.umpc.viewmodels
 
-import android.content.Context
 import androidx.annotation.IntRange
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
-import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import us.huseli.umpc.mpd.MPDStreamPlayer
@@ -24,8 +22,7 @@ class CurrentSongViewModel @Inject constructor(
     settingsRepository: SettingsRepository,
     private val dynamicPlaylistRepo: DynamicPlaylistRepository,
     private val streamPlayer: MPDStreamPlayer,
-    @ApplicationContext context: Context,
-) : AlbumArtViewModel(repo, messageRepo, albumArtRepo, context) {
+) : AlbumArtViewModel(repo, messageRepo, albumArtRepo) {
     val currentSongDuration = repo.currentSongDuration
     val currentSongElapsed = repo.currentSongElapsed
     val currentBitrate = repo.currentBitrate
@@ -38,7 +35,6 @@ class CurrentSongViewModel @Inject constructor(
     val stopAfterCurrent = repo.stopAfterCurrent
 
     init {
-        repo.loadStatus()
         dynamicPlaylistRepo.loadActiveDynamicPlaylist(playOnLoad = false, replaceCurrentQueue = false)
     }
 

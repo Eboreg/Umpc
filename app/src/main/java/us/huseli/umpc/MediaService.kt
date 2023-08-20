@@ -11,6 +11,7 @@ import android.os.Build
 import android.os.Bundle
 import android.support.v4.media.MediaBrowserCompat
 import android.support.v4.media.session.PlaybackStateCompat
+import android.util.Log
 import android.view.KeyEvent
 import android.widget.RemoteViews
 import androidx.compose.ui.graphics.asAndroidBitmap
@@ -33,18 +34,20 @@ import javax.inject.Inject
 
 @AndroidEntryPoint
 class MediaService : MediaBrowserServiceCompat(), LoggerInterface {
-    private lateinit var notificationBuilder: NotificationCompat.Builder
-    private var notification: Notification? = null
     @Inject
     lateinit var repo: MPDRepository
     @Inject
     lateinit var albumArtRepo: AlbumArtRepository
     @Inject
     lateinit var ioScope: CoroutineScope
+
+    private lateinit var notificationBuilder: NotificationCompat.Builder
     private val mutex = Mutex()
+    private var notification: Notification? = null
+    private var isConnected: Boolean = false
 
     override fun onStartCommand(intent: Intent, flags: Int, startId: Int): Int {
-        log("onStartCommand: intent=$intent, flags=$flags, startId=$startId")
+        log("onStartCommand: intent=$intent, flags=$flags, startId=$startId", Log.DEBUG)
 
         val appWidgetManager = AppWidgetManager.getInstance(applicationContext)
         val appWidgetIds = intent.getIntArrayExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS)
@@ -74,7 +77,7 @@ class MediaService : MediaBrowserServiceCompat(), LoggerInterface {
 
     override fun onCreate() {
         super.onCreate()
-        log("onCreate")
+        log("onCreate", Log.DEBUG)
 
         notificationBuilder = getNotificationBuilder()
         showNotification()
@@ -125,13 +128,12 @@ class MediaService : MediaBrowserServiceCompat(), LoggerInterface {
             .setSmallIcon(R.drawable.ic_notification_logo)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setStyle(androidx.media.app.NotificationCompat.MediaStyle().setShowActionsInCompactView(0, 1, 2))
-        getActions(repo.playerState.value == PlayerState.PLAY).forEach { builder.addAction(it) }
+        forEachAction { builder.addAction(it) }
         return builder
     }
 
-    private fun getActions(isPlaying: Boolean): List<NotificationCompat.Action> {
-        val actions = mutableListOf<NotificationCompat.Action>()
-        actions.add(
+    private fun forEachAction(func: (NotificationCompat.Action) -> Unit) {
+        func(
             NotificationCompat.Action(
                 R.drawable.ic_previous,
                 baseContext.getString(R.string.previous),
@@ -141,27 +143,26 @@ class MediaService : MediaBrowserServiceCompat(), LoggerInterface {
                 ),
             )
         )
-        if (isPlaying) actions.add(
+        if (repo.playerState.value == PlayerState.PLAY) func(
             NotificationCompat.Action(
                 R.drawable.ic_pause,
                 baseContext.getString(R.string.pause),
                 MediaButtonReceiver.buildMediaButtonPendingIntent(baseContext, PlaybackStateCompat.ACTION_PAUSE),
             )
-        ) else actions.add(
+        ) else func(
             NotificationCompat.Action(
                 R.drawable.ic_play,
                 baseContext.getString(R.string.play),
                 MediaButtonReceiver.buildMediaButtonPendingIntent(baseContext, PlaybackStateCompat.ACTION_PLAY),
             )
         )
-        actions.add(
+        func(
             NotificationCompat.Action(
                 R.drawable.ic_next,
                 baseContext.getString(R.string.next),
                 MediaButtonReceiver.buildMediaButtonPendingIntent(baseContext, PlaybackStateCompat.ACTION_SKIP_TO_NEXT),
             )
         )
-        return actions
     }
 
     private fun updateWidget() {
@@ -176,7 +177,7 @@ class MediaService : MediaBrowserServiceCompat(), LoggerInterface {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
         val views = RemoteViews(context.packageName, R.layout.widget).apply {
-            if (bitmap != null) setImageViewBitmap(R.id.albumArt, bitmap)
+            if (bitmap != null && isConnected) setImageViewBitmap(R.id.albumArt, bitmap)
             else setImageViewResource(R.id.albumArt, R.mipmap.ic_launcher)
             setOnClickPendingIntent(android.R.id.background, pendingIntent)
             setTextViewText(R.id.song, repo.currentSong.value?.title ?: "")
@@ -188,7 +189,7 @@ class MediaService : MediaBrowserServiceCompat(), LoggerInterface {
                 R.id.playOrPause,
                 MediaButtonReceiver.buildMediaButtonPendingIntent(context, PlaybackStateCompat.ACTION_PLAY_PAUSE),
             )
-            if (repo.playerState.value != PlayerState.STOP) {
+            if (isConnected && repo.playerState.value != PlayerState.STOP) {
                 setOnClickPendingIntent(
                     R.id.previous,
                     MediaButtonReceiver.buildMediaButtonPendingIntent(
@@ -212,6 +213,7 @@ class MediaService : MediaBrowserServiceCompat(), LoggerInterface {
                 setBoolean(R.id.stop, "setEnabled", false)
                 setBoolean(R.id.next, "setEnabled", false)
             }
+            setBoolean(R.id.playOrPause, "setEnabled", isConnected)
             setImageViewResource(
                 R.id.playOrPause,
                 when (repo.playerState.value) {
@@ -240,7 +242,7 @@ class MediaService : MediaBrowserServiceCompat(), LoggerInterface {
         ioScope.launch {
             albumArtRepo.currentSongAlbumArt.collect { albumArt ->
                 val bitmap = albumArt?.fullImage?.asAndroidBitmap()
-                log("bitmap: width=${bitmap?.width}, height=${bitmap?.height}")
+                log("bitmap: width=${bitmap?.width}, height=${bitmap?.height}", Log.DEBUG)
                 mutex.withLock {
                     updateWidget()
                     notificationBuilder.setLargeIcon(bitmap)
@@ -256,16 +258,29 @@ class MediaService : MediaBrowserServiceCompat(), LoggerInterface {
                     when (playerState) {
                         PlayerState.PLAY -> {
                             notificationBuilder.clearActions()
-                            getActions(true).forEach { notificationBuilder.addAction(it) }
+                            forEachAction { notificationBuilder.addAction(it) }
                             showNotification()
                         }
                         PlayerState.STOP -> hideNotification()
                         PlayerState.PAUSE -> {
                             notificationBuilder.clearActions()
-                            getActions(false).forEach { notificationBuilder.addAction(it) }
+                            forEachAction { notificationBuilder.addAction(it) }
                             showNotification()
                         }
                         PlayerState.UNKNOWN -> {}
+                    }
+                }
+            }
+        }
+
+        ioScope.launch {
+            repo.connectedServer.collect { connectedServer ->
+                mutex.withLock {
+                    this@MediaService.isConnected = connectedServer != null
+                    updateWidget()
+                    when (connectedServer) {
+                        null -> hideNotification()
+                        else -> showNotification()
                     }
                 }
             }

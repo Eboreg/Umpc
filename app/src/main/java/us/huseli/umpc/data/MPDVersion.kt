@@ -1,8 +1,16 @@
 package us.huseli.umpc.data
 
-data class MPDVersion(private val value: String = "0.0.0") : Comparable<MPDVersion> {
+import android.os.Parcelable
+import kotlinx.parcelize.IgnoredOnParcel
+import kotlinx.parcelize.Parcelize
+
+@Parcelize
+data class MPDVersion(private val value: String = "0.0.0") : Comparable<MPDVersion>, Parcelable {
+    @IgnoredOnParcel
     private val major = value.split('.')[0].toInt()
+    @IgnoredOnParcel
     private val minor = value.split('.')[1].toInt()
+    @IgnoredOnParcel
     private val patch = value.split('.').getOrNull(2)?.toInt()
 
     override fun compareTo(other: MPDVersion): Int =

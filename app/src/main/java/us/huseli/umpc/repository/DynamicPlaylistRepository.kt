@@ -19,6 +19,7 @@ import us.huseli.umpc.data.DynamicPlaylist
 import us.huseli.umpc.data.DynamicPlaylistFilter
 import us.huseli.umpc.mpd.BaseMPDFilter
 import us.huseli.umpc.mpd.OnMPDChangeListener
+import us.huseli.umpc.mpd.response.MPDBatchTextResponse
 import us.huseli.umpc.mpd.response.MPDTextResponse
 import java.time.Instant
 import javax.inject.Inject
@@ -48,8 +49,10 @@ class DynamicPlaylistRepository @Inject constructor(
         preferences.registerOnSharedPreferenceChangeListener(this)
     }
 
-    fun addDynamicPlaylist(playlist: DynamicPlaylist) {
-        _dynamicPlaylists.value = _dynamicPlaylists.value.toMutableList().apply { add(playlist) }
+    fun addDynamicPlaylist(filter: DynamicPlaylistFilter, shuffle: Boolean = false, songCount: Int? = null) {
+        mpdRepo.connectedServer.value?.let { server ->
+            _dynamicPlaylists.value += DynamicPlaylist(filter, server, shuffle, songCount)
+        }
     }
 
     fun clearQueue(onFinish: ((MPDTextResponse) -> Unit)? = null) = mpdRepo.clearQueue(onFinish)
@@ -62,23 +65,25 @@ class DynamicPlaylistRepository @Inject constructor(
     }
 
     fun deleteDynamicPlaylist(playlist: DynamicPlaylist) {
-        _dynamicPlaylists.value = _dynamicPlaylists.value.toMutableList().apply { remove(playlist) }
+        _dynamicPlaylists.value -= playlist
     }
 
-    fun enqueueSongsLast(filenames: Collection<String>, onFinish: ((MPDTextResponse) -> Unit)? = null) =
+    fun enqueueSongsLast(filenames: Collection<String>, onFinish: ((MPDBatchTextResponse) -> Unit)? = null) =
         mpdRepo.enqueueSongsLast(filenames, onFinish)
 
     fun loadActiveDynamicPlaylist(playOnLoad: Boolean, replaceCurrentQueue: Boolean) {
-        val playlist =
-            gson.fromJson(preferences.getString(PREF_ACTIVE_DYNAMIC_PLAYLIST, null), dynamicPlaylistType)
-        _activeDynamicPlaylist.value = playlist
+        val playlist = gson.fromJson(
+            preferences.getString(PREF_ACTIVE_DYNAMIC_PLAYLIST, null),
+            dynamicPlaylistType
+        )
 
-        ioScope.launch {
-            dynamicPlaylistState?.close()
-            dynamicPlaylistState =
-                if (playlist != null) {
+        mpdRepo.connectedServer.value?.let { server ->
+            if (playlist?.server == server) {
+                _activeDynamicPlaylist.value = playlist
+                ioScope.launch {
+                    dynamicPlaylistState?.close()
                     _loadingDynamicPlaylist.value = true
-                    DynamicPlaylistState(
+                    dynamicPlaylistState = DynamicPlaylistState(
                         context = context,
                         playlist = playlist,
                         repo = this@DynamicPlaylistRepository,
@@ -87,7 +92,8 @@ class DynamicPlaylistRepository @Inject constructor(
                         playOnLoad = playOnLoad,
                         onLoaded = { _loadingDynamicPlaylist.value = false },
                     )
-                } else null
+                }
+            }
         }
     }
 
@@ -95,7 +101,9 @@ class DynamicPlaylistRepository @Inject constructor(
         val listType = object : TypeToken<List<DynamicPlaylist>>() {}
 
         gson.fromJson(preferences.getString(PREF_DYNAMIC_PLAYLISTS, "[]"), listType)?.let { playlists ->
-            _dynamicPlaylists.value = playlists.filter { it.server == mpdRepo.server.value }
+            mpdRepo.connectedServer.value?.let { server ->
+                _dynamicPlaylists.value = playlists.filter { it.server == server }
+            }
         }
     }
 
@@ -123,12 +131,10 @@ class DynamicPlaylistRepository @Inject constructor(
         songCount: Int? = null,
     ) {
         deleteDynamicPlaylist(playlist)
-        addDynamicPlaylist(
-            playlist.copy(
-                filter = filter ?: playlist.filter,
-                shuffle = shuffle ?: playlist.shuffle,
-                songCount = songCount ?: playlist.songCount,
-            )
+        _dynamicPlaylists.value += playlist.copy(
+            filter = filter ?: playlist.filter,
+            shuffle = shuffle ?: playlist.shuffle,
+            songCount = songCount ?: playlist.songCount,
         )
         saveDynamicPlaylists()
     }

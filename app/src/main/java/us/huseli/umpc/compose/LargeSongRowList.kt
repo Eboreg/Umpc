@@ -66,6 +66,7 @@ fun LargeSongRowList(
     val selectedSongs by viewModel.selectedSongs.collectAsStateWithLifecycle()
     val playlists by viewModel.storedPlaylists.collectAsStateWithLifecycle()
     var isAddToPlaylistDialogOpen by rememberSaveable { mutableStateOf(false) }
+    val isConnected by viewModel.isConnected.collectAsStateWithLifecycle()
 
     // Somehow, this setup makes it so the list can both be manually reordered
     // _and_ get updated when it's changed externally. Don't really understand
@@ -106,6 +107,7 @@ fun LargeSongRowList(
             SelectedItemsSubMenu(
                 pluralsResId = R.plurals.x_selected_songs,
                 selectedItemCount = selectedSongs.size,
+                isConnected = isConnected,
                 onEnqueueClick = {
                     viewModel.enqueueSelectedSongs { response ->
                         if (response.isSuccess) viewModel.addMessage(

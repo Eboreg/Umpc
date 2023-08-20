@@ -1,13 +1,14 @@
 package us.huseli.umpc.repository
 
-import android.content.Context
 import androidx.annotation.IntRange
-import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import us.huseli.umpc.LoggerInterface
@@ -20,26 +21,30 @@ import us.huseli.umpc.data.MPDAudioFormat
 import us.huseli.umpc.data.MPDError
 import us.huseli.umpc.data.MPDOutput
 import us.huseli.umpc.data.MPDPlaylist
+import us.huseli.umpc.data.MPDServerCapability
 import us.huseli.umpc.data.MPDSong
 import us.huseli.umpc.data.MPDStats
 import us.huseli.umpc.data.MPDStatus
-import us.huseli.umpc.data.MPDVersion
-import us.huseli.umpc.data.queueDataStore
+import us.huseli.umpc.data.groupByAlbum
 import us.huseli.umpc.data.sorted
 import us.huseli.umpc.data.toMPDStats
-import us.huseli.umpc.data.toNative
-import us.huseli.umpc.data.toProto
 import us.huseli.umpc.formatMPDCommand
 import us.huseli.umpc.mpd.BaseMPDFilter
+import us.huseli.umpc.mpd.BaseMPDFilterContext
+import us.huseli.umpc.mpd.MPDFilterContext
+import us.huseli.umpc.mpd.MPDFilterContextPre021
 import us.huseli.umpc.mpd.OnMPDChangeListener
+import us.huseli.umpc.mpd.client.BaseMPDClient
 import us.huseli.umpc.mpd.client.MPDBinaryClient
 import us.huseli.umpc.mpd.client.MPDClient
+import us.huseli.umpc.mpd.client.MPDClientListener
 import us.huseli.umpc.mpd.client.MPDIdleClient
-import us.huseli.umpc.mpd.mpdFilter
-import us.huseli.umpc.mpd.mpdFilterPre021
+import us.huseli.umpc.mpd.command.BaseMPDCommand
+import us.huseli.umpc.mpd.command.MPDBatchCommand
 import us.huseli.umpc.mpd.mpdFindAdd
-import us.huseli.umpc.mpd.mpdFindAddPre021
 import us.huseli.umpc.mpd.mpdFindAddRelative
+import us.huseli.umpc.mpd.response.BaseMPDResponse
+import us.huseli.umpc.mpd.response.MPDBatchTextResponse
 import us.huseli.umpc.mpd.response.MPDBinaryResponse
 import us.huseli.umpc.mpd.response.MPDTextResponse
 import javax.inject.Inject
@@ -51,8 +56,7 @@ class MPDRepository @Inject constructor(
     private val binaryClient: MPDBinaryClient,
     private val idleClient: MPDIdleClient,
     private val ioScope: CoroutineScope,
-    @ApplicationContext private val context: Context,
-) : OnMPDChangeListener, LoggerInterface {
+) : OnMPDChangeListener, MPDClientListener, LoggerInterface {
     private val _albums = MutableStateFlow<List<MPDAlbum>>(emptyList())
     private val _currentAudioFormat = MutableStateFlow<MPDAudioFormat?>(null)
     private val _currentBitrate = MutableStateFlow<Int?>(null)
@@ -62,12 +66,14 @@ class MPDRepository @Inject constructor(
     private val _currentSongId = MutableStateFlow<Int?>(null)
     private val _currentSongPosition = MutableStateFlow<Int?>(null)
     private val _error = MutableStateFlow<String?>(null)
+    private val _isConnected = MutableStateFlow(false)
+    private val _isIOError = MutableStateFlow(false)
     private val _outputs = MutableStateFlow<List<MPDOutput>>(emptyList())
     private val _playerState = MutableStateFlow(PlayerState.UNKNOWN)
-    private val _playlists = MutableStateFlow<List<MPDPlaylist>>(emptyList())
+    private val _playlists = MutableStateFlow<List<MPDPlaylist>?>(null)
+    private val _queue = MutableStateFlow<List<MPDSong>>(emptyList())
     private val _randomState = MutableStateFlow(false)
     private val _repeatState = MutableStateFlow(false)
-    private val _queue = MutableStateFlow<List<MPDSong>>(emptyList())
     private val _stats = MutableStateFlow<MPDStats?>(null)
     private val _stopAfterCurrent = MutableStateFlow(false)
     private val _volume = MutableStateFlow(100)
@@ -75,9 +81,15 @@ class MPDRepository @Inject constructor(
     private val fetchedAlbumArtKeys = mutableListOf<AlbumArtKey>()
     private var dbUpdateId: Int? = 0
     private val onUpdateFinishCallbacks = mutableMapOf<Int, () -> Unit>()
+    private val pendingAlbumsWithSongsCommands = mutableMapOf<String, MPDBatchCommand>()
     private var statusJob: Job? = null
 
+    private fun mpdFilter(block: BaseMPDFilterContext.() -> BaseMPDFilter): BaseMPDFilter =
+        if (serverHasCapability(MPDServerCapability.NEW_FILTER_SYNTAX)) with(MPDFilterContext) { block() }
+        else with(MPDFilterContextPre021) { block() }
+
     val albums = _albums.asStateFlow()
+    val connectedServer = client.connectedServer
     val currentAudioFormat = _currentAudioFormat.asStateFlow()
     val currentBitrate = _currentBitrate.asStateFlow()
     val currentSong = _currentSong.asStateFlow()
@@ -86,25 +98,79 @@ class MPDRepository @Inject constructor(
     val currentSongId = _currentSongId.asStateFlow()
     val currentSongPosition = _currentSongPosition.asStateFlow()
     val error = _error.asStateFlow()
+    val isConnected = _isConnected.asStateFlow()
+    val isIOError = _isIOError.asStateFlow()
     val outputs = _outputs.asStateFlow()
     val playerState = _playerState.asStateFlow()
-    val protocolVersion = client.protocolVersion
     val playlists = _playlists.asStateFlow()
     val queue = _queue.asStateFlow()
     val randomState = _randomState.asStateFlow()
     val repeatState = _repeatState.asStateFlow()
-    val server = client.server
     val stats = _stats.asStateFlow()
     val stopAfterCurrent = _stopAfterCurrent.asStateFlow()
     val volume = _volume.asStateFlow()
 
     init {
         idleClient.registerOnMPDChangeListener(this)
+        client.registerListener(this)
+        idleClient.registerListener(this)
+        binaryClient.registerListener(this)
 
         ioScope.launch {
-            context.queueDataStore.data.collect {
-                _queue.value = it.toNative()
+            connectedServer.collect {
+                if (it == null) _queue.value = emptyList()
+                else {
+                    loadStatus()
+                    loadCurrentSong()
+                    loadQueue()
+                    loadPlaylists()
+                }
             }
+        }
+
+        /*
+        loadQueue(
+            onDataStoreUpdated = {
+                ioScope.launch {
+                    // If IO error, do not show cached queue.
+                    context.queueDataStore.data.combine(isIOError) { queue, isIOError ->
+                        if (!isIOError) queue.toNative() else emptyList()
+                    }.collect { _queue.value = it }
+                }
+            },
+            onFinish = { _queue.value = it }
+        )
+         */
+
+        ioScope.launch {
+            /**
+             * If any client object reports IO error, reset flows and set
+             * isIOError = true until that changes.
+             */
+            combine(idleClient.state, client.state, binaryClient.state) { s1, s2, s3 ->
+                listOf(s1, s2, s3).any { it == BaseMPDClient.State.IO_ERROR }
+            }.distinctUntilChanged().collect {
+                _isIOError.value = it
+                if (it) reset()
+            }
+        }
+
+        ioScope.launch {
+            /**
+             * isConnected signals that we are verifiably connected to the
+             * server. It is not an exact negation of isIOError, since the
+             * following states cause them both to be false:
+             *
+             * 1. Client objects are initialising and not ready yet
+             * 2. Server connection works but there was an auth error
+             *
+             * Not sure which is the optimal way to handle all cases, will have
+             * to think it through.
+             */
+            idleClient.state
+                .map { it == BaseMPDClient.State.READY || it == BaseMPDClient.State.RUNNING }
+                .distinctUntilChanged()
+                .collect { _isConnected.value = it }
         }
 
         ioScope.launch {
@@ -135,43 +201,37 @@ class MPDRepository @Inject constructor(
                 } else loadCurrentSong()
             }
         }
-
-        ioScope.launch {
-            protocolVersion.collect {
-                loadStats()
-            }
-        }
     }
 
-    fun addAlbumToPlaylist(album: MPDAlbum, playlistName: String, onFinish: ((MPDTextResponse) -> Unit)? = null) =
+    fun addAlbumToPlaylist(album: MPDAlbum, playlistName: String, onFinish: ((MPDBatchTextResponse) -> Unit)? = null) =
         addAlbumsToPlaylist(listOf(album), playlistName, onFinish)
 
     fun addAlbumsToPlaylist(
         albums: Collection<MPDAlbum>,
         playlistName: String,
-        onFinish: ((MPDTextResponse) -> Unit)? = null,
+        onFinish: ((MPDBatchTextResponse) -> Unit)? = null,
     ) =
         client.enqueueBatch(
             commands = albums
-                .map { it.getSearchFilter(protocolVersion.value) }
+                .map { it.getSearchFilter(connectedServer.value?.protocolVersion) }
                 .map { formatMPDCommand("searchaddpl", playlistName, it) },
             onFinish = onFinish,
         )
 
     fun addQueueToPlaylist(playlistName: String, onFinish: ((MPDTextResponse) -> Unit)? = null) =
         client.enqueue("save", playlistName) { response ->
-            if (!response.isSuccess && protocolVersion.value >= MPDVersion("0.24"))
+            if (!response.isSuccess && serverHasCapability(MPDServerCapability.SAVE_APPEND_REPLACE))
                 client.enqueue("save", listOf(playlistName, "append"), onFinish)
             else onFinish?.invoke(response)
         }
 
-    fun addSongToPlaylist(song: MPDSong, playlistName: String, onFinish: ((MPDTextResponse) -> Unit)? = null) =
+    fun addSongToPlaylist(song: MPDSong, playlistName: String, onFinish: ((MPDBatchTextResponse) -> Unit)? = null) =
         addSongsToPlaylist(listOf(song), playlistName, onFinish)
 
     fun addSongsToPlaylist(
         songs: Collection<MPDSong>,
         playlistName: String,
-        onFinish: ((MPDTextResponse) -> Unit)? = null,
+        onFinish: ((MPDBatchTextResponse) -> Unit)? = null,
     ) = client.enqueueBatch(
         commands = songs.map { formatMPDCommand("playlistadd", playlistName, it.filename) },
         onFinish = onFinish,
@@ -180,7 +240,7 @@ class MPDRepository @Inject constructor(
     fun addSongsToPlaylistPositioned(
         songs: Collection<MPDSong>,
         playlistName: String,
-        onFinish: ((MPDTextResponse) -> Unit)? = null,
+        onFinish: ((MPDBatchTextResponse) -> Unit)? = null,
     ) = client.enqueueBatch(
         commands = songs.sortedBy { it.position }.map {
             if (it.position != null) formatMPDCommand("playlistadd", playlistName, it.filename, it.position)
@@ -196,32 +256,41 @@ class MPDRepository @Inject constructor(
     fun deletePlaylist(playlistName: String, onFinish: ((MPDTextResponse) -> Unit)? = null) =
         client.enqueue("rm", playlistName, onFinish)
 
-    fun enqueueAlbumNextAndPlay(album: MPDAlbum, onFinish: ((MPDTextResponse) -> Unit)? = null) =
-        enqueueAlbumsNextAndPlay(listOf(album), onFinish)
-
-    fun enqueueAlbumLast(album: MPDAlbum, onFinish: ((MPDTextResponse) -> Unit)? = null) =
+    fun enqueueAlbumLast(album: MPDAlbum, onFinish: ((MPDBatchTextResponse) -> Unit)? = null) =
         enqueueAlbumsLast(listOf(album), onFinish)
 
-    fun enqueueAlbumsLast(albums: Collection<MPDAlbum>, onFinish: ((MPDTextResponse) -> Unit)? = null) =
-        client.enqueueBatch(albums.map { it.getSearchFilter(protocolVersion.value).findadd() }, onFinish)
+    fun enqueueAlbumNextAndPlay(album: MPDAlbum, onFinish: ((BaseMPDResponse) -> Unit)? = null) =
+        enqueueAlbumsNextAndPlay(listOf(album), onFinish)
 
-    fun enqueueAlbumsNextAndPlay(albums: Collection<MPDAlbum>, onFinish: ((MPDTextResponse) -> Unit)? = null) {
+    fun enqueueAlbumsLast(albums: Collection<MPDAlbum>, onFinish: ((MPDBatchTextResponse) -> Unit)? = null) =
+        client.enqueueBatch(
+            albums.map { it.getSearchFilter(connectedServer.value?.protocolVersion).findadd() },
+            onFinish,
+        )
+
+    fun enqueueAlbumsNextAndPlay(albums: Collection<MPDAlbum>, onFinish: ((BaseMPDResponse) -> Unit)? = null) {
         val position =
-            if (protocolVersion.value >= MPDVersion("0.23"))
+            if (serverHasCapability(MPDServerCapability.SEARCHADD_POSITION))
                 currentSongPosition.value?.plus(1) ?: queue.value.size
             else queue.value.size
 
         client.enqueueBatch(
             albums.reversed().map { album ->
-                if (protocolVersion.value >= MPDVersion("0.23.5") && currentSongPosition.value != null)
-                    mpdFindAddRelative(0) {
-                        equals("album", album.name) and equals("albumartist", album.artist)
-                    }
-                else if (protocolVersion.value >= MPDVersion("0.23"))
+                if (
+                    serverHasCapability(MPDServerCapability.SEARCHADD_RELATIVE_POSITION) &&
+                    currentSongPosition.value != null
+                ) mpdFindAddRelative(0) {
+                    equals("album", album.name) and equals("albumartist", album.artist)
+                }
+                else if (serverHasCapability(MPDServerCapability.SEARCHADD_POSITION))
                     mpdFindAdd(position) { equals("album", album.name) and equals("albumartist", album.artist) }
-                else if (protocolVersion.value >= MPDVersion("0.21"))
+                else
+                    mpdFilter { equals("album", album.name) and equals("albumartist", album.artist) }.findadd()
+                /*
+                else if (serverHasCapability(MPDServerCapability.NEW_FILTER_SYNTAX))
                     mpdFindAdd { equals("album", album.name) and equals("albumartist", album.artist) }
                 else mpdFindAddPre021 { equals("album", album.name) and equals("albumartist", album.artist) }
+                 */
             }
         ) { response ->
             if (response.isSuccess) playSongByPosition(position, onFinish)
@@ -236,7 +305,7 @@ class MPDRepository @Inject constructor(
         val position: Int
         val command: String
 
-        if (protocolVersion.value >= MPDVersion("0.23.1")) {
+        if (serverHasCapability(MPDServerCapability.LOAD_POSITION)) {
             position = currentSongPosition.value?.plus(1) ?: queue.value.size
             val addPosition = if (currentSongPosition.value != null) "+0" else position
             command = formatMPDCommand("load", playlistName, "0:", addPosition)
@@ -251,13 +320,13 @@ class MPDRepository @Inject constructor(
         }
     }
 
-    fun enqueueSongLast(song: MPDSong, onFinish: ((MPDTextResponse) -> Unit)? = null) =
+    fun enqueueSongLast(song: MPDSong, onFinish: ((MPDBatchTextResponse) -> Unit)? = null) =
         enqueueSongsLast(listOf(song.filename), onFinish)
 
-    fun enqueueSongNextAndPlay(song: MPDSong, onFinish: ((MPDTextResponse) -> Unit)? = null) =
+    fun enqueueSongNextAndPlay(song: MPDSong, onFinish: ((BaseMPDResponse) -> Unit)? = null) =
         enqueueSongsNextAndPlay(listOf(song), onFinish)
 
-    fun enqueueSongs(songs: Collection<MPDSong>, onFinish: ((MPDTextResponse) -> Unit)? = null) {
+    fun enqueueSongs(songs: Collection<MPDSong>, onFinish: ((MPDBatchTextResponse) -> Unit)? = null) {
         client.enqueueBatch(
             songs.map {
                 if (it.position != null) formatMPDCommand("addid", it.filename, it.position)
@@ -267,13 +336,17 @@ class MPDRepository @Inject constructor(
         )
     }
 
-    fun enqueueSongsLast(filenames: Collection<String>, onFinish: ((MPDTextResponse) -> Unit)? = null) =
+    fun enqueueSongsLast(filenames: Collection<String>, onFinish: ((MPDBatchTextResponse) -> Unit)? = null) =
         client.enqueueBatch(filenames.map { formatMPDCommand("add", it) }, onFinish)
 
-    fun enqueueSongsNextAndPlay(songs: Collection<MPDSong>, onFinish: ((MPDTextResponse) -> Unit)? = null) {
+    fun enqueueSongsNextAndPlay(songs: Collection<MPDSong>, onFinish: ((BaseMPDResponse) -> Unit)? = null) {
         val position = currentSongPosition.value?.plus(1) ?: queue.value.size
-        val isV23 = protocolVersion.value >= MPDVersion("0.23")
-        val addPosition = if (isV23 && currentSongPosition.value != null) "+0" else position
+        val addPosition =
+            if (
+                serverHasCapability(MPDServerCapability.ADDID_RELATIVE_POSITION) &&
+                currentSongPosition.value != null
+            ) "+0"
+            else position
         val command = songs.reversed().map { formatMPDCommand("addid", it.filename, addPosition) }
 
         client.enqueueBatch(command) { response ->
@@ -294,30 +367,31 @@ class MPDRepository @Inject constructor(
     fun getAlbumWithSongs(album: MPDAlbum, onFinish: (MPDAlbumWithSongs) -> Unit) =
         getAlbumsWithSongs(listOf(album)) { onFinish(it.first()) }
 
-    fun getAlbumsWithSongs(albums: Collection<MPDAlbum>, onFinish: (List<MPDAlbumWithSongs>) -> Unit) =
-        client.enqueueBatch(albums.map { it.getSearchFilter(protocolVersion.value).find() }) { response ->
-            val songsNested = response.extractNestedSongs()
-
-            onFinish(
-                albums.mapIndexed { index, album -> MPDAlbumWithSongs(album, songsNested[index]) }
-            )
-        }
-
     fun getAlbumsByAlbumArtist(artistName: String, onFinish: (List<MPDAlbum>) -> Unit) =
-        client.enqueue("list album", equalsFilter("albumartist", artistName)) { response ->
+        client.enqueue(mpdFilter { equals("albumartist", artistName) }.list("album")) { response ->
             onFinish(response.extractAlbums(artistName))
         }
 
     fun getAlbumsByArtist(artistName: String, onFinish: (List<MPDAlbum>) -> Unit) {
-        client.enqueue(
-            "list album",
-            listOf(equalsFilter("artist", artistName), "group", "albumartist")
-        ) { response ->
+        client.enqueue(mpdFilter { equals("artist", artistName) }.list("album", listOf("albumartist"))) { response ->
             if (response.mpdError?.type == MPDError.Type.ARG) {
-                client.enqueue("find", equalsFilter("artist", artistName)) { response2 ->
+                client.enqueue(mpdFilter { equals("artist", artistName) }.find()) { response2 ->
                     onFinish(response2.extractSongs().map { it.album }.toSet().toList())
                 }
             } else onFinish(response.extractAlbums())
+        }
+    }
+
+    fun getAlbumsWithSongs(albums: Collection<MPDAlbum>, onFinish: (List<MPDAlbumWithSongs>) -> Unit) {
+        getAlbumsWithSongs("albumartist", albums) { albumsArtistAlbums ->
+            val albumsWithSongs = albumsArtistAlbums.filter { it.songs.isNotEmpty() }
+            val emptyAlbums = albums.minus(albumsWithSongs.map { it.album }.toSet())
+
+            if (emptyAlbums.isNotEmpty()) {  // The irony, eh?
+                getAlbumsWithSongs("artist", emptyAlbums) { artistAlbums ->
+                    onFinish(albumsWithSongs + artistAlbums.filter { emptyAlbums.contains(it.album) })
+                }
+            } else onFinish(albumsArtistAlbums)
         }
     }
 
@@ -329,14 +403,19 @@ class MPDRepository @Inject constructor(
         client.enqueue("list album group albumartist") { response ->
             if (response.mpdError?.type == MPDError.Type.ARG) {
                 client.enqueue("list albumartist") { response2 ->
-                    val albumArtists = response2.extractValues("AlbumArtist")
+                    val albumArtists = response2.extractValues("albumartist")
 
                     client.enqueueBatch(
-                        albumArtists.map { "list album ${equalsFilter("albumartist", it)}" }
+                        albumArtists.map { mpdFilter { equals("albumartist", it) }.list("album") }
                     ) { response3 ->
+                        val nestedMapList = response3.extractNestedMaps()
+
+                        // Each albumartist should now have a list of maps,
+                        // where each map is an album.
                         _albums.value = albumArtists
                             .flatMapIndexed { index, artist ->
-                                response3.batchResponseMaps[index].getValue("Album").map { MPDAlbum(artist, it) }
+                                // Convert a list of artist's album titles:
+                                nestedMapList[index].mapNotNull { it["album"] }.map { MPDAlbum(artist, it) }
                             }
                             .sorted()
                             .also { onFinish?.invoke(it) }
@@ -346,18 +425,6 @@ class MPDRepository @Inject constructor(
         }
     }
 
-    @Suppress("MemberVisibilityCanBePrivate")
-    fun loadCurrentSong(onFinish: ((MPDSong) -> Unit)? = null) =
-        client.enqueue("currentsong") { response ->
-            _currentSong.value = response.extractSong()?.also { song ->
-                song.position?.let { _currentSongPosition.value = it }
-                song.duration?.let { _currentSongDuration.value = it }
-                song.id?.let { _currentSongId.value = it }
-                song.audioFormat?.let { _currentAudioFormat.value = it }
-                onFinish?.invoke(song)
-            }
-        }
-
     fun loadOutputs(onFinish: ((List<MPDOutput>) -> Unit)? = null) =
         client.enqueue("outputs") { response ->
             response.extractOutputs().let { outputs ->
@@ -366,65 +433,63 @@ class MPDRepository @Inject constructor(
             }
         }
 
-    fun loadPlaylists(details: Boolean = false, onFinish: ((List<MPDPlaylist>) -> Unit)? = null) =
-        client.enqueue("listplaylists") { response ->
-            response.extractPlaylists().sortedBy { it.name.lowercase() }.let { playlists ->
-                _playlists.value = playlists
-                if (details) {
-                    client.enqueueBatch(playlists.map { formatMPDCommand("listplaylistinfo", it.name) }) { response ->
-                        if (response.isSuccess) {
-                            _playlists.value = playlists
-                                .zip(response.extractPositionedNestedSongs())
-                                .map { (playlist, songs) -> playlist.copy(songs = songs) }
-                                .also { onFinish?.invoke(it) }
-                        } else onFinish?.invoke(playlists)
-                    }
-                } else onFinish?.invoke(playlists)
-            }
-        }
+    fun loadPlaylistsWithSongs(forceReload: Boolean = false, onFinish: ((List<MPDPlaylist>) -> Unit)? = null) {
+        loadPlaylists(forceReload = forceReload) { playlists ->
+            val playlistsWithoutSongs =
+                if (!forceReload) playlists.filter { it.songs == null }
+                else playlists
 
-    fun loadQueue(onFinish: ((List<MPDSong>) -> Unit)? = null) =
-        client.enqueue("playlistinfo") { response ->
-            response.extractSongs().also { songs ->
-                ioScope.launch {
-                    context.queueDataStore.updateData { currentQueue ->
-                        currentQueue.toBuilder()
-                            .clearSongs()
-                            .addAllSongs(songs.toProto())
-                            .build()
+            if (playlistsWithoutSongs.isNotEmpty()) {
+                client.enqueueBatch(
+                    playlistsWithoutSongs.map { formatMPDCommand("listplaylistinfo", it.name) }
+                ) { response ->
+                    if (response.isSuccess) {
+                        val updatedPlaylists = playlists.toMutableList().apply {
+                            playlistsWithoutSongs
+                                .zip(response.extractNestedPositionedSongs())
+                                .forEach { (playlist, songs) ->
+                                    removeIf { it.name == playlist.name }
+                                    add(playlist.copy(songs = songs))
+                                }
+                        }
+
+                        updatedPlaylists.sortedBy { it.name.lowercase() }.also {
+                            _playlists.value = it
+                            onFinish?.invoke(it)
+                        }
+                    } else onFinish?.invoke(playlists)
+                }
+            } else onFinish?.invoke(playlists)
+        }
+    }
+
+    fun loadPlaylistSongs(playlist: MPDPlaylist, onFinish: ((List<MPDSong>) -> Unit)? = null) {
+        client.enqueue("listplaylistinfo", playlist.name) { response ->
+            if (response.isSuccess) {
+                val songs = response.extractPositionedSongs()
+
+                _playlists.value = _playlists.value?.toMutableList()?.apply {
+                    indexOfFirst { it.name == playlist.name }.takeIf { it > -1 }?.also { index ->
+                        add(index, removeAt(index).copy(songs = songs))
                     }
                 }
                 onFinish?.invoke(songs)
             }
         }
+    }
+
+    fun loadQueue(onFinish: ((List<MPDSong>) -> Unit)? = null) {
+        client.enqueue("playlistinfo") { response ->
+            response.extractSongs().also {
+                _queue.value = it
+                onFinish?.invoke(it)
+            }
+        }
+    }
 
     fun loadStats(onFinish: ((MPDStats) -> Unit)? = null) = client.enqueue("stats") { response ->
         if (response.isSuccess) _stats.value = response.extractMap().toMPDStats().also { onFinish?.invoke(it) }
     }
-
-    fun loadStatus(onFinish: ((MPDStatus) -> Unit)? = null) =
-        client.enqueue("status") { response ->
-            response.extractStatus()?.also { status ->
-                status.volume?.let { _volume.value = it }
-                status.repeat?.let { _repeatState.value = it }
-                status.random?.let { _randomState.value = it }
-                status.playerState?.let { _playerState.value = it }
-
-                _error.value = status.error
-                _currentSongElapsed.value = status.currentSongElapsed
-                _currentSongDuration.value = status.currentSongDuration
-                _currentSongId.value = status.currentSongId
-                _currentBitrate.value = status.bitrate
-                _currentAudioFormat.value = status.audioFormat
-                _currentSongPosition.value = status.currentSongPosition
-                if (dbUpdateId != status.dbUpdateId) {
-                    if (dbUpdateId != null) onUpdateFinishCallbacks.remove(dbUpdateId)?.invoke()
-                    dbUpdateId = status.dbUpdateId
-                }
-
-                onFinish?.invoke(status)
-            }
-        }
 
     fun moveSongInQueue(fromIdx: Int, toIdx: Int, onFinish: ((MPDTextResponse) -> Unit)? = null) =
         client.enqueue("move $fromIdx $toIdx", onFinish)
@@ -485,23 +550,26 @@ class MPDRepository @Inject constructor(
     fun registerOnMPDChangeListener(listener: OnMPDChangeListener) =
         idleClient.registerOnMPDChangeListener(listener)
 
-    fun removeSongFromPlaylist(playlistName: String, song: MPDSong, onFinish: ((MPDTextResponse) -> Unit)? = null) =
-        song.position?.let { removeSongsFromPlaylist(playlistName, listOf(it), onFinish) }
+    fun removeSongFromPlaylist(
+        playlistName: String,
+        song: MPDSong,
+        onFinish: ((MPDBatchTextResponse) -> Unit)? = null,
+    ) = song.position?.let { removeSongsFromPlaylist(playlistName, listOf(it), onFinish) }
 
     fun removeSongsFromPlaylist(
         playlistName: String,
         positions: Collection<Int>,
-        onFinish: ((MPDTextResponse) -> Unit)? = null,
+        onFinish: ((MPDBatchTextResponse) -> Unit)? = null,
     ) =
         client.enqueueBatch(
             positions.sortedDescending().map { formatMPDCommand("playlistdelete", playlistName, it) },
             onFinish,
         )
 
-    fun removeSongFromQueue(song: MPDSong, onFinish: ((MPDTextResponse) -> Unit)? = null) =
+    fun removeSongFromQueue(song: MPDSong, onFinish: ((MPDBatchTextResponse) -> Unit)? = null) =
         removeSongsFromQueue(listOf(song), onFinish)
 
-    fun removeSongsFromQueue(songs: Collection<MPDSong>, onFinish: ((MPDTextResponse) -> Unit)? = null) =
+    fun removeSongsFromQueue(songs: Collection<MPDSong>, onFinish: ((MPDBatchTextResponse) -> Unit)? = null) =
         client.enqueueBatch(songs.mapNotNull { it.id }.map { "deleteid $it" }, onFinish)
 
     fun renamePlaylist(playlistName: String, newName: String, onFinish: ((MPDTextResponse) -> Unit)? = null) =
@@ -517,11 +585,7 @@ class MPDRepository @Inject constructor(
          * TODO: Maybe disable search all together in <0.21, or implement
          * it in some completely different way
          */
-        val filter =
-            if (protocolVersion.value < MPDVersion("0.21")) mpdFilterPre021 { equals("any", term) }
-            else mpdFilter { contains("any", term) }
-
-        search(filter, onFinish)
+        search(mpdFilter { contains("any", term) }, onFinish)
     }
 
     fun search(filter: BaseMPDFilter, onFinish: ((MPDTextResponse) -> Unit)? = null) =
@@ -577,28 +641,129 @@ class MPDRepository @Inject constructor(
         } else callback()
     }
 
-    private fun equalsFilter(tag: String, value: String) =
-        if (protocolVersion.value < MPDVersion("0.21")) mpdFilterPre021 { equals(tag, value) }
-        else mpdFilter { equals(tag, value) }
+    private fun getAlbumsWithSongs(
+        artistTag: String,
+        albums: Collection<MPDAlbum>,
+        onFinish: (List<MPDAlbumWithSongs>) -> Unit,
+    ) {
+        val commands = albums.map { it.getSearchFilter(artistTag, connectedServer.value?.protocolVersion).find() }
+        val pendingCommand =
+            pendingAlbumsWithSongsCommands[artistTag]?.takeIf { it.status == BaseMPDCommand.Status.PENDING }
+        val callback = { response: MPDBatchTextResponse ->
+            val songLists = response.extractNestedSongs()
+            val albumsWithSongs =
+                songLists.flatMap { it.groupByAlbum() }.filter { albums.contains(it.album) }
+            onFinish(albumsWithSongs)
+        }
 
-    fun loadPlaylistSongs(playlist: MPDPlaylist) {
-        getPlaylistSongs(playlist) { songs ->
-            _playlists.value = _playlists.value.toMutableList().apply {
-                indexOfFirst { it.name == playlist.name }.takeIf { it > -1 }?.also { index ->
-                    add(index, removeAt(index).copy(songs = songs))
+        if (pendingCommand != null) {
+            pendingCommand.addCommands(commands)
+            pendingCommand.addCallback(callback)
+        } else {
+            pendingAlbumsWithSongsCommands[artistTag] = client.enqueueBatch(commands, callback)
+        }
+    }
+
+    private fun loadCurrentSong(onFinish: ((MPDSong) -> Unit)? = null) =
+        client.enqueue("currentsong") { response ->
+            val song = response.extractSong()
+            updateCurrentSong(song)
+            if (song != null) onFinish?.invoke(song)
+        }
+
+    private fun loadPlaylists(forceReload: Boolean = false, onFinish: ((List<MPDPlaylist>) -> Unit)? = null) {
+        client.enqueue("listplaylists") { response ->
+            response.extractPlaylists().also { playlists ->
+                val updatedPlaylists = if (!forceReload) {
+                    _playlists.value?.toMutableList()?.apply {
+                        removeIf { playlist -> !playlists.map { it.name }.contains(playlist.name) }
+                        addAll(playlists.filter { playlist -> !map { it.name }.contains(playlist.name) })
+                    } ?: playlists
+                } else playlists
+
+                updatedPlaylists.sortedBy { it.name.lowercase() }.also {
+                    _playlists.value = it
+                    onFinish?.invoke(it)
                 }
             }
         }
     }
 
-    private fun getPlaylistSongs(playlist: MPDPlaylist, onFinish: (List<MPDSong>) -> Unit) =
-        client.enqueue("listplaylistinfo", playlist.name) { response ->
-            if (response.isSuccess) onFinish(response.extractPositionedSongs())
+    /*
+    private fun loadQueue(onFinish: ((List<MPDSong>) -> Unit)? = null, onDataStoreUpdated: () -> Unit) =
+        client.enqueue("playlistinfo") { response ->
+            response.extractSongs().also { songs ->
+                ioScope.launch {
+                    context.queueDataStore.updateData { currentQueue ->
+                        currentQueue.toBuilder()
+                            .clearSongs()
+                            .addAllSongs(songs.toProto())
+                            .build()
+                    }
+                    onDataStoreUpdated()
+                }
+                onFinish?.invoke(songs)
+            }
         }
+     */
+
+    private fun loadStatus(onFinish: ((MPDStatus) -> Unit)? = null) =
+        client.enqueue("status") { response ->
+            response.extractStatus()?.also { status ->
+                updateStatus(status)
+                onFinish?.invoke(status)
+            }
+        }
+
+    private fun serverHasCapability(capability: MPDServerCapability) =
+        connectedServer.value?.hasCapability(capability) ?: false
+
+    private fun reset() {
+        updateCurrentSong(null)
+        updateStatus(MPDStatus())
+        _albums.value = emptyList()
+        _outputs.value = emptyList()
+        _playlists.value = null
+        _queue.value = emptyList()
+        _stats.value = null
+    }
+
+    private fun updateCurrentSong(songOrNull: MPDSong?) {
+        _currentSong.value = songOrNull?.also { song ->
+            song.position?.let { _currentSongPosition.value = it }
+            song.duration?.let { _currentSongDuration.value = it }
+            song.id?.let { _currentSongId.value = it }
+            song.audioFormat?.let { _currentAudioFormat.value = it }
+        }
+    }
+
+    private fun updateStatus(status: MPDStatus) {
+        status.volume?.let { _volume.value = it }
+        status.repeat?.let { _repeatState.value = it }
+        status.random?.let { _randomState.value = it }
+        status.playerState?.let { _playerState.value = it }
+        status.currentSongDuration?.let { _currentSongDuration.value = it }
+
+        _error.value = status.error
+        _currentSongElapsed.value = status.currentSongElapsed
+        _currentSongId.value = status.currentSongId
+        _currentBitrate.value = status.bitrate
+        _currentAudioFormat.value = status.audioFormat
+        _currentSongPosition.value = status.currentSongPosition
+
+        if (dbUpdateId != status.dbUpdateId) {
+            if (dbUpdateId != null) onUpdateFinishCallbacks.remove(dbUpdateId)?.invoke()
+            dbUpdateId = status.dbUpdateId
+        }
+    }
 
     override fun onMPDChanged(subsystems: List<String>) {
         if (subsystems.containsAny("player", "mixer", "options", "update")) loadStatus()
         if (subsystems.contains("database")) loadStats()
         if (subsystems.contains("stored_playlist")) loadPlaylists()
+    }
+
+    override fun onMPDClientError(client: BaseMPDClient, exception: Throwable, command: BaseMPDCommand<*>?) {
+        logError("$exception, $client, $command", exception)
     }
 }

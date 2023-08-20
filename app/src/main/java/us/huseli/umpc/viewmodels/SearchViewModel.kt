@@ -1,14 +1,12 @@
 package us.huseli.umpc.viewmodels
 
-import android.content.Context
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.ui.text.input.TextFieldValue
 import dagger.hilt.android.lifecycle.HiltViewModel
-import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import us.huseli.umpc.data.MPDSong
-import us.huseli.umpc.mpd.response.MPDTextResponse
+import us.huseli.umpc.mpd.response.MPDBatchTextResponse
 import us.huseli.umpc.repository.AlbumArtRepository
 import us.huseli.umpc.repository.MPDRepository
 import us.huseli.umpc.repository.MessageRepository
@@ -20,8 +18,7 @@ class SearchViewModel @Inject constructor(
     repo: MPDRepository,
     messageRepo: MessageRepository,
     albumArtRepo: AlbumArtRepository,
-    @ApplicationContext context: Context,
-) : SongSelectViewModel(repo, messageRepo, albumArtRepo, context) {
+) : SongSelectViewModel(repo, messageRepo, albumArtRepo) {
     private val _songSearchTerm = MutableStateFlow(TextFieldValue())
     private val _songSearchResults = MutableStateFlow<List<MPDSong>>(emptyList())
     private val _isSearching = MutableStateFlow(false)
@@ -31,14 +28,14 @@ class SearchViewModel @Inject constructor(
     val isSearching = _isSearching.asStateFlow()
     val listState = LazyListState()
 
-    fun addAllToPlaylist(playlistName: String, onFinish: (MPDTextResponse) -> Unit) =
+    fun addAllToPlaylist(playlistName: String, onFinish: (MPDBatchTextResponse) -> Unit) =
         repo.addSongsToPlaylist(_songSearchResults.value, playlistName, onFinish)
 
     fun clearSearchTerm() {
         _songSearchTerm.value = _songSearchTerm.value.copy(text = "")
     }
 
-    fun enqueueAll(onFinish: (MPDTextResponse) -> Unit) =
+    fun enqueueAll(onFinish: (MPDBatchTextResponse) -> Unit) =
         repo.enqueueSongsLast(_songSearchResults.value.map { it.filename }, onFinish)
 
     fun setSongSearchTerm(value: TextFieldValue) {

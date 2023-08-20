@@ -15,7 +15,8 @@ import androidx.compose.material3.ShapeDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -38,11 +39,11 @@ fun ListWithScrollbar(
     content: @Composable BoxWithConstraintsScope.() -> Unit,
 ) {
     val scope = rememberCoroutineScope()
-    var scrollPos by rememberSaveable { mutableStateOf(0) }
+    var scrollPos by rememberSaveable { mutableIntStateOf(0) }
     val handleWidthdp = 15.dp
     val handleHeightDp = 30.dp
     val handleHeightPx = with(LocalDensity.current) { handleHeightDp.toPx() }
-    var maxHeightPx by remember { mutableStateOf(0f) }
+    var maxHeightPx by remember { mutableFloatStateOf(0f) }
 
     val draggableState = rememberDraggableState { delta ->
         if (scrollPos + delta >= 0 && scrollPos + delta + handleHeightPx <= maxHeightPx) {

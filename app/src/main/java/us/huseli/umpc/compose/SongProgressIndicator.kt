@@ -4,7 +4,8 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableDoubleStateOf
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -19,13 +20,14 @@ fun SongProgressIndicator(
     modifier: Modifier = Modifier,
     elapsed: Double,
     duration: Double,
+    enabled: Boolean,
     playerState: PlayerState?,
 ) {
-    var mutableElapsed by remember(elapsed) { mutableStateOf(elapsed) }
-    var progress by remember { mutableStateOf(getProgress(elapsed, duration)) }
+    var mutableElapsed by remember(elapsed) { mutableDoubleStateOf(elapsed) }
+    var progress by remember { mutableFloatStateOf(getProgress(elapsed, duration)) }
 
-    LaunchedEffect(playerState, elapsed, duration) {
-        while (playerState == PlayerState.PLAY) {
+    LaunchedEffect(playerState, elapsed, duration, enabled) {
+        while (playerState == PlayerState.PLAY && enabled) {
             progress = getProgress(mutableElapsed, duration)
             delay(500)
             mutableElapsed += 0.5

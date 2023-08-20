@@ -15,7 +15,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableDoubleStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -34,12 +34,13 @@ fun SongProgressSlider(
     backgroundAlpha: Float = 0.5f,
     playerState: PlayerState?,
     shape: CornerBasedShape = MaterialTheme.shapes.extraLarge,
+    enabled: Boolean,
     onManualChange: (Double) -> Unit,
 ) {
-    var progress by remember(elapsed) { mutableStateOf(elapsed) }
+    var progress by remember(elapsed) { mutableDoubleStateOf(elapsed) }
 
-    LaunchedEffect(playerState, elapsed) {
-        while (playerState == PlayerState.PLAY) {
+    LaunchedEffect(playerState, elapsed, enabled) {
+        while (playerState == PlayerState.PLAY && enabled) {
             delay(1000)
             progress++
         }
@@ -63,6 +64,7 @@ fun SongProgressSlider(
                 modifier = Modifier.weight(1f),
                 value = progress.toFloat(),
                 valueRange = 0f..duration.toFloat(),
+                enabled = enabled,
                 onValueChange = { progress = it.toDouble() },
                 onValueChangeFinished = { onManualChange(progress) },
             )

@@ -8,6 +8,8 @@ interface LoggerInterface {
     }
 
     fun log(message: String, level: Int = Log.INFO) = log(javaClass.simpleName, message, level)
+
+    fun logError(message: String, exception: Throwable? = null) = Log.e(javaClass.simpleName, message, exception)
 }
 
 object Logger : LoggerInterface

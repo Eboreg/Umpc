@@ -1,6 +1,5 @@
 package us.huseli.umpc.viewmodels.abstr
 
-import android.content.Context
 import us.huseli.umpc.data.AlbumArtKey
 import us.huseli.umpc.data.MPDAlbumArt
 import us.huseli.umpc.data.MPDAlbumWithSongs
@@ -12,8 +11,7 @@ abstract class AlbumArtViewModel(
     repo: MPDRepository,
     messageRepo: MessageRepository,
     private val albumArtRepo: AlbumArtRepository,
-    context: Context,
-) : BaseViewModel(repo, messageRepo, context) {
+) : BaseViewModel(repo, messageRepo) {
     val currentSongAlbumArt = albumArtRepo.currentSongAlbumArt
 
     fun getAlbumArt(key: AlbumArtKey, onFinish: (MPDAlbumArt) -> Unit) = albumArtRepo.getAlbumArt(key, onFinish)

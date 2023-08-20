@@ -24,6 +24,7 @@ import us.huseli.umpc.viewmodels.MPDViewModel
 class MainActivity : ComponentActivity(), LoggerInterface {
     private val viewModel by viewModels<MPDViewModel>()
     private var isStreaming = false
+    private var isConnected = false
 
     private fun createNotificationChannel() {
         val channel = NotificationChannel(
@@ -44,6 +45,9 @@ class MainActivity : ComponentActivity(), LoggerInterface {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
                 viewModel.isStreaming.collect { isStreaming = it }
             }
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                viewModel.isConnected.collect { isConnected = it }
+            }
         }
 
         StrictMode.setVmPolicy(
@@ -60,7 +64,7 @@ class MainActivity : ComponentActivity(), LoggerInterface {
     }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
-        if (isStreaming) return super.onKeyDown(keyCode, event)
+        if (isStreaming || !isConnected) return super.onKeyDown(keyCode, event)
 
         return when (keyCode) {
             KeyEvent.KEYCODE_VOLUME_UP -> {

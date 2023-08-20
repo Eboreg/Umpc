@@ -22,7 +22,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -39,9 +39,10 @@ fun VolumeSlider(
     backgroundAlpha: Float = 0.5f,
     shape: CornerBasedShape = MaterialTheme.shapes.extraLarge,
     padding: PaddingValues = PaddingValues(),
+    enabled: Boolean,
     onVolumeChange: (Float) -> Unit,
 ) {
-    var mutableVolume by rememberSaveable(volume) { mutableStateOf(volume) }
+    var mutableVolume by rememberSaveable(volume) { mutableFloatStateOf(volume) }
 
     Box(contentAlignment = Alignment.Center, modifier = modifier.height(IntrinsicSize.Min)) {
         Surface(
@@ -54,8 +55,10 @@ fun VolumeSlider(
             IconButton(
                 modifier = Modifier.width(IntrinsicSize.Min).height(24.dp),
                 onClick = {
-                    mutableVolume = 0f
-                    onVolumeChange(mutableVolume)
+                    if (enabled) {
+                        mutableVolume = 0f
+                        onVolumeChange(mutableVolume)
+                    }
                 }
             ) {
                 Icon(
@@ -72,6 +75,7 @@ fun VolumeSlider(
                 valueRange = 0f..100f,
                 onValueChange = { mutableVolume = it },
                 onValueChangeFinished = { onVolumeChange(mutableVolume) },
+                enabled = enabled,
             )
             Text(
                 text = "${mutableVolume.toInt()}%",

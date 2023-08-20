@@ -8,28 +8,37 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.withContext
 import us.huseli.umpc.Constants.READ_BUFFER_SIZE
 import us.huseli.umpc.LoggerInterface
-import us.huseli.umpc.data.MPDError
 import us.huseli.umpc.mpd.response.BaseMPDResponse
-import us.huseli.umpc.mpd.response.MPDTextResponse
 import java.io.ByteArrayOutputStream
 import java.io.InputStream
-import java.io.PrintWriter
 import java.net.Socket
 import kotlin.math.max
 import kotlin.math.min
 
-abstract class BaseMPDCommand<T : BaseMPDResponse>(val onFinish: ((T) -> Unit)? = null) : LoggerInterface {
+abstract class BaseMPDCommand<T : BaseMPDResponse>(
+    protected var command: String,
+    onFinish: ((T) -> Unit)? = null
+) : LoggerInterface {
+    enum class Status { PENDING, RUNNING, FINISHED }
+
+    private val _onFinishCallbacks = mutableListOf<(T) -> Unit>()
+    private var _status = Status.PENDING
     private val readBuffer = ByteArray(READ_BUFFER_SIZE)
     private val lineBuffer = ByteArrayOutputStream()
     private val scope = CoroutineScope(Job() + Dispatchers.IO)
+    private val stringChannel = Channel<String?>()
 
     private var readBufferReadPos = 0
     private var readBufferWritePos = 0
 
-    private lateinit var inputStream: InputStream
-    private lateinit var writer: PrintWriter
+    val status: Status
+        get() = _status
+    val onFinishCallbacks: List<(T) -> Unit>
+        get() = _onFinishCallbacks
 
-    val stringChannel = Channel<String?>()
+    init {
+        if (onFinish != null) _onFinishCallbacks.add(onFinish)
+    }
 
     /**************************************************************************
      * ABSTRACT METHODS
@@ -39,50 +48,33 @@ abstract class BaseMPDCommand<T : BaseMPDResponse>(val onFinish: ((T) -> Unit)? 
     /**************************************************************************
      * PUBLIC METHODS
      *************************************************************************/
+    fun addCallback(callback: (T) -> Unit) = _onFinishCallbacks.add(callback)
+
+    fun addCallbacks(callbacks: List<(T) -> Unit>) = _onFinishCallbacks.addAll(callbacks)
+
     suspend fun execute(socket: Socket): T {
+        _status = Status.RUNNING
         log("START $this")
-        val response = getResponse(socket)
-        log("FINISH $this, response=$response", level = if (response.isSuccess) Log.INFO else Log.ERROR)
-        return response
+        return getResponse(socket).also {
+            _status = Status.FINISHED
+            log("FINISH $this, response=$it", level = it.logLevel)
+        }
     }
+
+    fun runCallbacks(response: T) = _onFinishCallbacks.forEach { it(response) }
 
     /**************************************************************************
-     * PROTECTED/PRIVATE METHODS
+     * PROTECTED METHODS
      *************************************************************************/
-    protected suspend fun fillTextResponse(command: String, response: MPDTextResponse): MPDTextResponse {
-        var line: String?
-
-        try {
-            writeLine(command)
-        } catch (e: Exception) {
-            return response.finish(status = BaseMPDResponse.Status.ERROR_NET, exception = e)
-        }
-
-        while (true) {
-            try {
-                line = readLine()
-            } catch (e: Exception) {
-                return response.finish(status = BaseMPDResponse.Status.ERROR_NET, exception = e)
-            }
-            if (line != null) {
-                if (line == "OK") {
-                    return response.finish(status = BaseMPDResponse.Status.OK)
-                } else if (line.startsWith("ACK ")) {
-                    return response.finish(
-                        status = BaseMPDResponse.Status.ERROR_MPD,
-                        mpdError = MPDError.fromString(line),
-                    )
-                } else response.putLine(line)
-            } else {
-                return response.finish(status = BaseMPDResponse.Status.EMPTY_RESPONSE)
-            }
-        }
+    /*
+    private suspend fun getResponse(socket: Socket): T = withContext(Dispatchers.IO) {
+        val inputStream = socket.getInputStream()
+        val writer = PrintWriter(socket.getOutputStream(), true)
+        getResponse(socket, inputStream, writer)
     }
+     */
 
-    protected suspend fun getTextResponse(socket: Socket, command: String): MPDTextResponse =
-        withSocket(socket) { fillTextResponse(command, MPDTextResponse()) }
-
-    protected suspend fun readBinary(size: Int): ByteArray {
+    protected suspend fun readBinary(inputStream: InputStream, size: Int): ByteArray {
         val data = ByteArray(size)
         var dataRead = 0
         var dataToRead: Int
@@ -94,21 +86,21 @@ abstract class BaseMPDCommand<T : BaseMPDResponse>(val onFinish: ((T) -> Unit)? 
             System.arraycopy(readBuffer, readBufferReadPos, data, dataRead, dataToRead)
             dataRead += dataToRead
             readBufferReadPos += dataToRead
-            if (dataReady() == 0 && dataRead != size) fillReadBuffer()
+            if (dataReady() == 0 && dataRead != size) fillReadBuffer(inputStream)
         }
 
-        skipByte()
+        skipByte(inputStream)
         return data
     }
 
-    protected suspend fun readLine(): String? {
+    protected suspend fun readLine(inputStream: InputStream): String? {
         var localReadPos = readBufferReadPos
         lineBuffer.reset()
 
         while (true) {
             if (localReadPos == readBufferWritePos) {
                 lineBuffer.write(readBuffer, readBufferReadPos, localReadPos - readBufferReadPos)
-                fillReadBuffer()
+                fillReadBuffer(inputStream)
                 if (readBufferWritePos < 1) break
                 localReadPos = 0
                 continue
@@ -123,50 +115,25 @@ abstract class BaseMPDCommand<T : BaseMPDResponse>(val onFinish: ((T) -> Unit)? 
         return lineBuffer.toString().takeIf { it.isNotEmpty() }
     }
 
-    private suspend fun streamLines() {
-        var line: String?
-
-        do {
-            line = readLine()
-            stringChannel.send(line)
-        } while (line != null && line != "OK" && !line.startsWith("ACK "))
-
-        stringChannel.close()
-    }
-
-    protected suspend fun <RT : BaseMPDResponse> withSocket(socket: Socket, onFinish: suspend () -> RT): RT {
-        return withContext(Dispatchers.IO) {
-            inputStream = socket.getInputStream()
-            writer = PrintWriter(socket.getOutputStream())
-            onFinish()
-        }
-    }
-
-    protected fun writeLine(line: String) {
-        writer.println(line)
-        writer.flush()
-    }
-
     /**************************************************************************
      * PRIVATE METHODS
      *************************************************************************/
     private fun dataReady(): Int = readBufferWritePos - readBufferReadPos
 
-    @Suppress("LiftReturnOrAssignment")
-    private suspend fun fillReadBuffer() {
+    private suspend fun fillReadBuffer(inputStream: InputStream) {
         withContext(Dispatchers.IO) {
             try {
                 readBufferWritePos = max(inputStream.read(readBuffer, 0, READ_BUFFER_SIZE), 0)
             } catch (e: Exception) {
                 log("fillReadBuffer: $e, cause=${e.cause}", Log.ERROR)
                 readBufferWritePos = 0
-                // throw MPDCommandException(e)
+                throw e
             }
             readBufferReadPos = 0
         }
     }
 
-    private suspend fun skipByte() {
+    private suspend fun skipByte(inputStream: InputStream) {
         var dataRead = 0
         var readyData: Int
         var dataToRead: Int
@@ -176,7 +143,18 @@ abstract class BaseMPDCommand<T : BaseMPDResponse>(val onFinish: ((T) -> Unit)? 
             dataToRead = min(readyData, 1 - dataRead)
             dataRead += dataToRead
             readBufferReadPos += dataToRead
-            if (dataReady() == 0 && dataRead != 1) fillReadBuffer()
+            if (dataReady() == 0 && dataRead != 1) fillReadBuffer(inputStream)
         }
+    }
+
+    private suspend fun streamLines(inputStream: InputStream) {
+        var line: String?
+
+        do {
+            line = readLine(inputStream)
+            stringChannel.send(line)
+        } while (line != null && line != "OK" && !line.startsWith("ACK "))
+
+        stringChannel.close()
     }
 }

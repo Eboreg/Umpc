@@ -22,8 +22,6 @@ fun Iterable<MPDAlbum>.groupByArtist(): List<MPDArtistWithAlbums> =
         .map { MPDArtistWithAlbums(name = it.key, albums = it.value) }
         .sorted()
 
-fun Iterable<MPDAlbumWithSongs>.sortedByYear(): List<MPDAlbumWithSongs> = sortedBy { it.yearRange?.first }
-
 fun Iterable<MPDAlbumWithSongs>.plus(other: Iterable<MPDAlbumWithSongs>) =
     associate { it.album to it.songs }
         .plus(other.associate { it.album to it.songs })

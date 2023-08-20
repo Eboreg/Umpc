@@ -1,8 +1,8 @@
 package us.huseli.umpc.viewmodels
 
-import android.content.Context
+import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
-import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.launch
 import us.huseli.umpc.repository.MPDRepository
 import us.huseli.umpc.repository.MessageRepository
 import us.huseli.umpc.viewmodels.abstr.BaseViewModel
@@ -12,9 +12,14 @@ import javax.inject.Inject
 class InfoViewModel @Inject constructor(
     repo: MPDRepository,
     messageRepo: MessageRepository,
-    @ApplicationContext context: Context,
-) : BaseViewModel(repo, messageRepo, context) {
+) : BaseViewModel(repo, messageRepo) {
     val stats = repo.stats
 
-    fun loadStats() = repo.loadStats()
+    init {
+        repo.loadStats()
+
+        viewModelScope.launch {
+            repo.connectedServer.collect { if (it != null) repo.loadStats() }
+        }
+    }
 }

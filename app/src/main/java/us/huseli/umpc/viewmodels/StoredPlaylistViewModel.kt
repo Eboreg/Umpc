@@ -1,11 +1,11 @@
 package us.huseli.umpc.viewmodels
 
-import android.content.Context
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
-import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
@@ -25,14 +25,13 @@ class StoredPlaylistViewModel @Inject constructor(
     messageRepo: MessageRepository,
     albumArtRepo: AlbumArtRepository,
     savedStateHandle: SavedStateHandle,
-    @ApplicationContext context: Context,
-) : SongSelectViewModel(repo, messageRepo, albumArtRepo, context), OnMPDChangeListener {
+) : SongSelectViewModel(repo, messageRepo, albumArtRepo), OnMPDChangeListener {
     private val playlistName: String = savedStateHandle.get<String>(NAV_ARG_PLAYLIST)!!
     private val _removedSongs = mutableListOf<MPDSong>()
 
     val listState = LazyListState()
-    val playlist = repo.playlists.map { playlists ->
-        playlists.find { it.name == playlistName }?.also { repo.loadPlaylistSongs(it) }
+    val playlist = repo.playlists.filterNotNull().distinctUntilChanged().map { playlists ->
+        playlists.find { it.name == playlistName }?.also { if (it.songs == null) repo.loadPlaylistSongs(it) }
     }
 
     init {

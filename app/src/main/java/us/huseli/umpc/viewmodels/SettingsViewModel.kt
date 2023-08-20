@@ -11,6 +11,7 @@ import us.huseli.umpc.repository.MPDRepository
 import us.huseli.umpc.repository.MessageRepository
 import us.huseli.umpc.repository.SettingsRepository
 import us.huseli.umpc.viewmodels.abstr.BaseViewModel
+import java.io.File
 import java.io.FileFilter
 import javax.inject.Inject
 
@@ -20,7 +21,10 @@ class SettingsViewModel @Inject constructor(
     messageRepo: MessageRepository,
     private val settingsRepository: SettingsRepository,
     @ApplicationContext context: Context,
-) : BaseViewModel(repo, messageRepo, context), OnMPDChangeListener {
+) : BaseViewModel(repo, messageRepo), OnMPDChangeListener {
+    private val albumArtDirectory = File(context.cacheDir, "albumArt").apply { mkdirs() }
+    private val thumbnailDirectory = File(albumArtDirectory, "thumbnails").apply { mkdirs() }
+
     val outputs = repo.outputs
     val hostname = settingsRepository.hostname
     val password = settingsRepository.password
@@ -29,6 +33,12 @@ class SettingsViewModel @Inject constructor(
 
     init {
         repo.loadOutputs()
+
+        viewModelScope.launch {
+            repo.connectedServer.collect {
+                repo.loadOutputs()
+            }
+        }
     }
 
     fun clearAlbumArtCache(onFinish: (() -> Unit)? = null) = viewModelScope.launch {

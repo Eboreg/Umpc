@@ -1,28 +1,25 @@
 package us.huseli.umpc.mpd.command
 
-import us.huseli.umpc.data.MPDError
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import us.huseli.umpc.data.toMPDError
 import us.huseli.umpc.formatMPDCommand
 import us.huseli.umpc.mpd.response.BaseMPDResponse
 import us.huseli.umpc.mpd.response.MPDBinaryResponse
+import java.io.InputStream
+import java.io.PrintWriter
 import java.net.Socket
 
 class MPDBinaryCommand(
-    val command: String,
+    command: String,
     val args: Collection<Any> = emptyList(),
     onFinish: ((MPDBinaryResponse) -> Unit)? = null,
-) : BaseMPDCommand<MPDBinaryResponse>(onFinish) {
-    override suspend fun getResponse(socket: Socket): MPDBinaryResponse {
-        return try {
-            withSocket(socket) { getBinaryResponse() }
-        } catch (e: Exception) {
-            MPDBinaryResponse().finish(
-                status = BaseMPDResponse.Status.ERROR_NET,
-                exception = e,
-            )
-        }
+) : BaseMPDCommand<MPDBinaryResponse>(command, onFinish) {
+    override suspend fun getResponse(socket: Socket): MPDBinaryResponse = withContext(Dispatchers.IO) {
+        getBinaryResponse(socket.getInputStream(), PrintWriter(socket.getOutputStream(), true))
     }
 
-    private suspend fun getBinaryResponse(): MPDBinaryResponse {
+    private suspend fun getBinaryResponse(inputStream: InputStream, writer: PrintWriter): MPDBinaryResponse {
         var length = 0
         var dataToRead = 0
         var firstRun = true
@@ -31,8 +28,8 @@ class MPDBinaryCommand(
 
         // Outer loop makes server requests until all chunks are fetched:
         while (dataToRead > 0 || firstRun) {
-            writeLine(formatMPDCommand(command, args.plus((length - dataToRead).toString())))
-            line = readLine()
+            writer.println(formatMPDCommand(command, args.plus((length - dataToRead).toString())))
+            line = readLine(inputStream)
 
             if (line != null) {
                 if (firstRun && line.startsWith("OK")) {
@@ -44,7 +41,7 @@ class MPDBinaryCommand(
                 if (line.startsWith("ACK ")) {
                     return response.finish(
                         status = BaseMPDResponse.Status.ERROR_MPD,
-                        mpdError = MPDError.fromString(line),
+                        mpdError = line.toMPDError(),
                     )
                 }
             } else return response.finish(status = BaseMPDResponse.Status.EMPTY_RESPONSE)
@@ -60,7 +57,7 @@ class MPDBinaryCommand(
                     }
                     if (key == "binary") {
                         val chunkSize = value.toInt()
-                        val chunk = readBinary(chunkSize)
+                        val chunk = readBinary(inputStream, chunkSize)
 
                         if (dataToRead - chunkSize < 0) {
                             return response.finish(
@@ -73,7 +70,7 @@ class MPDBinaryCommand(
                         }
                     }
                 }
-                line = readLine()
+                line = readLine(inputStream)
             }
         }
         return response.finish(status = BaseMPDResponse.Status.OK)

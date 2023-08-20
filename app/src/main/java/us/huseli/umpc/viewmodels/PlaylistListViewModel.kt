@@ -27,7 +27,7 @@ class PlaylistListViewModel @Inject constructor(
     messageRepo: MessageRepository,
     @ApplicationContext context: Context,
     private val dynamicPlaylistRepo: DynamicPlaylistRepository,
-) : BaseViewModel(repo, messageRepo, context), OnMPDChangeListener {
+) : BaseViewModel(repo, messageRepo), OnMPDChangeListener {
     private val preferences = PreferenceManager.getDefaultSharedPreferences(context)
     private val gson: Gson = GsonBuilder().registerTypeAdapter(Instant::class.java, InstantAdapter()).create()
     private val _displayType = MutableStateFlow(PlaylistType.STORED)
@@ -37,7 +37,7 @@ class PlaylistListViewModel @Inject constructor(
 
     init {
         dynamicPlaylistRepo.loadDynamicPlaylists()
-        repo.loadPlaylists(details = true)
+        repo.loadPlaylistsWithSongs()
         repo.registerOnMPDChangeListener(this)
     }
 
@@ -51,7 +51,7 @@ class PlaylistListViewModel @Inject constructor(
     }
 
     fun createDynamicPlaylist(filter: DynamicPlaylistFilter, shuffle: Boolean) {
-        dynamicPlaylistRepo.addDynamicPlaylist(DynamicPlaylist(filter, repo.server.value!!, shuffle))
+        dynamicPlaylistRepo.addDynamicPlaylist(filter, shuffle)
         dynamicPlaylistRepo.saveDynamicPlaylists()
     }
 
@@ -71,6 +71,8 @@ class PlaylistListViewModel @Inject constructor(
     ) = dynamicPlaylistRepo.updateDynamicPlaylist(playlist, filter, shuffle)
 
     override fun onMPDChanged(subsystems: List<String>) {
-        if (subsystems.contains("stored_playlist")) repo.loadPlaylists(details = true)
+        if (subsystems.contains("stored_playlist")) {
+            repo.loadPlaylistsWithSongs(forceReload = true)
+        }
     }
 }

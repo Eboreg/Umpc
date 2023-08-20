@@ -1,34 +1,41 @@
 package us.huseli.umpc.viewmodels.abstr
 
-import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.launch
 import us.huseli.umpc.data.MPDAlbum
+import us.huseli.umpc.data.MPDPlaylist
 import us.huseli.umpc.data.MPDSong
-import us.huseli.umpc.mpd.response.MPDTextResponse
+import us.huseli.umpc.mpd.response.MPDBatchTextResponse
 import us.huseli.umpc.repository.MPDRepository
 import us.huseli.umpc.repository.MessageRepository
 import us.huseli.umpc.repository.SnackbarMessage
-import java.io.File
 
 abstract class BaseViewModel(
     protected val repo: MPDRepository,
     protected val messageRepo: MessageRepository,
-    context: Context,
 ) : ViewModel() {
-    val albumArtDirectory = File(context.cacheDir, "albumArt").apply { mkdirs() }
-    val thumbnailDirectory = File(albumArtDirectory, "thumbnails").apply { mkdirs() }
+    private val _storedPlaylists = MutableStateFlow<List<MPDPlaylist>>(emptyList())
+
+    val connectedServer = repo.connectedServer
     val currentSong = repo.currentSong
-    val currentSongFilename = repo.currentSong.map { it?.filename }.distinctUntilChanged()
+    val isConnected = repo.isConnected
+    val isIOError = repo.isIOError
     val playerState = repo.playerState
-    val protocolVersion = repo.protocolVersion
-    val storedPlaylists = repo.playlists
+    val storedPlaylists = _storedPlaylists.asStateFlow()
     val volume = repo.volume
 
     init {
+        viewModelScope.launch {
+            repo.playlists.filterNotNull().distinctUntilChanged().collect {
+                _storedPlaylists.value = it
+            }
+        }
+
         viewModelScope.launch {
             repo.error.collect { error ->
                 if (error != null) messageRepo.addError(error)
@@ -44,10 +51,10 @@ abstract class BaseViewModel(
 
     fun addMessage(message: SnackbarMessage) = messageRepo.addMessage(message)
 
-    fun enqueueAlbumLast(album: MPDAlbum, onFinish: (MPDTextResponse) -> Unit) =
+    fun enqueueAlbumLast(album: MPDAlbum, onFinish: (MPDBatchTextResponse) -> Unit) =
         repo.enqueueAlbumLast(album, onFinish)
 
-    fun enqueueSongLast(song: MPDSong, onFinish: (MPDTextResponse) -> Unit) =
+    fun enqueueSongLast(song: MPDSong, onFinish: (MPDBatchTextResponse) -> Unit) =
         repo.enqueueSongLast(song, onFinish)
 
     fun playAlbum(album: MPDAlbum?) = album?.let { repo.enqueueAlbumNextAndPlay(album) }

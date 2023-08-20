@@ -15,6 +15,7 @@ import androidx.compose.material.icons.sharp.Pause
 import androidx.compose.material.icons.sharp.PlayArrow
 import androidx.compose.material.icons.sharp.PlaylistAdd
 import androidx.compose.material.icons.sharp.PlaylistPlay
+import androidx.compose.material.icons.sharp.PlaylistRemove
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalAbsoluteTonalElevation
@@ -33,8 +34,8 @@ import us.huseli.umpc.R
 import us.huseli.umpc.compose.utils.AutoScrollingTextLine
 import us.huseli.umpc.data.MPDSong
 import us.huseli.umpc.formatDuration
-import us.huseli.umpc.isInLandscapeMode
 import us.huseli.umpc.highlight
+import us.huseli.umpc.isInLandscapeMode
 
 @Composable
 fun ExpandedSongRow(
@@ -52,6 +53,7 @@ fun ExpandedSongRow(
     onAddToPlaylistClick: () -> Unit,
     onGotoAlbumClick: (() -> Unit)? = null,
     onGotoArtistClick: (() -> Unit)? = null,
+    onRemoveClick: (() -> Unit)? = null,
 ) {
     val tonalElevation = LocalAbsoluteTonalElevation.current + if (isCurrentSong) 5.dp else 0.dp
     val titleRow =
@@ -117,6 +119,11 @@ fun ExpandedSongRow(
                         onGotoAlbumClick?.let {
                             IconButton(onClick = it) {
                                 Icon(Icons.Sharp.Album, stringResource(R.string.go_to_album))
+                            }
+                        }
+                        onRemoveClick?.let {
+                            IconButton(onClick = it) {
+                                Icon(Icons.Sharp.PlaylistRemove, stringResource(R.string.remove))
                             }
                         }
                         IconButton(onClick = onEnqueueClick) {

@@ -7,7 +7,7 @@ import androidx.compose.ui.res.pluralStringResource
 import us.huseli.umpc.AddToPlaylistItemType
 import us.huseli.umpc.R
 import us.huseli.umpc.data.MPDPlaylist
-import us.huseli.umpc.mpd.response.MPDTextResponse
+import us.huseli.umpc.mpd.response.MPDBatchTextResponse
 import us.huseli.umpc.repository.SnackbarMessage
 
 @Composable
@@ -16,7 +16,7 @@ fun BatchAddToPlaylistDialog(
     itemType: AddToPlaylistItemType,
     itemCount: Int,
     playlists: List<MPDPlaylist>,
-    addFunction: (String, (MPDTextResponse) -> Unit) -> Unit,
+    addFunction: (String, (MPDBatchTextResponse) -> Unit) -> Unit,
     addMessage: (SnackbarMessage) -> Unit,
     addError: (SnackbarMessage) -> Unit,
     onGotoPlaylistClick: (String) -> Unit,

@@ -1,13 +1,11 @@
 package us.huseli.umpc.viewmodels
 
-import android.content.Context
 import dagger.hilt.android.lifecycle.HiltViewModel
-import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import us.huseli.umpc.data.MPDSong
 import us.huseli.umpc.mpd.MPDStreamPlayer
-import us.huseli.umpc.mpd.response.MPDTextResponse
+import us.huseli.umpc.mpd.response.MPDBatchTextResponse
 import us.huseli.umpc.repository.DynamicPlaylistRepository
 import us.huseli.umpc.repository.MPDRepository
 import us.huseli.umpc.repository.MessageRepository
@@ -22,8 +20,7 @@ class MPDViewModel @Inject constructor(
     messageRepo: MessageRepository,
     dynamicPlaylistRepo: DynamicPlaylistRepository,
     streamPlayer: MPDStreamPlayer,
-    @ApplicationContext context: Context,
-) : BaseViewModel(repo, messageRepo, context) {
+) : BaseViewModel(repo, messageRepo) {
     private val _showVolumeFlash = MutableStateFlow(false)
 
     val error = messageRepo.error
@@ -32,7 +29,7 @@ class MPDViewModel @Inject constructor(
     val message = messageRepo.message
     val showVolumeFlash = _showVolumeFlash.asStateFlow()
 
-    fun addSongToStoredPlaylist(song: MPDSong, playlistName: String, onFinish: (MPDTextResponse) -> Unit) =
+    fun addSongToStoredPlaylist(song: MPDSong, playlistName: String, onFinish: (MPDBatchTextResponse) -> Unit) =
         repo.addSongToPlaylist(song, playlistName, onFinish)
 
     fun clearError() {

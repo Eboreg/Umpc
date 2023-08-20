@@ -1,5 +1,6 @@
 package us.huseli.umpc.mpd.response
 
+import android.util.Log
 import us.huseli.umpc.LoggerInterface
 import us.huseli.umpc.data.MPDAlbum
 import us.huseli.umpc.data.MPDOutput
@@ -10,131 +11,73 @@ import us.huseli.umpc.data.toMPDAlbums
 import us.huseli.umpc.data.toMPDOutput
 import us.huseli.umpc.data.toMPDPlaylist
 import us.huseli.umpc.data.toMPDSong
-import us.huseli.umpc.data.toMPDSongs
 import us.huseli.umpc.data.toMPDStatus
 
 class MPDTextResponse : BaseMPDResponse(), LoggerInterface {
-    private val _responseLines = mutableListOf<String>()
+    fun extractAlbums(): List<MPDAlbum> = _responseLines.responseToMultimapList().flatMap { it.toMPDAlbums() }
 
-    val batchResponseMaps: List<Map<String, List<String>>>
-        get() = extractListMapList(_responseLines)
+    fun extractAlbums(artist: String): List<MPDAlbum> = _responseLines.responseToMultimap().toMPDAlbums(artist)
 
-    fun putLine(line: String) {
-        _responseLines.add(line)
-    }
+    fun extractOutputs(): List<MPDOutput> = _responseLines.responseToMapList().mapNotNull { it.toMPDOutput() }
 
-    fun extractAlbums(): List<MPDAlbum> = extractListMapList(_responseLines).flatMap { it.toMPDAlbums() }
+    fun extractPlaylists(): List<MPDPlaylist> = _responseLines.responseToMapList().mapNotNull { it.toMPDPlaylist() }
 
-    fun extractAlbums(artist: String): List<MPDAlbum> = extractListMap(_responseLines).toMPDAlbums(artist)
+    fun extractSong(): MPDSong? = _responseLines.responseToMap().toMPDSong()
 
-    fun extractMap(): Map<String, String> =
-        extractListMap(_responseLines).mapValues { it.value.first() }.also { log("extractMap: $it") }
-
-    fun extractOutputs(): List<MPDOutput> = extractMapList(_responseLines).mapNotNull { it.toMPDOutput() }
-
-    fun extractPlaylists(): List<MPDPlaylist> = extractMapList(_responseLines).mapNotNull { it.toMPDPlaylist() }
-
-    fun extractSong(): MPDSong? = extractMap().toMPDSong()
-
-    fun extractSongs(): List<MPDSong> = extractMapList(_responseLines).mapNotNull { it.toMPDSong() }
-
-    fun extractNestedSongs(): List<List<MPDSong>> = extractMapListList(_responseLines).map { it.toMPDSongs() }
-
-    fun extractPositionedNestedSongs(): List<List<MPDSong>> = extractMapListList(_responseLines).map { maps ->
-        maps.mapIndexedNotNull { index, map ->  map.toMPDSong(position = index) }
-    }
+    fun extractSongs(): List<MPDSong> = _responseLines.responseToMapList().mapNotNull { it.toMPDSong() }
 
     fun extractPositionedSongs(): List<MPDSong> =
-        extractMapList(_responseLines).mapIndexedNotNull { index, map ->
+        _responseLines.responseToMapList().mapIndexedNotNull { index, map ->
             map.toMPDSong(position = index)
         }
 
-    fun extractStatus(): MPDStatus? = extractMap().toMPDStatus()
+    fun extractStatus(): MPDStatus? = _responseLines.responseToMap().toMPDStatus()
 
-    fun extractValues(key: String) = _responseLines.mapNotNull { line ->
-        parseResponseLine(line)?.takeIf { it.first == key }?.second
-    }
+    fun extractValues(key: String): List<String> = extractValuesOrNull(key) ?: emptyList()
 
-    private fun extractListMap(lines: List<String>): Map<String, List<String>> {
-        val map = mutableMapOf<String, List<String>>()
+    fun extractValuesOrNull(key: String): List<String>? = _responseLines.responseToMultimap()[key]
 
-        lines.forEach { line ->
-            if (responseRegex.matches(line)) {
-                parseResponseLine(line)?.let { (key, value) ->
-                    map[key] = map[key]?.let { it + value } ?: listOf(value)
-                }
-            }
-        }
-        log("extractListMap: $map")
-        return map
-    }
+    fun extractMap(): Map<String, String> =
+        _responseLines.responseToMap().also { log("extractMap: $it", Log.DEBUG) }
 
-    private fun extractMapList(lines: List<String>): List<Map<String, String>> =
-        extractMapListList(lines).flatten().also { log("extractMapList: $it") }
-
-    private fun extractMapListList(lines: List<String>): List<List<Map<String, String>>> {
-        /** The outermost list separates the "list_OK" separated sections. */
-        var currentMap = mutableMapOf<String, String>()
-        var currentList = mutableListOf<Map<String, String>>()
-        val lists = mutableListOf<List<Map<String, String>>>()
-        var startKey: String? = null
-        var lastLine: String? = null
-        var lastKey: String? = null
-
-        lines.forEach { line ->
-            if (responseRegex.matches(line)) {
-                parseResponseLine(line)?.let { (key, value) ->
-                    if (startKey == null) startKey = key
-                    else if (key == startKey) {
-                        currentList.add(currentMap)
-                        currentMap = mutableMapOf()
-                    }
-                    currentMap[key] = value
-                    lastKey = key
-                }
-            } else if (line == "list_OK") {
-                currentList.add(currentMap)
-                lists.add(currentList)
-                currentList = mutableListOf()
-                currentMap = mutableMapOf()
-                startKey = null
-            }
-            lastLine = line
-        }
-        if (lastLine != "list_OK" && lastLine != null) {
-            if (lastKey != startKey) currentList.add(currentMap)
-            lists.add(currentList)
-        }
-        return lists
-    }
-
-    private fun extractListMapList(lines: List<String>): List<Map<String, List<String>>> {
-        var currentMap = mutableMapOf<String, List<String>>()
-        val maps = mutableListOf<Map<String, List<String>>>()
-        var lastLine: String? = null
-        var startKey: String? = null
-
-        lines.forEach { line ->
-            if (responseRegex.matches(line)) {
-                parseResponseLine(line)?.let { (key, value) ->
-                    if (startKey == null) startKey = key
-                    else if (key == startKey) {
-                        maps.add(currentMap)
-                        currentMap = mutableMapOf()
-                    }
-                    currentMap[key] = currentMap[key]?.let { it + value } ?: listOf(value)
-                }
-            } else if (line == "list_OK") {
-                maps.add(currentMap)
-                currentMap = mutableMapOf()
-                startKey = null
-            }
-            lastLine = line
-        }
-        if (lastLine != "list_OK" && lastLine != null) maps.add(currentMap)
-        log("extractBatchListMapList: $maps")
-        return maps
-    }
-
-    override fun toString() = "${javaClass.simpleName}[status=$status, error=$error, response=$_responseLines]"
+    override fun toString() =
+        "${javaClass.simpleName}[status=$status, error=$error, mpdError=$mpdError, response=$_responseLines]"
 }
+
+fun List<String>.responseToMultimapList(): List<Map<String, List<String>>> {
+    /** Split lines where keys start to repeat. */
+    var currentMap = mutableMapOf<String, List<String>>()
+    val maps = mutableListOf<Map<String, List<String>>>()
+    var startKey: String? = null
+
+    forEach { line ->
+        if (BaseMPDResponse.responseRegex.matches(line)) {
+            BaseMPDResponse.parseResponseLine(line)?.let { (key, value) ->
+                if (startKey == null) startKey = key.lowercase()
+                else if (key.lowercase() == startKey) {
+                    maps.add(currentMap)
+                    currentMap = mutableMapOf()
+                }
+                currentMap[key.lowercase()] = currentMap[key.lowercase()]?.let { it + value } ?: listOf(value)
+            }
+        }
+    }
+    maps.add(currentMap)
+    return maps
+}
+
+fun List<String>.responseToMapList(): List<Map<String, String>> =
+    responseToMultimapList().map { map -> map.mapValues { it.value.first() } }
+
+fun List<String>.responseToMultimap(): Map<String, List<String>> {
+    val map = mutableMapOf<String, List<String>>()
+
+    forEach { line ->
+        BaseMPDResponse.parseResponseLine(line)?.let { (key, value) ->
+            map[key.lowercase()] = map[key.lowercase()]?.let { it + value } ?: listOf(value)
+        }
+    }
+    return map
+}
+
+fun List<String>.responseToMap(): Map<String, String> = responseToMultimap().mapValues { it.value.first() }

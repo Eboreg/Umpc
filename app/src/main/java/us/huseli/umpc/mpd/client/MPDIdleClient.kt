@@ -14,27 +14,29 @@ import javax.inject.Singleton
 class MPDIdleClient @Inject constructor(
     ioScope: CoroutineScope,
     settingsRepository: SettingsRepository,
-) : MPDBaseClient(ioScope, settingsRepository) {
+) : BaseMPDClient(ioScope, settingsRepository) {
     private val onMPDChangeListeners = mutableListOf<OnMPDChangeListener>()
+    override val soTimeout = 0
 
     fun registerOnMPDChangeListener(listener: OnMPDChangeListener) {
         onMPDChangeListeners.add(listener)
     }
 
     override suspend fun start() {
-        val command = MPDCommand("idle")
         worker?.cancel()
 
         worker = workerScope.launch {
+            val command = MPDCommand("idle")
+
             while (isActive) {
-                when (state.value) {
-                    State.PREPARED -> connect(failSilently = true)
-                    State.READY -> {
-                        val response = command.execute(socket)
-                        if (!response.isSuccess) connect(failSilently = true)
-                        else {
-                            val subsystems = response.extractValues("changed")
-                            onMPDChangeListeners.forEach { it.onMPDChanged(subsystems) }
+                when (_state.value) {
+                    State.PREPARED -> connect()
+                    State.READY -> catchError(command) {
+                        command.execute(socket).also { response ->
+                            if (!response.isSuccess) connect()
+                            else response.extractValuesOrNull("changed")?.also { subsystems ->
+                                onMPDChangeListeners.forEach { it.onMPDChanged(subsystems) }
+                            }
                         }
                     }
                     else -> delay(1000)
