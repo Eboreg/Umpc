@@ -16,11 +16,11 @@ import androidx.compose.ui.unit.dp
 import us.huseli.umpc.isInLandscapeMode
 
 @Composable
-fun SubMenuScreen(
+inline fun SubMenuScreen(
     modifier: Modifier = Modifier,
     landscapeMenuPadding: PaddingValues = PaddingValues(10.dp),
     portraitMenuPadding: PaddingValues = PaddingValues(start = 10.dp, end = 10.dp, bottom = 10.dp),
-    menu: @Composable () -> Unit,
+    crossinline menu: @Composable () -> Unit,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     if (isInLandscapeMode()) {

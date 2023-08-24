@@ -2,8 +2,8 @@ package us.huseli.umpc.mpd.client
 
 import kotlinx.coroutines.CoroutineScope
 import us.huseli.umpc.formatMPDCommand
-import us.huseli.umpc.mpd.command.MPDBatchCommand
-import us.huseli.umpc.mpd.command.MPDCommand
+import us.huseli.umpc.mpd.request.MPDBatchRequest
+import us.huseli.umpc.mpd.request.MPDRequest
 import us.huseli.umpc.mpd.response.MPDBatchTextResponse
 import us.huseli.umpc.mpd.response.MPDTextResponse
 import us.huseli.umpc.repository.SettingsRepository
@@ -17,16 +17,16 @@ class MPDClient @Inject constructor(
 ) : BaseMPDClient(ioScope, settingsRepository) {
     fun enqueue(
         command: String,
-        args: Collection<*> = emptyList<Any>(),
+        args: Collection<Any> = emptyList(),
         onFinish: ((MPDTextResponse) -> Unit)? = null,
-    ) = MPDCommand(formatMPDCommand(command, args), onFinish).also { enqueue(it) }
+    ) = enqueue(MPDRequest(formatMPDCommand(command, args), onFinish))
 
     fun enqueue(command: String, onFinish: ((MPDTextResponse) -> Unit)? = null) =
-        enqueue(command, emptyList<Any>(), onFinish)
+        enqueue(command, emptyList(), onFinish = onFinish)
 
     fun enqueue(command: String, arg: Any, onFinish: ((MPDTextResponse) -> Unit)? = null) =
         enqueue(command, listOf(arg), onFinish)
 
-    fun enqueueBatch(commands: List<String>, onFinish: ((MPDBatchTextResponse) -> Unit)? = null) =
-        MPDBatchCommand(commands, onFinish).also { enqueue(it) }
+    inline fun enqueueBatch(commands: Iterable<String>, crossinline onFinish: (MPDBatchTextResponse) -> Unit) =
+        enqueue(MPDBatchRequest(commands) { onFinish(it) })
 }

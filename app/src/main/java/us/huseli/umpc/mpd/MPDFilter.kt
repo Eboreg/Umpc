@@ -1,97 +1,119 @@
 package us.huseli.umpc.mpd
 
-fun escape(string: String) = string
-    .replace("\"", "\\\"")
-    .replace("'", "\\'")
-    .replace("\\\\\"", "\\\\\\\"")
+import us.huseli.umpc.data.MPDServerCapability
+import us.huseli.umpc.data.MPDVersion
+import us.huseli.umpc.escapeQuotes
 
-abstract class BaseMPDFilterContext {
-    abstract fun contains(tag: String, value: String): BaseMPDFilter
-
-    abstract fun equals(tag: String, value: String): BaseMPDFilter
+@JvmInline
+value class EscapedValue(private val original: String) {
+    override fun toString() = original.escapeQuotes()
 }
 
-object MPDFilterContext : BaseMPDFilterContext() {
-    override fun contains(tag: String, value: String) = MPDFilter("($tag contains \"${escape(value)}\")")
+data class MPDFilterAtom(
+    private val key: String,
+    private val value: EscapedValue,
+    private val comparator: Comparator,
+    private var negative: Boolean = false,
+) {
+    enum class Comparator { EQUALS, NOT_EQUALS, CONTAINS, REGEX }
 
-    override fun equals(tag: String, value: String) = MPDFilter("($tag == \"${escape(value)}\")")
+    constructor(key: String, value: String, comparator: Comparator) : this(key, EscapedValue(value), comparator)
 
-    fun notEquals(tag: String, value: String) = MPDFilter("($tag != \"${escape(value)}\")")
-
-    fun regex(tag: String, value: String) = MPDFilter("($tag =~ \"${escape(value)}\")")
-}
-
-object MPDFilterContextPre021 : BaseMPDFilterContext() {
-    override fun contains(tag: String, value: String) = equals(tag, value)
-
-    override fun equals(tag: String, value: String) = MPDFilterPre021("$tag \"${escape(value)}\"")
-}
-
-abstract class BaseMPDFilter(protected val term: String) {
-    override fun toString() = term
-
-    abstract infix fun and(other: BaseMPDFilter): BaseMPDFilter
-
-    abstract fun find(): String
-
-    abstract fun search(): String
-
-    abstract fun findadd(): String
-
-    abstract fun list(type: String): String
-
-    abstract fun list(type: String, group: List<String>): String
-}
-
-class MPDFilter(term: String) : BaseMPDFilter(term) {
-    override fun toString() = term
-    override infix fun and(other: BaseMPDFilter) = MPDFilter("($this AND $other)")
-
-    fun not() = MPDFilter("(!$this)")
-
-    override fun find() = "find \"${escape(term)}\""
-
-    override fun search() = "search \"${escape(term)}\""
-
-    override fun findadd() = "findadd \"${escape(term)}\""
-
-    fun findadd(position: Int): String = "findadd \"${escape(term)}\" position $position"
-
-    fun findaddRelative(position: Int): String {
-        val pos = if (position >= 0) "+${position}" else position.toString()
-        return "findadd \"${escape(term)}\" position $pos"
+    fun invert() {
+        negative = !negative
     }
 
-    override fun list(type: String) = "list $type \"${escape(term)}\""
-
-    override fun list(type: String, group: List<String>) =
-        list(type) + " " + group.joinToString(" ") { "group $it" }
+    fun toString(protocolVersion: MPDVersion?): String {
+        return if (protocolVersion?.hasCapability(MPDServerCapability.NEW_FILTER_SYNTAX) != true) "$key \"$value\""
+        else {
+            val raw = when (comparator) {
+                Comparator.EQUALS -> "($key == \"$value\")"
+                Comparator.NOT_EQUALS -> "($key != \"$value\")"
+                Comparator.CONTAINS -> "($key contains \"$value\")"
+                Comparator.REGEX -> "($key =~ \"$value\")"
+            }
+            if (negative) "(!$raw)" else raw
+        }
+    }
 }
 
-class MPDFilterPre021(term: String) : BaseMPDFilter(term) {
-    override infix fun and(other: BaseMPDFilter) = MPDFilterPre021("$this $other")
+open class MPDFilter {
+    private var atoms = setOf<MPDFilterAtom>()
 
-    override fun find() = "find $term"
+    fun find(protocolVersion: MPDVersion?) = "find ${render(protocolVersion)}"
 
-    override fun search() = "search $term"
+    fun findadd(protocolVersion: MPDVersion?) = "findadd ${render(protocolVersion)}"
 
-    override fun findadd() = "findadd $term"
+    fun findadd(protocolVersion: MPDVersion?, position: Int): String {
+        return if (protocolVersion?.hasCapability(MPDServerCapability.SEARCHADD_POSITION) == true)
+            "findadd ${render(protocolVersion)} position $position"
+        else "findadd ${render(protocolVersion)}"
+    }
 
-    override fun list(type: String) = "list $type $term"
+    fun findaddRelative(protocolVersion: MPDVersion?, position: Int): String {
+        return if (protocolVersion?.hasCapability(MPDServerCapability.SEARCHADD_RELATIVE_POSITION) == true)
+            "findadd ${render(protocolVersion)} position ${if (position >= 0) "+$position" else position.toString()}"
+        else "findadd ${render(protocolVersion)}"
+    }
 
-    override fun list(type: String, group: List<String>) =
-        list(type) + " " + group.joinToString(" ") { "group $it" }
+    fun search(protocolVersion: MPDVersion?) = "search ${render(protocolVersion)}"
+
+    fun searchaddpl(protocolVersion: MPDVersion?, playlistName: String) =
+        "searchaddpl \"${playlistName.escapeQuotes()}\" ${render(protocolVersion)}"
+
+    infix fun and(other: MPDFilter): MPDFilter = apply { atoms += other.atoms }
+
+    infix fun String.eq(other: String): MPDFilter =
+        addAtom(this, other, MPDFilterAtom.Comparator.EQUALS)
+
+    infix fun String.ne(other: String): MPDFilter =
+        addAtom(this, other, MPDFilterAtom.Comparator.NOT_EQUALS)
+
+    infix fun String.contains(other: String): MPDFilter =
+        addAtom(this, other, MPDFilterAtom.Comparator.CONTAINS)
+
+    infix fun String.regex(other: String): MPDFilter =
+        addAtom(this, other, MPDFilterAtom.Comparator.REGEX)
+
+    operator fun not(): MPDFilter = apply {
+        // Local copy to avoid concurrent updates:
+        val localAtoms = atoms.toSet()
+        localAtoms.forEach { it.invert() }
+        atoms = localAtoms
+    }
+
+    private fun addAtom(key: String, value: String, comparator: MPDFilterAtom.Comparator): MPDFilter {
+        atoms += MPDFilterAtom(key, value, comparator)
+        return this
+    }
+
+    fun render(protocolVersion: MPDVersion?): String {
+        return if (!isNewSyntax(protocolVersion))
+            atoms.joinToString(" ") { it.toString(protocolVersion) }
+        else {
+            val raw =
+                if (atoms.size == 1) atoms.first().toString(protocolVersion)
+                else "(${atoms.joinToString(" AND ") { it.toString(protocolVersion) }})"
+            "\"${raw.escapeQuotes()}\""
+        }
+    }
+
+    fun isNewSyntax(protocolVersion: MPDVersion?) =
+        protocolVersion?.hasCapability(MPDServerCapability.NEW_FILTER_SYNTAX) == true
 }
 
-inline fun mpdFilter(block: MPDFilterContext.() -> MPDFilter) = with(MPDFilterContext) { block() }
+inline fun mpdFilter(block: MPDFilter.() -> MPDFilter): MPDFilter = with(MPDFilter()) { block() }
 
-inline fun mpdFilterPre021(block: MPDFilterContextPre021.() -> MPDFilterPre021) =
-    with(MPDFilterContextPre021) { block() }
+inline fun mpdFind(protocolVersion: MPDVersion?, sort: String? = null, filter: MPDFilter.() -> MPDFilter): String =
+    with(MPDFilter()) {
+        "find ${filter().render(protocolVersion)}" + if (sort != null && isNewSyntax(protocolVersion)) " sort $sort" else ""
+    }
 
-inline fun mpdFindAdd(position: Int? = null, block: MPDFilterContext.() -> MPDFilter) = with(MPDFilterContext) {
-    if (position != null) block().findadd(position)
-    else block().findadd()
+inline fun mpdList(
+    type: String,
+    protocolVersion: MPDVersion?,
+    group: String? = null,
+    filter: MPDFilter.() -> MPDFilter,
+): String = with(MPDFilter()) {
+    "list $type ${filter().render(protocolVersion)}" + if (group != null) " group $group" else ""
 }
-
-inline fun mpdFindAddRelative(position: Int, block: MPDFilterContext.() -> MPDFilter) =
-    with(MPDFilterContext) { block().findaddRelative(position) }

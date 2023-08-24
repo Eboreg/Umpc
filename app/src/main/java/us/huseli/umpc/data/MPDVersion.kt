@@ -13,6 +13,8 @@ data class MPDVersion(private val value: String = "0.0.0") : Comparable<MPDVersi
     @IgnoredOnParcel
     private val patch = value.split('.').getOrNull(2)?.toInt()
 
+    fun hasCapability(capability: MPDServerCapability) = this >= MPDVersion(capability.fromVersion)
+
     override fun compareTo(other: MPDVersion): Int =
         if (other.major != major) major - other.major
         else if (other.minor != minor) minor - other.minor

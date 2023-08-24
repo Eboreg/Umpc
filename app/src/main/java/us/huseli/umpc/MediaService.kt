@@ -132,7 +132,7 @@ class MediaService : MediaBrowserServiceCompat(), LoggerInterface {
         return builder
     }
 
-    private fun forEachAction(func: (NotificationCompat.Action) -> Unit) {
+    private inline fun forEachAction(func: (NotificationCompat.Action) -> Unit) {
         func(
             NotificationCompat.Action(
                 R.drawable.ic_previous,

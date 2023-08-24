@@ -10,12 +10,13 @@ import us.huseli.umpc.repository.MessageRepository
 abstract class AlbumArtViewModel(
     repo: MPDRepository,
     messageRepo: MessageRepository,
-    private val albumArtRepo: AlbumArtRepository,
+    val albumArtRepo: AlbumArtRepository,
 ) : BaseViewModel(repo, messageRepo) {
     val currentSongAlbumArt = albumArtRepo.currentSongAlbumArt
 
-    fun getAlbumArt(key: AlbumArtKey, onFinish: (MPDAlbumArt) -> Unit) = albumArtRepo.getAlbumArt(key, onFinish)
+    inline fun getAlbumArt(key: AlbumArtKey, crossinline onFinish: (MPDAlbumArt) -> Unit) =
+        albumArtRepo.getAlbumArt(key) { onFinish(it) }
 
-    fun getAlbumArt(album: MPDAlbumWithSongs, onFinish: (MPDAlbumArt) -> Unit) =
-        album.albumArtKey?.let { getAlbumArt(it, onFinish) }
+    inline fun getAlbumArt(album: MPDAlbumWithSongs, crossinline onFinish: (MPDAlbumArt) -> Unit) =
+        album.albumArtKey?.let { key -> getAlbumArt(key, onFinish) }
 }

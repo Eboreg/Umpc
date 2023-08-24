@@ -38,8 +38,8 @@ android {
         applicationId = "us.huseli.umpc"
         minSdk = 26
         targetSdk = 34
-        versionCode = 7
-        versionName = "1.0.0-beta.7"
+        versionCode = 8
+        versionName = "1.0.0-beta.8"
         // multiDexEnabled = true
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -116,7 +116,7 @@ dependencies {
     implementation("androidx.compose.ui:ui:1.5.0")
     implementation("androidx.compose.ui:ui-graphics:1.5.0")
     implementation("androidx.activity:activity-compose:1.7.2")
-    implementation("androidx.navigation:navigation-compose:2.7.0")
+    implementation("androidx.navigation:navigation-compose:2.7.1")
     // implementation("androidx.compose.foundation:foundation-layout-android:1.6.0-alpha01")
 
     // Material:
@@ -135,7 +135,7 @@ dependencies {
     kapt("com.google.dagger:hilt-compiler:2.47")
 
     // Exoplayer:
-    implementation("androidx.media3:media3-exoplayer:1.1.0")
+    implementation("androidx.media3:media3-exoplayer:1.1.1")
 
     // Reorder:
     implementation("org.burnoutcrew.composereorderable:reorderable:0.9.6")

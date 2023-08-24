@@ -1,6 +1,7 @@
 package us.huseli.umpc.compose.utils
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
@@ -17,7 +18,7 @@ class AlternatingTableRowScope(val rowScope: RowScope, val cellWeights: List<Flo
     var currentIndex = 0
 
     @Composable
-    inline fun Cell(crossinline content: @Composable () -> Unit) {
+    inline fun Cell(crossinline content: @Composable BoxScope.() -> Unit) {
         val weight = cellWeights.getOrNull(currentIndex)
 
         val modifier = with(rowScope) {
@@ -57,7 +58,7 @@ class AlternatingTableScope(
 }
 
 @Composable
-fun AlternatingTable(
+inline fun AlternatingTable(
     modifier: Modifier = Modifier,
     rowModifier: Modifier = Modifier.padding(10.dp),
     cellWeights: List<Float> = emptyList(),

@@ -14,7 +14,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
-import us.huseli.umpc.mpd.escape
 import java.io.File
 import java.time.Instant
 import java.time.ZoneId
@@ -43,8 +42,7 @@ fun Double.roundUp() = toInt() + (if (this % 1 > 0) 1 else 0)
 
 fun Int.roundUpSqrt() = sqrt().roundUp()
 
-fun IntRange.toYearRangeString() =
-    if (first == last) first.toString() else "${first}-${last}"
+fun IntRange.toYearRangeString() = if (first == last) first.toString() else "${first}-${last}"
 
 fun Instant.formatDateTime(): String = atZone(ZoneId.systemDefault()).format(SENSIBLE_DATE_TIME)
 
@@ -74,7 +72,7 @@ fun <T : Any> Collection<T>.prune(maxLength: Int) =
     if (maxLength < size / 2) includeEveryX((size.toFloat() / maxLength).roundToInt())
     else skipEveryX((size.toFloat() / (size - maxLength)).roundToInt())
 
-fun <T : Any> Flow<List<T>>.leadingChars(transform: (T) -> String) = map { items ->
+inline fun <T : Any> Flow<List<T>>.leadingChars(crossinline transform: (T) -> String) = map { items ->
     items.mapNotNull {
         transform(it)
             .replace(Regex("[^\\w&&[^0-9]]"), "#")
@@ -108,15 +106,16 @@ fun String.highlight(term: String?): AnnotatedString {
  * becomes the string:
  * list artist "album" "the duck who said \"quack\""
  */
-fun formatMPDCommand(command: String, vararg args: Any): String {
-    if (args.isEmpty()) return command
-    return "$command " + args.joinToString(" ") { "\"${escape(it.toString())}\"" }
-}
+fun formatMPDCommand(command: String, vararg args: Any): String =
+    if (args.isEmpty()) command
+    else "$command " + args.joinToString(" ") { "\"${it.toString().escapeQuotes()}\"" }
 
-fun formatMPDCommand(command: String, args: Collection<*> = emptyList<Any>()): String {
-    if (args.isEmpty()) return command
-    return "$command " + args.joinToString(" ") { "\"${escape(it.toString())}\"" }
-}
+fun formatMPDCommand(command: String, args: Collection<Any> = emptyList()): String =
+    if (args.isEmpty()) command else formatMPDCommand(command, *args.toTypedArray())
 
-fun <T : Any> Collection<T>.containsAny(vararg elements: T): Boolean =
-    elements.map { this.contains(it) }.contains(true)
+fun <T : Any> Collection<T>.containsAny(vararg elements: T): Boolean = elements.any { contains(it) }
+
+fun String.escapeQuotes() =
+    replace("\"", "\\\"")
+        .replace("'", "\\'")
+        .replace("\\\\\"", "\\\\\\\"")

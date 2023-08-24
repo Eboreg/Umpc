@@ -14,7 +14,7 @@ import androidx.compose.ui.unit.dp
 import us.huseli.umpc.isInLandscapeMode
 
 @Composable
-fun SimpleResponsiveBlock(
+inline fun SimpleResponsiveBlock(
     modifier: Modifier = Modifier,
     verticalDistance: Dp = 0.dp,
     horizontalDistance: Dp = 0.dp,

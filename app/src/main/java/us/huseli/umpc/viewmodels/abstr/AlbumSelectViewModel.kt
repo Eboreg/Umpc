@@ -16,15 +16,15 @@ abstract class AlbumSelectViewModel(
     private val _selectedAlbums = MutableStateFlow<List<MPDAlbum>>(emptyList())
     val selectedAlbums = _selectedAlbums.asStateFlow()
 
-    fun addSelectedAlbumsToPlaylist(playlistName: String, onFinish: (MPDBatchTextResponse) -> Unit) =
-        repo.addAlbumsToPlaylist(_selectedAlbums.value, playlistName, onFinish)
+    inline fun addSelectedAlbumsToPlaylist(playlistName: String, crossinline onFinish: (MPDBatchTextResponse) -> Unit) =
+        repo.addAlbumsToPlaylist(selectedAlbums.value, playlistName, onFinish)
 
     fun deselectAllAlbums() {
         _selectedAlbums.value = emptyList()
     }
 
-    fun enqueueSelectedAlbums(onFinish: (MPDBatchTextResponse) -> Unit) =
-        repo.enqueueAlbumsLast(_selectedAlbums.value, onFinish)
+    inline fun enqueueSelectedAlbums(crossinline onFinish: (MPDBatchTextResponse) -> Unit) =
+        repo.enqueueAlbumsLast(selectedAlbums.value, onFinish)
 
     fun playSelectedAlbums() = repo.enqueueAlbumsNextAndPlay(_selectedAlbums.value)
 

@@ -44,10 +44,11 @@ class AlbumViewModel @Inject constructor(
         }
     }
 
-    fun addToPlaylist(playlistName: String, onFinish: (MPDBatchTextResponse) -> Unit) =
-        repo.addAlbumToPlaylist(album, playlistName, onFinish)
+    inline fun addToPlaylist(playlistName: String, crossinline onFinish: (MPDBatchTextResponse) -> Unit) =
+        repo.addAlbumToPlaylist(album, playlistName) { onFinish(it) }
 
-    fun enqueueLast(onFinish: (MPDBatchTextResponse) -> Unit) = enqueueAlbumLast(album, onFinish)
+    inline fun enqueueLast(crossinline onFinish: (MPDBatchTextResponse) -> Unit) =
+        enqueueAlbumLast(album, onFinish)
 
     fun play() = playAlbum(album)
 }

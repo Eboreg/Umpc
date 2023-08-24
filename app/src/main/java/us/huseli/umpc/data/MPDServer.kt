@@ -37,7 +37,7 @@ enum class MPDServerCapability(val fromVersion: String) {
 @Parcelize
 open class MPDServer(val hostname: String, val port: Int, val protocolVersion: MPDVersion? = null) : Parcelable {
     fun hasCapability(capability: MPDServerCapability) =
-        protocolVersion?.let { it >= MPDVersion(capability.fromVersion) } ?: false
+        protocolVersion?.hasCapability(capability) ?: false
 
     override fun toString() = "$hostname:$port"
     override fun equals(other: Any?) = other is MPDServer && other.hostname == hostname && other.port == port
@@ -49,9 +49,18 @@ open class MPDServer(val hostname: String, val port: Int, val protocolVersion: M
 }
 
 
-class MPDServerCredentials(hostname: String, port: Int, val password: String? = null) : MPDServer(hostname, port) {
+class MPDServerCredentials(
+    hostname: String,
+    port: Int,
+    val streamingUrl: String? = null,
+    val password: String? = null,
+) : MPDServer(hostname, port) {
     override fun equals(other: Any?) =
-        other is MPDServerCredentials && super.equals(other) && other.password == password
+        other is MPDServerCredentials &&
+        super.equals(other) &&
+        other.password == password &&
+        other.streamingUrl == streamingUrl
 
-    override fun hashCode(): Int = 31 * super.hashCode() + (password?.hashCode() ?: 0)
+    override fun hashCode(): Int =
+        31 * (31 * super.hashCode() + (streamingUrl?.hashCode() ?: 0)) + (password?.hashCode() ?: 0)
 }

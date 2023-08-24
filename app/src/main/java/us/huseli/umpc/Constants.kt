@@ -12,11 +12,9 @@ object Constants {
     const val NOTIFICATION_ID_NOW_PLAYING = 1
     const val PREF_ACTIVE_DYNAMIC_PLAYLIST = "activeDynamicPlaylist"
     const val PREF_DYNAMIC_PLAYLISTS = "dynamicPlaylists"
-    const val PREF_HOSTNAME = "hostname"
     const val PREF_OUTPUTS_ENABLED = "outputsEnabled"
-    const val PREF_PASSWORD = "password"
-    const val PREF_PORT = "port"
-    const val PREF_STREAMING_URL = "streamingUrl"
+    const val PREF_SERVER_IDX = "serverIdx"
+    const val PREF_SERVERS = "servers"
     const val READ_BUFFER_SIZE = 8192
     const val THUMBNAIL_SIZE = 300
 }

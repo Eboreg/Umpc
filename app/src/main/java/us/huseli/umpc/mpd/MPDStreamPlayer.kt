@@ -1,29 +1,33 @@
 package us.huseli.umpc.mpd
 
 import android.content.Context
-import android.content.SharedPreferences
 import androidx.media3.common.MediaItem
 import androidx.media3.exoplayer.ExoPlayer
-import androidx.preference.PreferenceManager
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import us.huseli.umpc.Constants.PREF_STREAMING_URL
+import kotlinx.coroutines.launch
+import us.huseli.umpc.repository.SettingsRepository
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class MPDStreamPlayer @Inject constructor(@ApplicationContext private val context: Context) :
-    SharedPreferences.OnSharedPreferenceChangeListener {
-    private val preferences = PreferenceManager.getDefaultSharedPreferences(context)
-    private var exoPlayer: ExoPlayer? = null
+class MPDStreamPlayer @Inject constructor(
+    private val settingsRepo: SettingsRepository,
+    ioScope: CoroutineScope,
+    @ApplicationContext private val context: Context,
+) {
     private val _isStreaming = MutableStateFlow(false)
-    private var url = preferences.getString(PREF_STREAMING_URL, "")
+    private var exoPlayer: ExoPlayer? = null
+    private var url: String? = null
 
     val isStreaming = _isStreaming.asStateFlow()
 
     init {
-        preferences.registerOnSharedPreferenceChangeListener(this)
+        ioScope.launch {
+            settingsRepo.streamingUrl.collect { url = it }
+        }
     }
 
     suspend fun toggle(): Boolean {
@@ -58,11 +62,5 @@ class MPDStreamPlayer @Inject constructor(@ApplicationContext private val contex
         }
         _isStreaming.value = false
         exoPlayer = null
-    }
-
-    override fun onSharedPreferenceChanged(sharedPreferences: SharedPreferences?, key: String?) {
-        if (key == PREF_STREAMING_URL) {
-            url = preferences.getString(key, "")
-        }
     }
 }

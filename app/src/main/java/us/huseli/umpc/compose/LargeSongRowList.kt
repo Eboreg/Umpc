@@ -2,6 +2,7 @@ package us.huseli.umpc.compose
 
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
@@ -59,8 +60,8 @@ fun LargeSongRowList(
     onMoveSong: ((Int, Int) -> Unit)? = null,
     onRemoveSong: ((MPDSong) -> Unit)? = null,
     onRemoveSelectedSongs: (() -> Unit)? = null,
-    emptyListText: (@Composable () -> Unit)? = null,
-    subMenu: (@Composable () -> Unit)? = null,
+    emptyListText: (@Composable ColumnScope.() -> Unit)? = null,
+    subMenu: (@Composable ColumnScope.() -> Unit)? = null,
 ) {
     val context = LocalContext.current
     val selectedSongs by viewModel.selectedSongs.collectAsStateWithLifecycle()
@@ -101,7 +102,7 @@ fun LargeSongRowList(
     }
 
     Column(modifier = modifier) {
-        subMenu?.invoke()
+        subMenu?.invoke(this)
 
         if (selectedSongs.isNotEmpty()) {
             SelectedItemsSubMenu(
@@ -134,7 +135,7 @@ fun LargeSongRowList(
         }
 
         if (songs.isEmpty()) {
-            emptyListText?.invoke()
+            emptyListText?.invoke(this)
         } else {
             ListWithNumericBar(
                 modifier = modifier.fillMaxWidth(),
@@ -200,7 +201,7 @@ fun LargeSongRowList(
                                 onGotoAlbumClick = { onGotoAlbumClick(song.album) },
                                 onGotoArtistClick = { onGotoArtistClick(song.artist) },
                                 onAddToPlaylistClick = { onAddSongToPlaylistClick(song) },
-                                onRemove = { onRemoveSong?.invoke(song) },
+                                onRemove = onRemoveSong?.let { { it(song) } },
                             )
                         }
 

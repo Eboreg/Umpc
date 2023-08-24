@@ -26,9 +26,9 @@ class StoredPlaylistViewModel @Inject constructor(
     albumArtRepo: AlbumArtRepository,
     savedStateHandle: SavedStateHandle,
 ) : SongSelectViewModel(repo, messageRepo, albumArtRepo), OnMPDChangeListener {
-    private val playlistName: String = savedStateHandle.get<String>(NAV_ARG_PLAYLIST)!!
     private val _removedSongs = mutableListOf<MPDSong>()
 
+    val playlistName: String = savedStateHandle.get<String>(NAV_ARG_PLAYLIST)!!
     val listState = LazyListState()
     val playlist = repo.playlists.filterNotNull().distinctUntilChanged().map { playlists ->
         playlists.find { it.name == playlistName }?.also { if (it.songs == null) repo.loadPlaylistSongs(it) }
@@ -38,13 +38,15 @@ class StoredPlaylistViewModel @Inject constructor(
         repo.registerOnMPDChangeListener(this)
     }
 
-    fun delete(onFinish: (MPDTextResponse) -> Unit) = repo.deletePlaylist(playlistName, onFinish)
+    inline fun delete(crossinline onFinish: (MPDTextResponse) -> Unit) =
+        repo.deletePlaylist(playlistName) { onFinish(it) }
 
-    fun enqueue(onFinish: (MPDTextResponse) -> Unit) = repo.enqueuePlaylistLast(playlistName, onFinish)
+    inline fun enqueue(crossinline onFinish: (MPDTextResponse) -> Unit) =
+        repo.enqueuePlaylistLast(playlistName) { onFinish(it) }
 
     fun moveSong(fromIdx: Int, toIdx: Int) = repo.moveSongInPlaylist(playlistName, fromIdx, toIdx)
 
-    fun rename(newName: String, onFinish: (Boolean) -> Unit) =
+    inline fun rename(newName: String, crossinline onFinish: (Boolean) -> Unit) =
         repo.renamePlaylist(playlistName, newName) { onFinish(it.isSuccess) }
 
     fun play() = repo.enqueuePlaylistNextAndPlay(playlistName)

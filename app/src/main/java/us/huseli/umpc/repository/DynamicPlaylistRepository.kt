@@ -17,7 +17,7 @@ import us.huseli.umpc.DynamicPlaylistState
 import us.huseli.umpc.InstantAdapter
 import us.huseli.umpc.data.DynamicPlaylist
 import us.huseli.umpc.data.DynamicPlaylistFilter
-import us.huseli.umpc.mpd.BaseMPDFilter
+import us.huseli.umpc.mpd.MPDFilter
 import us.huseli.umpc.mpd.OnMPDChangeListener
 import us.huseli.umpc.mpd.response.MPDBatchTextResponse
 import us.huseli.umpc.mpd.response.MPDTextResponse
@@ -28,7 +28,7 @@ import javax.inject.Singleton
 @Singleton
 class DynamicPlaylistRepository @Inject constructor(
     private val ioScope: CoroutineScope,
-    private val mpdRepo: MPDRepository,
+    val mpdRepo: MPDRepository,
     @ApplicationContext private val context: Context,
 ) : SharedPreferences.OnSharedPreferenceChangeListener {
     private val _activeDynamicPlaylist = MutableStateFlow<DynamicPlaylist?>(null)
@@ -44,9 +44,19 @@ class DynamicPlaylistRepository @Inject constructor(
     val currentSongPosition = mpdRepo.currentSongPosition
     val dynamicPlaylists = _dynamicPlaylists.asStateFlow()
     val loadingDynamicPlaylist = _loadingDynamicPlaylist.asStateFlow()
+    val queue = mpdRepo.queue
 
     init {
         preferences.registerOnSharedPreferenceChangeListener(this)
+    }
+
+    fun activateDynamicPlaylist(playlist: DynamicPlaylist) {
+        val json = gson.toJson(playlist)
+
+        preferences
+            .edit()
+            .putString(PREF_ACTIVE_DYNAMIC_PLAYLIST, json)
+            .apply()
     }
 
     fun addDynamicPlaylist(filter: DynamicPlaylistFilter, shuffle: Boolean = false, songCount: Int? = null) {
@@ -55,7 +65,7 @@ class DynamicPlaylistRepository @Inject constructor(
         }
     }
 
-    fun clearQueue(onFinish: ((MPDTextResponse) -> Unit)? = null) = mpdRepo.clearQueue(onFinish)
+    fun clearQueue() = mpdRepo.clearQueue()
 
     fun deactivateDynamicPlaylist() {
         preferences
@@ -68,7 +78,7 @@ class DynamicPlaylistRepository @Inject constructor(
         _dynamicPlaylists.value -= playlist
     }
 
-    fun enqueueSongsLast(filenames: Collection<String>, onFinish: ((MPDBatchTextResponse) -> Unit)? = null) =
+    inline fun enqueueSongsLast(filenames: Collection<String>, crossinline onFinish: (MPDBatchTextResponse) -> Unit) =
         mpdRepo.enqueueSongsLast(filenames, onFinish)
 
     fun loadActiveDynamicPlaylist(playOnLoad: Boolean, replaceCurrentQueue: Boolean) {
@@ -77,8 +87,9 @@ class DynamicPlaylistRepository @Inject constructor(
             dynamicPlaylistType
         )
 
-        mpdRepo.connectedServer.value?.let { server ->
-            if (playlist?.server == server) {
+        if (playlist == null) _activeDynamicPlaylist.value = null
+        else mpdRepo.connectedServer.value?.let { server ->
+            if (playlist.server == server) {
                 _activeDynamicPlaylist.value = playlist
                 ioScope.launch {
                     dynamicPlaylistState?.close()
@@ -107,8 +118,7 @@ class DynamicPlaylistRepository @Inject constructor(
         }
     }
 
-    fun playSongByPosition(pos: Int, onFinish: ((MPDTextResponse) -> Unit)? = null) =
-        mpdRepo.playSongByPosition(pos, onFinish)
+    fun playSongByPosition(pos: Int) = mpdRepo.playSongByPosition(pos)
 
     fun registerOnMPDChangeListener(listener: OnMPDChangeListener) = mpdRepo.registerOnMPDChangeListener(listener)
 
@@ -121,8 +131,7 @@ class DynamicPlaylistRepository @Inject constructor(
             .apply()
     }
 
-    fun search(filter: BaseMPDFilter, onFinish: ((MPDTextResponse) -> Unit)? = null) =
-        mpdRepo.search(filter, onFinish)
+    fun search(filter: MPDFilter, onFinish: (MPDTextResponse) -> Unit) = mpdRepo.search(filter, onFinish)
 
     fun updateDynamicPlaylist(
         playlist: DynamicPlaylist,

@@ -49,7 +49,7 @@ fun BottomBar(
     val isStreaming by viewModel.isStreaming.collectAsStateWithLifecycle()
     val currentSongDuration by viewModel.currentSongDuration.collectAsStateWithLifecycle()
     val currentSongElapsed by viewModel.currentSongElapsed.collectAsStateWithLifecycle()
-    val streamingUrl by viewModel.streamingUrl.collectAsStateWithLifecycle()
+    val streamingUrl by viewModel.streamingUrl.collectAsStateWithLifecycle(null)
     val height = if (isInLandscapeMode()) 68.dp else 74.dp
 
     val iconToggleButtonColors = IconButtonDefaults.iconToggleButtonColors(

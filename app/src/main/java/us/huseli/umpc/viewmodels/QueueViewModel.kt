@@ -1,13 +1,6 @@
 package us.huseli.umpc.viewmodels
 
-import android.content.Context
-import androidx.compose.foundation.lazy.LazyListState
-import androidx.lifecycle.viewModelScope
-import androidx.preference.PreferenceManager
 import dagger.hilt.android.lifecycle.HiltViewModel
-import dagger.hilt.android.qualifiers.ApplicationContext
-import kotlinx.coroutines.launch
-import us.huseli.umpc.Constants
 import us.huseli.umpc.data.MPDSong
 import us.huseli.umpc.mpd.OnMPDChangeListener
 import us.huseli.umpc.mpd.response.MPDTextResponse
@@ -23,43 +16,25 @@ class QueueViewModel @Inject constructor(
     repo: MPDRepository,
     messageRepo: MessageRepository,
     albumArtRepo: AlbumArtRepository,
-    dynamicPlaylistRepo: DynamicPlaylistRepository,
-    @ApplicationContext context: Context,
+    private val dynamicPlaylistRepo: DynamicPlaylistRepository,
 ) : SongSelectViewModel(repo, messageRepo, albumArtRepo), OnMPDChangeListener {
-    private val preferences = PreferenceManager.getDefaultSharedPreferences(context)
     private val removedSongs = mutableListOf<MPDSong>()
 
     val activeDynamicPlaylist = dynamicPlaylistRepo.activeDynamicPlaylist
     val currentSongPosition = repo.currentSongPosition
-    var listState = LazyListState()
-        private set
     val queue = repo.queue
 
     init {
         dynamicPlaylistRepo.loadActiveDynamicPlaylist(playOnLoad = false, replaceCurrentQueue = false)
         repo.registerOnMPDChangeListener(this)
-
-        viewModelScope.launch {
-            repo.connectedServer.collect {
-                if (it != null) listState = LazyListState()
-            }
-        }
     }
 
-    fun addQueueToPlaylist(playlistName: String, onFinish: (MPDTextResponse) -> Unit) =
-        repo.addQueueToPlaylist(playlistName, onFinish)
+    inline fun addQueueToPlaylist(playlistName: String, crossinline onFinish: (MPDTextResponse) -> Unit) =
+        repo.addQueueToPlaylist(playlistName) { onFinish(it) }
 
-    fun clearQueue(onFinish: (MPDTextResponse) -> Unit) = repo.clearQueue { response ->
-        viewModelScope.launch { listState.scrollToItem(0) }
-        onFinish(response)
-    }
+    inline fun clearQueue(crossinline onFinish: (MPDTextResponse) -> Unit) = repo.clearQueue { onFinish(it) }
 
-    fun deactivateDynamicPlaylist() {
-        preferences
-            .edit()
-            .remove(Constants.PREF_ACTIVE_DYNAMIC_PLAYLIST)
-            .apply()
-    }
+    fun deactivateDynamicPlaylist() = dynamicPlaylistRepo.deactivateDynamicPlaylist()
 
     fun moveSong(fromIdx: Int, toIdx: Int) = repo.moveSongInQueue(fromIdx, toIdx)
 

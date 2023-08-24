@@ -20,7 +20,7 @@ class MessageRepository @Inject constructor() {
     val message = _message.asStateFlow()
 
     fun addError(message: String?) {
-        if (message != null) _error.value = SnackbarMessage(message)
+        if (message != null) addError(SnackbarMessage(message))
         else _error.value = null
     }
 
@@ -28,9 +28,7 @@ class MessageRepository @Inject constructor() {
         _error.value = message
     }
 
-    fun addMessage(message: String) {
-        _message.value = SnackbarMessage(message)
-    }
+    fun addMessage(message: String) = addMessage(SnackbarMessage(message))
 
     fun addMessage(message: SnackbarMessage) {
         _message.value = message

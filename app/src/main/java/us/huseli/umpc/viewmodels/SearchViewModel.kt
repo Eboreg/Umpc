@@ -1,6 +1,5 @@
 package us.huseli.umpc.viewmodels
 
-import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.ui.text.input.TextFieldValue
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -26,17 +25,16 @@ class SearchViewModel @Inject constructor(
     val songSearchResults = _songSearchResults.asStateFlow()
     val songSearchTerm = _songSearchTerm.asStateFlow()
     val isSearching = _isSearching.asStateFlow()
-    val listState = LazyListState()
 
-    fun addAllToPlaylist(playlistName: String, onFinish: (MPDBatchTextResponse) -> Unit) =
-        repo.addSongsToPlaylist(_songSearchResults.value, playlistName, onFinish)
+    inline fun addAllToPlaylist(playlistName: String, crossinline onFinish: (MPDBatchTextResponse) -> Unit) =
+        repo.addSongsToPlaylist(songSearchResults.value, playlistName, onFinish)
 
     fun clearSearchTerm() {
         _songSearchTerm.value = _songSearchTerm.value.copy(text = "")
     }
 
-    fun enqueueAll(onFinish: (MPDBatchTextResponse) -> Unit) =
-        repo.enqueueSongsLast(_songSearchResults.value.map { it.filename }, onFinish)
+    inline fun enqueueAll(crossinline onFinish: (MPDBatchTextResponse) -> Unit) =
+        repo.enqueueSongsLast(songSearchResults.value.map { it.filename }, onFinish)
 
     fun setSongSearchTerm(value: TextFieldValue) {
         _songSearchTerm.value = value
@@ -49,7 +47,7 @@ class SearchViewModel @Inject constructor(
         }
     }
 
-    private fun search(term: String, onFinish: (List<MPDSong>) -> Unit) {
+    private inline fun search(term: String, crossinline onFinish: (List<MPDSong>) -> Unit) {
         if (term.isNotEmpty()) {
             repo.search(term) { response ->
                 onFinish(

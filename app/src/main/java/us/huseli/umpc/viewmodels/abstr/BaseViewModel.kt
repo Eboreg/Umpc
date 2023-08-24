@@ -16,7 +16,7 @@ import us.huseli.umpc.repository.MessageRepository
 import us.huseli.umpc.repository.SnackbarMessage
 
 abstract class BaseViewModel(
-    protected val repo: MPDRepository,
+    val repo: MPDRepository,
     protected val messageRepo: MessageRepository,
 ) : ViewModel() {
     private val _storedPlaylists = MutableStateFlow<List<MPDPlaylist>>(emptyList())
@@ -51,10 +51,10 @@ abstract class BaseViewModel(
 
     fun addMessage(message: SnackbarMessage) = messageRepo.addMessage(message)
 
-    fun enqueueAlbumLast(album: MPDAlbum, onFinish: (MPDBatchTextResponse) -> Unit) =
+    inline fun enqueueAlbumLast(album: MPDAlbum, crossinline onFinish: (MPDBatchTextResponse) -> Unit) =
         repo.enqueueAlbumLast(album, onFinish)
 
-    fun enqueueSongLast(song: MPDSong, onFinish: (MPDBatchTextResponse) -> Unit) =
+    inline fun enqueueSongLast(song: MPDSong, crossinline onFinish: (MPDBatchTextResponse) -> Unit) =
         repo.enqueueSongLast(song, onFinish)
 
     fun playAlbum(album: MPDAlbum?) = album?.let { repo.enqueueAlbumNextAndPlay(album) }

@@ -10,13 +10,12 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Snackbar
-import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -40,9 +39,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import us.huseli.umpc.AlbumDestination
 import us.huseli.umpc.ArtistDestination
-import us.huseli.umpc.BuildConfig
 import us.huseli.umpc.ContentScreen
-import us.huseli.umpc.DebugDestination
 import us.huseli.umpc.InfoDestination
 import us.huseli.umpc.LibraryDestination
 import us.huseli.umpc.MediaService
@@ -55,7 +52,6 @@ import us.huseli.umpc.SettingsDestination
 import us.huseli.umpc.compose.screens.AlbumScreen
 import us.huseli.umpc.compose.screens.ArtistScreen
 import us.huseli.umpc.compose.screens.CoverScreen
-import us.huseli.umpc.compose.screens.DebugScreen
 import us.huseli.umpc.compose.screens.InfoScreen
 import us.huseli.umpc.compose.screens.LibraryScreen
 import us.huseli.umpc.compose.screens.PlaylistListScreen
@@ -70,32 +66,17 @@ import us.huseli.umpc.data.MPDPlaylist
 import us.huseli.umpc.data.MPDSong
 import us.huseli.umpc.getActivity
 import us.huseli.umpc.repository.SnackbarMessage
-import us.huseli.umpc.viewmodels.LibraryViewModel
 import us.huseli.umpc.viewmodels.MPDViewModel
-import us.huseli.umpc.viewmodels.QueueViewModel
-import us.huseli.umpc.viewmodels.SearchViewModel
-
-suspend fun showSnackbarMessage(message: SnackbarMessage, hostState: SnackbarHostState, onFinish: () -> Unit) {
-    val result = hostState.showSnackbar(
-        message = message.message,
-        actionLabel = message.actionLabel,
-        withDismissAction = true,
-        duration = if (message.actionLabel != null) SnackbarDuration.Long else SnackbarDuration.Short,
-    )
-    if (result == SnackbarResult.ActionPerformed) message.onActionPerformed?.invoke()
-    onFinish()
-}
 
 @Composable
 fun App(
     modifier: Modifier = Modifier,
-    snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
-    errorSnackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
     navController: NavHostController = rememberNavController(),
     viewModel: MPDViewModel = hiltViewModel(),
-    searchViewModel: SearchViewModel = hiltViewModel(),
-    libraryViewModel: LibraryViewModel = hiltViewModel(),
-    queueViewModel: QueueViewModel = hiltViewModel(),
+    searchListState: LazyListState = rememberLazyListState(),
+    libraryAlbumListState: LazyListState = rememberLazyListState(),
+    libraryArtistListState: LazyListState = rememberLazyListState(),
+    queueListState: LazyListState = rememberLazyListState(),
 ) {
     val onBackPressedDispatcher = LocalOnBackPressedDispatcherOwner.current?.onBackPressedDispatcher
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -107,11 +88,10 @@ fun App(
     )
 
     val connectedServer by viewModel.connectedServer.collectAsStateWithLifecycle()
-    val error by viewModel.error.collectAsStateWithLifecycle()
     val isIOError by viewModel.isIOError.collectAsStateWithLifecycle()
     val loadingDynamicPlaylist by viewModel.loadingDynamicPlaylist.collectAsStateWithLifecycle()
-    val message by viewModel.message.collectAsStateWithLifecycle()
     val playlists by viewModel.storedPlaylists.collectAsStateWithLifecycle()
+    val servers by viewModel.servers.collectAsStateWithLifecycle()
     val showVolumeFlash by viewModel.showVolumeFlash.collectAsStateWithLifecycle()
     val volume by viewModel.volume.collectAsStateWithLifecycle()
 
@@ -177,12 +157,6 @@ fun App(
     }
     /** End of weird onBackPressedCallback stuff */
 
-    LaunchedEffect(error, message) {
-        /** Show snackbar messages when available */
-        error?.let { showSnackbarMessage(it, errorSnackbarHostState) { viewModel.clearError() } }
-        message?.let { showSnackbarMessage(it, snackbarHostState) { viewModel.clearMessage() } }
-    }
-
     LaunchedEffect(Unit) {
         /** Start media service */
         context.startService(Intent(context, MediaService::class.java))
@@ -220,7 +194,14 @@ fun App(
                     it.protocolVersion,
                 )
             )
+            libraryAlbumListState.scrollToItem(0)
+            libraryArtistListState.scrollToItem(0)
+            queueListState.scrollToItem(0)
         }
+    }
+
+    LaunchedEffect(servers) {
+        if (servers.isEmpty()) viewModel.addMessage(context.getString(R.string.no_mpd_servers_configured))
     }
 
     songToAddToPlaylist?.let { song ->
@@ -230,10 +211,10 @@ fun App(
             onConfirm = { playlistName ->
                 viewModel.addSongToStoredPlaylist(song, playlistName) { response ->
                     if (response.isSuccess) viewModel.addMessage(
-                        context.resources.getQuantityString(
-                            R.plurals.add_songs_playlist_success,
-                            1,
-                            1
+                        SnackbarMessage(
+                            message = context.resources.getQuantityString(R.plurals.add_songs_playlist_success, 1, 1),
+                            actionLabel = context.getString(R.string.go_to_playlist),
+                            onActionPerformed = { onGotoPlaylistClick(playlistName) },
                         )
                     )
                     else response.error?.let { viewModel.addError(it) }
@@ -248,8 +229,6 @@ fun App(
         activeScreen = activeScreen,
         onMenuItemClick = {
             when (it) {
-                ContentScreen.DEBUG ->
-                    navController.navigate(if (BuildConfig.DEBUG) DebugDestination.route else QueueDestination.route)
                 ContentScreen.QUEUE -> navController.navigate(QueueDestination.route)
                 ContentScreen.LIBRARY -> navController.navigate(LibraryDestination.route)
                 ContentScreen.SETTINGS -> navController.navigate(SettingsDestination.route)
@@ -261,8 +240,8 @@ fun App(
             isCoverShown = false
         },
         snackbarHost = {
-            SnackbarHost(snackbarHostState)
-            SnackbarHost(errorSnackbarHostState) { data ->
+            SnackbarHost(viewModel.messageSnackbarHostState)
+            SnackbarHost(viewModel.errorSnackbarHostState) { data ->
                 Snackbar(
                     snackbarData = data,
                     containerColor = MaterialTheme.colorScheme.errorContainer,
@@ -281,12 +260,12 @@ fun App(
         NavHost(
             modifier = modifier.padding(innerPadding),
             navController = navController,
-            startDestination = QueueDestination.route,
+            startDestination = if (servers.isEmpty()) SettingsDestination.route else QueueDestination.route,
         ) {
             composable(route = QueueDestination.route) {
                 activeScreen = ContentScreen.QUEUE
                 QueueScreen(
-                    viewModel = queueViewModel,
+                    listState = queueListState,
                     onGotoAlbumClick = onGotoAlbumClick,
                     onGotoArtistClick = onGotoArtistClick,
                     onAddSongToPlaylistClick = onAddSongToPlaylistClick,
@@ -298,17 +277,13 @@ fun App(
             composable(route = LibraryDestination.route) {
                 activeScreen = ContentScreen.LIBRARY
                 LibraryScreen(
-                    viewModel = libraryViewModel,
+                    albumListState = libraryAlbumListState,
+                    artistListState = libraryArtistListState,
                     onGotoAlbumClick = onGotoAlbumClick,
                     onGotoArtistClick = onGotoArtistClick,
                     onGotoPlaylistClick = onGotoPlaylistClick,
                     onGotoQueueClick = onGotoQueueClick,
                 )
-            }
-
-            composable(route = DebugDestination.route) {
-                activeScreen = ContentScreen.DEBUG
-                DebugScreen()
             }
 
             composable(route = SettingsDestination.route) {
@@ -319,7 +294,7 @@ fun App(
             composable(route = SearchDestination.route) {
                 activeScreen = ContentScreen.SEARCH
                 SearchScreen(
-                    viewModel = searchViewModel,
+                    listState = searchListState,
                     onGotoAlbumClick = onGotoAlbumClick,
                     onGotoArtistClick = onGotoArtistClick,
                     onAddSongToPlaylistClick = onAddSongToPlaylistClick,

@@ -8,6 +8,8 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Cancel
@@ -25,6 +27,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
@@ -41,6 +44,7 @@ import us.huseli.umpc.AddToPlaylistItemType
 import us.huseli.umpc.R
 import us.huseli.umpc.compose.BatchAddToPlaylistDialog
 import us.huseli.umpc.compose.LargeSongRowList
+import us.huseli.umpc.compose.NotConnectedToMPD
 import us.huseli.umpc.compose.utils.SmallOutlinedButton
 import us.huseli.umpc.data.MPDAlbum
 import us.huseli.umpc.data.MPDSong
@@ -52,6 +56,7 @@ import us.huseli.umpc.viewmodels.SearchViewModel
 fun SearchScreen(
     modifier: Modifier = Modifier,
     viewModel: SearchViewModel = hiltViewModel(),
+    listState: LazyListState = rememberLazyListState(),
     onGotoAlbumClick: (MPDAlbum) -> Unit,
     onGotoArtistClick: (String) -> Unit,
     onAddSongToPlaylistClick: (MPDSong) -> Unit,
@@ -88,7 +93,7 @@ fun SearchScreen(
         modifier = modifier,
         viewModel = viewModel,
         songs = if (searchTerm.text.length < 3) emptyList() else searchResults,
-        listState = viewModel.listState,
+        listState = listState,
         currentSong = currentSong,
         playerState = playerState,
         highlight = searchTerm.text,
@@ -98,7 +103,8 @@ fun SearchScreen(
         onGotoPlaylistClick = onGotoPlaylistClick,
         onGotoQueueClick = onGotoQueueClick,
         emptyListText = {
-            if (searchTerm.text.length < 3) {
+            if (!isConnected) NotConnectedToMPD()
+            else if (searchTerm.text.length < 3) {
                 Text(
                     text = stringResource(R.string.enter_at_least_3_characters),
                     modifier = Modifier.padding(10.dp)
@@ -140,15 +146,18 @@ fun SearchScreen(
                     FlowRow(
                         modifier = Modifier.padding(10.dp),
                         verticalArrangement = Arrangement.Center,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
                     ) {
                         val resultCount =
                             if (searchTerm.text.length < 3) 0
                             else searchResults.size
-                        Text(
-                            text = pluralStringResource(R.plurals.x_songs_found, resultCount, resultCount),
-                            style = MaterialTheme.typography.bodySmall,
-                        )
+                        if (searchTerm.text.length >= 3) {
+                            Text(
+                                text = pluralStringResource(R.plurals.x_songs_found, resultCount, resultCount),
+                                style = MaterialTheme.typography.bodySmall,
+                                modifier = Modifier.align(Alignment.CenterVertically),
+                            )
+                        }
                         if (resultCount > 0) {
                             SmallOutlinedButton(
                                 onClick = {

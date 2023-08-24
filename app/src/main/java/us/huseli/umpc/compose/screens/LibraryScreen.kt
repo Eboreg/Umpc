@@ -2,8 +2,11 @@ package us.huseli.umpc.compose.screens
 
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -46,6 +49,7 @@ import us.huseli.umpc.R
 import us.huseli.umpc.compose.AlbumRow
 import us.huseli.umpc.compose.ArtistRow
 import us.huseli.umpc.compose.BatchAddToPlaylistDialog
+import us.huseli.umpc.compose.NotConnectedToMPD
 import us.huseli.umpc.compose.SelectedItemsSubMenu
 import us.huseli.umpc.compose.utils.ListWithAlphabetBar
 import us.huseli.umpc.compose.utils.SubMenuScreen
@@ -60,6 +64,8 @@ import kotlin.math.roundToInt
 fun LibraryScreen(
     modifier: Modifier = Modifier,
     viewModel: LibraryViewModel = hiltViewModel(),
+    albumListState: LazyListState = rememberLazyListState(),
+    artistListState: LazyListState = rememberLazyListState(),
     onGotoAlbumClick: (MPDAlbum) -> Unit,
     onGotoArtistClick: (String) -> Unit,
     onGotoPlaylistClick: (String) -> Unit,
@@ -99,9 +105,12 @@ fun LibraryScreen(
                 setGrouping = { viewModel.setGrouping(it) },
                 activateLibrarySearch = { viewModel.activateLibrarySearch(it) },
                 deactivateLibrarySearch = { viewModel.deactivateLibrarySearch() },
+                isConnected = isConnected,
             )
         }
     ) {
+        if (!isConnected) NotConnectedToMPD()
+
         if (selectedAlbums.isNotEmpty()) {
             SelectedItemsSubMenu(
                 selectedItemCount = selectedAlbums.size,
@@ -164,15 +173,22 @@ fun LibraryScreen(
                 val artists by viewModel.artists.collectAsStateWithLifecycle()
                 val artistLeadingChars by viewModel.artistLeadingChars.collectAsStateWithLifecycle(emptyList())
 
+                if (artists.isEmpty()) {
+                    Text(
+                        text = stringResource(R.string.no_artists_found_you_may_want_to_add),
+                        modifier = Modifier.padding(10.dp),
+                    )
+                }
+
                 ListWithAlphabetBar(
                     modifier = Modifier.fillMaxWidth(),
                     characters = artistLeadingChars,
-                    listState = viewModel.artistListState,
+                    listState = artistListState,
                     items = artists,
                     selector = { it.name.replaceLeadingJunk() },
                     minItems = (LocalConfiguration.current.screenHeightDp * 0.042).roundToInt(),
                 ) {
-                    LazyColumn(state = viewModel.artistListState, modifier = Modifier.fillMaxWidth()) {
+                    LazyColumn(state = artistListState, modifier = Modifier.fillMaxWidth()) {
                         items(artists, key = { it.name }) { artist ->
                             ArtistRow(
                                 artist = artist,
@@ -188,8 +204,8 @@ fun LibraryScreen(
                 val albums by viewModel.albums.collectAsStateWithLifecycle()
                 val albumLeadingChars by viewModel.albumLeadingChars.collectAsStateWithLifecycle(emptyList())
 
-                LaunchedEffect(viewModel.albumListState) {
-                    snapshotFlow { viewModel.albumListState.layoutInfo.visibleItemsInfo }
+                LaunchedEffect(albumListState) {
+                    snapshotFlow { albumListState.layoutInfo.visibleItemsInfo }
                         .distinctUntilChanged()
                         .collect { visibleItems ->
                             @Suppress("UNCHECKED_CAST")
@@ -197,15 +213,22 @@ fun LibraryScreen(
                         }
                 }
 
+                if (albums.isEmpty()) {
+                    Text(
+                        text = stringResource(R.string.no_albums_found_you_may_want_to_add),
+                        modifier = Modifier.padding(10.dp),
+                    )
+                }
+
                 ListWithAlphabetBar(
                     modifier = Modifier.fillMaxWidth(),
                     characters = albumLeadingChars,
-                    listState = viewModel.albumListState,
+                    listState = albumListState,
                     items = albums,
                     selector = { it.name.replaceLeadingJunk() },
                     minItems = (LocalConfiguration.current.screenHeightDp * 0.042).roundToInt(),
                 ) {
-                    LazyColumn(state = viewModel.albumListState) {
+                    LazyColumn(state = albumListState) {
                         items(albums, key = { it }) { album ->
                             LibraryScreenAlbumRow(
                                 viewModel = viewModel,
@@ -231,6 +254,7 @@ fun LibraryScreen(
 fun LibraryScreenSubMenu(
     grouping: LibraryGrouping,
     isSearchActive: Boolean,
+    isConnected: Boolean,
     setGrouping: (LibraryGrouping) -> Unit,
     activateLibrarySearch: (LibraryGrouping) -> Unit,
     deactivateLibrarySearch: () -> Unit,
@@ -255,6 +279,7 @@ fun LibraryScreenSubMenu(
     )
     IconToggleButton(
         checked = isSearchActive,
+        enabled = isConnected,
         onCheckedChange = {
             if (it) activateLibrarySearch(grouping)
             else deactivateLibrarySearch()

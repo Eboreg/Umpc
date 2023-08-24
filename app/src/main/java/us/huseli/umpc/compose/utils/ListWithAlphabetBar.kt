@@ -29,7 +29,7 @@ import kotlinx.coroutines.launch
 import us.huseli.umpc.prune
 
 @Composable
-fun <T> ListWithAlphabetBar(
+inline fun <T> ListWithAlphabetBar(
     modifier: Modifier = Modifier,
     scope: CoroutineScope = rememberCoroutineScope(),
     characters: Collection<Char>,
@@ -37,8 +37,8 @@ fun <T> ListWithAlphabetBar(
     minItems: Int = 30,
     barWidth: Dp = 30.dp,
     items: List<T>,
-    selector: (T) -> String,
-    content: @Composable ColumnScope.() -> Unit,
+    crossinline selector: (T) -> String,
+    crossinline content: @Composable ColumnScope.() -> Unit,
 ) {
     var maxHeightDp by remember { mutableStateOf(0.dp) }
 

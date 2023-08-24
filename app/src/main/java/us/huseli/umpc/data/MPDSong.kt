@@ -6,7 +6,6 @@ import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
 import us.huseli.umpc.Logger
 import us.huseli.umpc.parseYear
-import us.huseli.umpc.proto.MPDSongProto
 import java.nio.file.Paths
 import kotlin.io.path.nameWithoutExtension
 
@@ -42,21 +41,6 @@ data class MPDSong(
     }
 
     override fun hashCode() = filename.hashCode()
-
-    fun toProto(): MPDSongProto? {
-        val builder = MPDSongProto.newBuilder()
-            .setFilename(filename)
-            .setArtist(artist)
-            .setTitle(title)
-            .setAlbum(album.toProto())
-        if (id != null) builder.id = id
-        if (trackNumber != null) builder.trackNumber = trackNumber
-        if (discNumber != null) builder.discNumber = discNumber
-        if (duration != null) builder.duration = duration
-        if (year != null) builder.year = year
-        if (position != null) builder.position = position
-        return builder.build()
-    }
 }
 
 fun Map<String, String>.toMPDSong(position: Int? = null) = try {
@@ -85,4 +69,3 @@ fun Iterable<MPDSong>.sorted(): List<MPDSong> = sortedWith(compareBy({ it.discNu
 fun Iterable<MPDSong>.groupByAlbum(): List<MPDAlbumWithSongs> =
     groupBy { it.album }.map { MPDAlbumWithSongs(it.key, it.value.sorted()) }
 
-fun Iterable<MPDSong>.toProto(): List<MPDSongProto> = mapNotNull { it.toProto() }

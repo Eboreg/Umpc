@@ -30,14 +30,14 @@ import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
 @Composable
-fun ListWithNumericBar(
+inline fun ListWithNumericBar(
     modifier: Modifier = Modifier,
     scope: CoroutineScope = rememberCoroutineScope(),
     listState: LazyListState,
     minItems: Int = 30,
     barWidth: Dp = 30.dp,
     listSize: Int,
-    content: @Composable ColumnScope.() -> Unit,
+    crossinline content: @Composable ColumnScope.() -> Unit,
 ) {
     var maxHeightDp by remember { mutableStateOf(0.dp) }
     var itemIndices by remember { mutableStateOf<List<Int>>(emptyList()) }

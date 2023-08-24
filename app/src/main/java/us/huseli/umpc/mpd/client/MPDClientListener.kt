@@ -1,7 +1,7 @@
 package us.huseli.umpc.mpd.client
 
-import us.huseli.umpc.mpd.command.BaseMPDCommand
+import us.huseli.umpc.mpd.request.BaseMPDRequest
 
 interface MPDClientListener {
-    fun onMPDClientError(client: BaseMPDClient, exception: Throwable, command: BaseMPDCommand<*>? = null)
+    fun onMPDClientError(client: BaseMPDClient, exception: Throwable, request: BaseMPDRequest<*>? = null)
 }

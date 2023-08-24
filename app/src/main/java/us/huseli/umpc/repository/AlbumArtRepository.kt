@@ -13,7 +13,8 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
-import us.huseli.umpc.Constants
+import us.huseli.umpc.Constants.ALBUM_ART_MAXSIZE
+import us.huseli.umpc.Constants.THUMBNAIL_SIZE
 import us.huseli.umpc.LoggerInterface
 import us.huseli.umpc.data.AlbumArtKey
 import us.huseli.umpc.data.MPDAlbumArt
@@ -90,7 +91,7 @@ class AlbumArtRepository @Inject constructor(
     }
 
     private fun createThumbnail(fullImage: Bitmap, imageFilename: String): Bitmap {
-        val factor = Constants.THUMBNAIL_SIZE.toFloat() / max(fullImage.width, fullImage.height)
+        val factor = THUMBNAIL_SIZE.toFloat() / max(fullImage.width, fullImage.height)
         val width = (fullImage.width * factor).roundToInt()
         val height = (fullImage.height * factor).roundToInt()
         val file = File(thumbnailDirectory, imageFilename)
@@ -102,14 +103,14 @@ class AlbumArtRepository @Inject constructor(
         return thumbnail
     }
 
-    private fun saveAlbumArt(
+    private inline fun saveAlbumArt(
         key: AlbumArtKey,
         stream: ByteArrayInputStream,
         onFinish: (MPDAlbumArt) -> Unit,
     ) {
         BitmapFactory.decodeStream(stream)?.also { fullImage ->
             val fullImageFile = File(albumArtDirectory, key.imageFilename)
-            val factor = Constants.ALBUM_ART_MAXSIZE.toFloat() / max(fullImage.width, fullImage.height)
+            val factor = ALBUM_ART_MAXSIZE.toFloat() / max(fullImage.width, fullImage.height)
             val thumbnail = createThumbnail(fullImage, key.imageFilename)
 
             // Scale down full image if it happens to be very large:

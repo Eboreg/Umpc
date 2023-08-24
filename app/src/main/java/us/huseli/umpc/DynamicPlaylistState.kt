@@ -14,7 +14,6 @@ import us.huseli.umpc.Constants.DYNAMIC_PLAYLIST_CHUNK_SIZE
 import us.huseli.umpc.data.DynamicPlaylist
 import us.huseli.umpc.data.MPDSong
 import us.huseli.umpc.data.dynamicPlaylistDataStore
-import us.huseli.umpc.data.queueDataStore
 import us.huseli.umpc.data.toNative
 import us.huseli.umpc.mpd.OnMPDChangeListener
 import us.huseli.umpc.repository.DynamicPlaylistRepository
@@ -61,13 +60,13 @@ class DynamicPlaylistState(
                         else min(loadCurrentOffsetFromDisk(), loadFilenamesCountFromDisk())
                     val length =
                         if (replaceCurrentQueue) DYNAMIC_PLAYLIST_CHUNK_SIZE
-                        else max(DYNAMIC_PLAYLIST_CHUNK_SIZE - getQueue().songsCount, 0)
+                        else max(DYNAMIC_PLAYLIST_CHUNK_SIZE - repo.queue.value.size, 0)
 
                     log("DYNAMICPLAYLISTSTATE: should load filenames from disk. length=$length, currentOffset=$currentOffset, replaceCurrentQueue=$replaceCurrentQueue, playOnLoad=$playOnLoad")
 
                     loadFilenamesFromDisk(currentOffset, length).also { filenames ->
                         val queueFilenames =
-                            if (!replaceCurrentQueue) getQueue().songsList.map { it.filename }
+                            if (!replaceCurrentQueue) repo.queue.value.map { it.filename }
                             else emptyList()
                         val filteredFilenames = filenames - queueFilenames.toSet()
 
@@ -87,8 +86,8 @@ class DynamicPlaylistState(
         songPositionListener = ioScope.launch {
             repo.currentSongPosition.filterNotNull().distinctUntilChanged().collect { position ->
                 mutex.withLock {
-                    val filesToAdd = (DYNAMIC_PLAYLIST_CHUNK_SIZE / 2) - getQueue().songsCount + position + 1
-                    log("DYNAMICPLAYLISTSTATE: current song position changed. position=$position, queue size=${getQueue().songsCount}, filesToAdd=$filesToAdd, currentOffset=$currentOffset, replaceCurrentQueue=$replaceCurrentQueue, playOnLoad=$playOnLoad")
+                    val filesToAdd = (DYNAMIC_PLAYLIST_CHUNK_SIZE / 2) - repo.queue.value.size + position + 1
+                    log("DYNAMICPLAYLISTSTATE: current song position changed. position=$position, queue size=${repo.queue.value.size}, filesToAdd=$filesToAdd, currentOffset=$currentOffset, replaceCurrentQueue=$replaceCurrentQueue, playOnLoad=$playOnLoad")
                     if (filesToAdd > 0) {
                         loadFilenamesFromDisk(currentOffset, filesToAdd).also { filenames ->
                             fillMPDQueue(filenames = filenames)
@@ -100,13 +99,13 @@ class DynamicPlaylistState(
         }
     }
 
-    private suspend fun fillMPDQueue(
+    private fun fillMPDQueue(
         filenames: List<String>,
         replaceCurrentQueue: Boolean = false,
         playOnLoad: Boolean = false,
         onFinish: (() -> Unit)? = null,
     ) {
-        val firstPosition = if (replaceCurrentQueue) 0 else getQueue().songsCount + 1
+        val firstPosition = if (replaceCurrentQueue) 0 else repo.queue.value.size + 1
 
         log("DYNAMICPLAYLISTSTATE: fill MPD queue. filenames.size=${filenames.size}, firstPosition=$firstPosition, currentOffset=$currentOffset, replaceCurrentQueue=$replaceCurrentQueue, playOnLoad=$playOnLoad")
         if (replaceCurrentQueue) repo.clearQueue()
@@ -115,8 +114,6 @@ class DynamicPlaylistState(
             onFinish?.invoke()
         }
     }
-
-    private suspend fun getQueue() = context.queueDataStore.data.first()
 
     private suspend fun loadCurrentOffsetFromDisk(): Int = context.dynamicPlaylistDataStore.data.first().currentOffset
 
@@ -135,7 +132,7 @@ class DynamicPlaylistState(
             )
         }
 
-    private fun loadSongsFromMPD(onFinish: (List<MPDSong>) -> Unit) =
+    private inline fun loadSongsFromMPD(crossinline onFinish: (List<MPDSong>) -> Unit) =
         repo.search(playlist.filter.mpdFilter) { response ->
             if (response.isSuccess) {
                 val songs = response.extractSongs()
@@ -178,7 +175,7 @@ class DynamicPlaylistState(
                     saveSongsToDisk(songs)
                     val songsToAdd =
                         (DYNAMIC_PLAYLIST_CHUNK_SIZE / 2) -
-                        getQueue().songsCount +
+                        repo.queue.value.size +
                         (repo.currentSongPosition.value ?: 0) + 1
 
                     if (songsToAdd > 0) {

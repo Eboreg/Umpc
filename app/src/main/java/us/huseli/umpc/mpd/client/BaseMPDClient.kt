@@ -8,6 +8,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
@@ -15,10 +16,11 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import us.huseli.umpc.LoggerInterface
 import us.huseli.umpc.data.MPDServer
+import us.huseli.umpc.data.MPDServerCredentials
 import us.huseli.umpc.data.MPDVersion
 import us.huseli.umpc.formatMPDCommand
-import us.huseli.umpc.mpd.command.BaseMPDCommand
-import us.huseli.umpc.mpd.command.MPDCommand
+import us.huseli.umpc.mpd.request.BaseMPDRequest
+import us.huseli.umpc.mpd.request.MPDRequest
 import us.huseli.umpc.mpd.response.BaseMPDResponse
 import us.huseli.umpc.repository.SettingsRepository
 import java.io.IOException
@@ -30,13 +32,14 @@ abstract class BaseMPDClient(
 ) : LoggerInterface {
     enum class State { STARTED, PREPARED, READY, RUNNING, IO_ERROR, AUTH_ERROR }
 
-    private val commandMutex = Mutex()
-    private val commandQueue = MutableStateFlow<List<BaseMPDCommand<*>>>(emptyList())
-    private val commandQueueMutex = Mutex()
-    private val credentials = settingsRepository.credentials
+    private val requestMutex = Mutex()
+    private val requestQueue = MutableStateFlow<List<BaseMPDRequest<*>>>(emptyList())
+    private val requestQueueMutex = Mutex()
+    private lateinit var credentials: MPDServerCredentials
     private var retryJob: Job? = null
 
     protected val _connectedServer = MutableStateFlow<MPDServer?>(null)
+    protected val _protocolVersion = MutableStateFlow<MPDVersion?>(null)
     protected val _state = MutableStateFlow(State.STARTED)
     protected val listeners = mutableListOf<MPDClientListener>()
     protected val workerScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -47,23 +50,29 @@ abstract class BaseMPDClient(
     open val soTimeout = 5000
 
     val connectedServer = _connectedServer.asStateFlow()
+    val protocolVersion = _protocolVersion.asStateFlow()
     val state = _state.asStateFlow()
 
     init {
         ioScope.launch {
-            credentials.collect {
+            settingsRepository.currentServer.distinctUntilChanged().collect { server ->
                 release()
                 _state.value = State.PREPARED
-                start()
+                if (server != null) {
+                    credentials = server
+                    start()
+                } else {
+                    _connectedServer.value = null
+                    _protocolVersion.value = null
+                }
             }
         }
     }
 
-    private suspend fun release() = withContext(Dispatchers.IO) {
-        // worker?.cancelAndJoin()
+    private suspend inline fun release() = withContext(Dispatchers.IO) {
         worker?.cancel()
         socket.close()
-        commandQueueMutex.withLock { commandQueue.value = emptyList() }
+        requestQueueMutex.withLock { requestQueue.value = emptyList() }
         _state.value = State.STARTED
     }
 
@@ -71,20 +80,21 @@ abstract class BaseMPDClient(
         listeners.add(listener)
     }
 
-    protected fun <RT : BaseMPDResponse> enqueue(command: BaseMPDCommand<RT>, force: Boolean = false) {
+    fun <T : BaseMPDRequest<RT>, RT : BaseMPDResponse> enqueue(request: T, force: Boolean = false): T {
         ioScope.launch {
-            commandQueueMutex.withLock {
-                if (force || !commandQueue.value.contains(command)) {
-                    log("ENQUEUE $command, commandQueue=${commandQueue.value}")
-                    commandQueue.value += command
+            requestQueueMutex.withLock {
+                if (force || !requestQueue.value.contains(request)) {
+                    log("ENQUEUE $request, requestQueue=${requestQueue.value}")
+                    requestQueue.value += request
                 } else {
-                    commandQueue.value
-                        .filterIsInstance(command.javaClass)
-                        .find { it == command }
-                        ?.addCallbacks(command.onFinishCallbacks)
+                    requestQueue.value
+                        .filterIsInstance(request.javaClass)
+                        .find { it == request }
+                        ?.addCallbacks(request.onFinishCallbacks)
                 }
             }
         }
+        return request
     }
 
     protected open suspend fun start() {
@@ -95,10 +105,10 @@ abstract class BaseMPDClient(
                     when (_state.value) {
                         State.PREPARED -> connect()
                         State.READY -> {
-                            val command = commandQueueMutex.withLock {
-                                commandQueue.value.firstOrNull()?.also { commandQueue.value -= it }
+                            val request = requestQueueMutex.withLock {
+                                requestQueue.value.firstOrNull()?.also { requestQueue.value -= it }
                             }
-                            if (command != null) runCommand(command)
+                            if (request != null) runRequest(request)
                         }
                         else -> {}
                     }
@@ -112,7 +122,7 @@ abstract class BaseMPDClient(
         withContext(Dispatchers.IO) {
             catchError {
                 socket.close()
-                socket = Socket(credentials.value.hostname, credentials.value.port)
+                socket = Socket(credentials.hostname, credentials.port)
 
                 val reader = socket.getInputStream().bufferedReader()
                 val responseLine = reader.readLine()
@@ -121,20 +131,21 @@ abstract class BaseMPDClient(
                     throw MPDClientException("Expected OK MPD response, got: $responseLine")
 
                 MPDVersion(responseLine.substringAfter("OK MPD ")).also {
-                    _connectedServer.value = MPDServer(credentials.value.hostname, credentials.value.port, it)
+                    _connectedServer.value = MPDServer(credentials.hostname, credentials.port, it)
+                    _protocolVersion.value = it
                 }
 
-                credentials.value.password?.also { password ->
-                    val response = MPDCommand(formatMPDCommand("password", password)).execute(socket)
-                    if (!response.isSuccess) throw MPDAuthException("Error on password command: ${response.error}")
+                credentials.password?.also { password ->
+                    val response = MPDRequest(formatMPDCommand("password", password)).execute(socket)
+                    if (!response.isSuccess) throw MPDAuthException("Error on password request: ${response.error}")
                 }
 
-                MPDCommand("tagtypes").execute(socket).extractValues("tagtype").also { tagTypes ->
+                MPDRequest("tagtypes").execute(socket).extractValues("tagtype").also { tagTypes ->
                     val command = formatMPDCommand(
                         "tagtypes disable",
                         tagTypes.filter { !wantedTagTypes.contains(it.lowercase()) },
                     )
-                    MPDCommand(command).execute(socket)
+                    MPDRequest(command).execute(socket)
                 }
 
                 socket.soTimeout = soTimeout
@@ -143,7 +154,7 @@ abstract class BaseMPDClient(
         }
     }
 
-    protected inline fun <T : Any> catchError(command: BaseMPDCommand<*>? = null, inner: () -> T?): T? = try {
+    protected inline fun <T : Any> catchError(request: BaseMPDRequest<*>? = null, inner: () -> T?): T? = try {
         inner()
     } catch (e: Exception) {
         if (e is IOException || e is MPDException) {
@@ -153,9 +164,10 @@ abstract class BaseMPDClient(
                 startRetryLoop()
             }
             _connectedServer.value = null
+            _protocolVersion.value = null
         }
         if (e !is CancellationException)
-            listeners.forEach { it.onMPDClientError(this, e, command) }
+            listeners.forEach { it.onMPDClientError(this, e, request) }
         null
     }
 
@@ -170,17 +182,17 @@ abstract class BaseMPDClient(
         }
     }
 
-    private suspend fun <RT : BaseMPDResponse> runCommand(command: BaseMPDCommand<RT>) {
-        catchError(command) {
+    private suspend inline fun <RT : BaseMPDResponse> runRequest(request: BaseMPDRequest<RT>) {
+        catchError(request) {
             try {
                 _state.value = State.RUNNING
-                val response = commandMutex.withLock { command.execute(socket) }
+                val response = requestMutex.withLock { request.execute(socket) }
                 if (response.status == BaseMPDResponse.Status.EMPTY_RESPONSE) {
                     _state.value = State.PREPARED
-                    enqueue(command, force = true)
+                    enqueue(request, force = true)
                 } else {
                     _state.value = State.READY
-                    command.runCallbacks(response)
+                    request.runCallbacks(response)
                 }
             } catch (e: NullPointerException) {
                 // When does this happen?

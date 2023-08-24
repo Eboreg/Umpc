@@ -2,10 +2,8 @@ package us.huseli.umpc.data
 
 import android.os.Parcelable
 import kotlinx.parcelize.Parcelize
-import us.huseli.umpc.mpd.BaseMPDFilter
+import us.huseli.umpc.mpd.MPDFilter
 import us.huseli.umpc.mpd.mpdFilter
-import us.huseli.umpc.mpd.mpdFilterPre021
-import us.huseli.umpc.proto.MPDAlbumProto
 import us.huseli.umpc.replaceLeadingJunk
 
 @Parcelize
@@ -19,20 +17,10 @@ data class MPDAlbum(val artist: String, val name: String) : Parcelable {
     override fun hashCode() = 31 * artist.hashCode() + name.hashCode()
     override fun toString() = "${javaClass.simpleName}[artist: $artist, name: $name]"
 
-    fun getSearchFilter(artistTag: String, protocolVersion: MPDVersion?): BaseMPDFilter {
-        return if (protocolVersion == null || protocolVersion < MPDVersion("0.21")) {
-            mpdFilterPre021 { equals("album", name) and equals(artistTag, artist) }
-        } else {
-            mpdFilter { equals("album", name) and equals(artistTag, artist) }
-        }
-    }
+    fun getMPDFilter(artistTag: String): MPDFilter =
+        mpdFilter { ("album" eq name) and (artistTag eq artist) }
 
-    fun getSearchFilter(protocolVersion: MPDVersion?) = getSearchFilter("albumartist", protocolVersion)
-
-    fun toProto(): MPDAlbumProto? = MPDAlbumProto.newBuilder()
-        .setArtist(artist)
-        .setName(name)
-        .build()
+    fun getMPDFilter(): MPDFilter = getMPDFilter("albumartist")
 }
 
 fun Map<String, List<String>>.toMPDAlbums(artist: String): List<MPDAlbum> {

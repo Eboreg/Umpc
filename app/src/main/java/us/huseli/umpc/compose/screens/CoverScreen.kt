@@ -234,7 +234,7 @@ fun CoverScreenButtons(viewModel: CurrentSongViewModel = hiltViewModel()) {
     val isStreaming by viewModel.isStreaming.collectAsStateWithLifecycle()
     val randomState by viewModel.randomState.collectAsStateWithLifecycle()
     val repeatState by viewModel.repeatState.collectAsStateWithLifecycle()
-    val streamingUrl by viewModel.streamingUrl.collectAsStateWithLifecycle()
+    val streamingUrl by viewModel.streamingUrl.collectAsStateWithLifecycle(null)
 
     val filterChipColors = FilterChipDefaults.filterChipColors(
         labelColor = LocalContentColor.current.copy(0.5f),
@@ -281,7 +281,9 @@ fun CoverScreenButtons(viewModel: CurrentSongViewModel = hiltViewModel()) {
             label = { Text(stringResource(R.string.stream)) },
             leadingIcon = { Icon(Icons.Sharp.Headphones, null) }
         )
-        if (isDynamicPlaylistActive) {
+    }
+    if (isDynamicPlaylistActive) {
+        Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
             SmallOutlinedButton(
                 onClick = { viewModel.deactivateDynamicPlaylist() },
                 text = stringResource(R.string.deactivate_dynamic_playlist),

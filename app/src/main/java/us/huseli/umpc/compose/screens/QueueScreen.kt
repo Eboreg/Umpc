@@ -9,6 +9,8 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.sharp.ExpandLess
 import androidx.compose.material.icons.sharp.ExpandMore
@@ -37,6 +39,7 @@ import kotlinx.coroutines.launch
 import us.huseli.umpc.R
 import us.huseli.umpc.compose.AddToPlaylistDialog
 import us.huseli.umpc.compose.LargeSongRowList
+import us.huseli.umpc.compose.NotConnectedToMPD
 import us.huseli.umpc.compose.utils.SmallOutlinedButton
 import us.huseli.umpc.data.DynamicPlaylist
 import us.huseli.umpc.data.MPDAlbum
@@ -52,6 +55,7 @@ import kotlin.math.max
 fun QueueScreen(
     modifier: Modifier = Modifier,
     viewModel: QueueViewModel = hiltViewModel(),
+    listState: LazyListState = rememberLazyListState(),
     onGotoAlbumClick: (MPDAlbum) -> Unit,
     onGotoArtistClick: (String) -> Unit,
     onAddSongToPlaylistClick: (MPDSong) -> Unit,
@@ -72,7 +76,7 @@ fun QueueScreen(
     var isAddToPlaylistDialogOpen by rememberSaveable { mutableStateOf(false) }
 
     val scrollToCurrent: () -> Unit = {
-        scope.launch { currentSongPosition?.let { viewModel.listState.scrollToItem(max(0, it - 1)) } }
+        scope.launch { currentSongPosition?.let { listState.scrollToItem(max(0, it - 1)) } }
     }
 
     val addRemovedSongsMessage: (Int) -> Unit = { songCount ->
@@ -123,7 +127,7 @@ fun QueueScreen(
         modifier = modifier,
         viewModel = viewModel,
         songs = queue,
-        listState = viewModel.listState,
+        listState = listState,
         currentSong = currentSong,
         playerState = playerState,
         reorderable = true,
@@ -144,6 +148,13 @@ fun QueueScreen(
             viewModel.removeSelectedSongs()
             addRemovedSongsMessage(songCount)
         },
+        emptyListText = {
+            if (connectedServer == null) NotConnectedToMPD()
+            else Text(
+                text = stringResource(R.string.the_queue_is_empty_why_not_add),
+                modifier = Modifier.padding(10.dp),
+            )
+        },
         subMenu = {
             QueueScreenSubMenu(
                 isSubmenuExpanded = isSubmenuExpanded,
@@ -154,10 +165,14 @@ fun QueueScreen(
                 onToggleExpandedClick = { isSubmenuExpanded = !isSubmenuExpanded },
                 onScrollToCurrentClick = scrollToCurrent,
                 onClearQueueClick = {
-                    viewModel.clearQueue { viewModel.addMessage(context.getString(R.string.the_queue_was_cleared)) }
+                    viewModel.clearQueue {
+                        viewModel.addMessage(context.getString(R.string.the_queue_was_cleared))
+                        scope.launch { listState.scrollToItem(0) }
+                    }
                 },
                 onDeactivateDynamicPlaylistClick = { viewModel.deactivateDynamicPlaylist() },
                 onSaveToPlaylistClick = { isAddToPlaylistDialogOpen = true },
+                isConnected = connectedServer != null,
             )
         }
     )
@@ -172,6 +187,7 @@ fun QueueScreenSubMenu(
     activeDynamicPlaylist: DynamicPlaylist?,
     queueSize: Int,
     totalDuration: Double,
+    isConnected: Boolean,
     onToggleExpandedClick: () -> Unit,
     onScrollToCurrentClick: () -> Unit,
     onClearQueueClick: () -> Unit,
@@ -197,6 +213,7 @@ fun QueueScreenSubMenu(
                                 modifier = Modifier.padding(bottom = 5.dp),
                                 onClick = onScrollToCurrentClick,
                                 text = stringResource(R.string.scroll_to_current_song),
+                                enabled = isConnected,
                             )
                         }
                         if (activeDynamicPlaylist == null) {
@@ -204,6 +221,7 @@ fun QueueScreenSubMenu(
                                 modifier = Modifier.padding(bottom = 5.dp),
                                 onClick = onClearQueueClick,
                                 text = stringResource(R.string.clear_queue),
+                                enabled = isConnected,
                             )
                         }
                         if (activeDynamicPlaylist != null) {
@@ -211,12 +229,14 @@ fun QueueScreenSubMenu(
                                 modifier = Modifier.padding(bottom = 5.dp),
                                 onClick = onDeactivateDynamicPlaylistClick,
                                 text = stringResource(R.string.deactivate_dynamic_playlist),
+                                enabled = isConnected,
                             )
                         }
                         SmallOutlinedButton(
                             modifier = Modifier.padding(bottom = 5.dp),
                             onClick = onSaveToPlaylistClick,
                             text = stringResource(R.string.save_queue_to_playlist),
+                            enabled = isConnected,
                         )
                     }
                 }

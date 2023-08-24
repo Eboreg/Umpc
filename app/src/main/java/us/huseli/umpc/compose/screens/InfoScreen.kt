@@ -31,6 +31,7 @@ import kotlinx.coroutines.delay
 import us.huseli.umpc.BuildConfig
 import us.huseli.umpc.PlayerState
 import us.huseli.umpc.R
+import us.huseli.umpc.compose.NotConnectedToMPD
 import us.huseli.umpc.compose.utils.AlternatingTable
 import us.huseli.umpc.compose.utils.AlternatingTableScope
 import us.huseli.umpc.repository.SnackbarMessage
@@ -46,6 +47,8 @@ fun InfoScreen(modifier: Modifier = Modifier, viewModel: InfoViewModel = hiltVie
     val connectedServer by viewModel.connectedServer.collectAsStateWithLifecycle()
 
     Column(modifier = modifier.verticalScroll(rememberScrollState())) {
+        if (connectedServer == null) NotConnectedToMPD()
+
         Text(
             stringResource(R.string.some_stats),
             style = MaterialTheme.typography.headlineMedium,

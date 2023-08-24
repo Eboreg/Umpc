@@ -1,6 +1,5 @@
 package us.huseli.umpc.viewmodels
 
-import androidx.compose.foundation.lazy.LazyListState
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -36,11 +35,6 @@ class LibraryViewModel @Inject constructor(
     private val _librarySearchTerm = MutableStateFlow("")
     private val _pendingAlbumsWithSongs = mutableSetOf<MPDAlbum>()
 
-    var albumListState = LazyListState()
-        private set
-    var artistListState = LazyListState()
-        private set
-
     val albumLeadingChars = _albums.leadingChars { it.name }
     val albums = _albums.asStateFlow()
     val artistLeadingChars = _artists.leadingChars { it.name }
@@ -50,19 +44,7 @@ class LibraryViewModel @Inject constructor(
     val librarySearchTerm = _librarySearchTerm.asStateFlow()
 
     init {
-        repo.loadAlbums()
         repo.registerOnMPDChangeListener(this)
-
-        viewModelScope.launch {
-            // Reload albums when reconnecting:
-            repo.connectedServer.collect {
-                if (it != null) {
-                    albumListState = LazyListState()
-                    artistListState = LazyListState()
-                    repo.loadAlbums()
-                }
-            }
-        }
 
         viewModelScope.launch {
             combine(repo.albums, _activeLibrarySearchType, _librarySearchTerm) { albums, searchType, searchTerm ->

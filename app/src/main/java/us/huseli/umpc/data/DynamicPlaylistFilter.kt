@@ -3,9 +3,8 @@ package us.huseli.umpc.data
 import android.os.Parcelable
 import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
-import us.huseli.umpc.mpd.BaseMPDFilter
+import us.huseli.umpc.mpd.MPDFilter
 import us.huseli.umpc.mpd.mpdFilter
-import us.huseli.umpc.mpd.mpdFilterPre021
 import us.huseli.umpc.proto.DynamicPlaylistProto
 
 @Parcelize
@@ -23,7 +22,6 @@ data class DynamicPlaylistFilter(
     }
 
     enum class Comparator(val displayName: String) {
-        EQUALS_PRE021("equals"),
         EQUALS("equals"),
         NOT_EQUALS("does not equal"),
         CONTAINS("contains"),
@@ -31,13 +29,12 @@ data class DynamicPlaylistFilter(
     }
 
     @IgnoredOnParcel
-    val mpdFilter: BaseMPDFilter
+    val mpdFilter: MPDFilter
         get() = when (comparator) {
-            Comparator.EQUALS_PRE021 -> mpdFilterPre021 { equals(key.mpdTag, value) }
-            Comparator.EQUALS -> mpdFilter { equals(key.mpdTag, value) }
-            Comparator.NOT_EQUALS -> mpdFilter { notEquals(key.mpdTag, value) }
-            Comparator.CONTAINS -> mpdFilter { contains(key.mpdTag, value) }
-            Comparator.NOT_CONTAINS -> mpdFilter { contains(key.mpdTag, value).not() }
+            Comparator.EQUALS -> mpdFilter { key.mpdTag eq value }
+            Comparator.NOT_EQUALS -> mpdFilter { key.mpdTag ne value }
+            Comparator.CONTAINS -> mpdFilter { key.mpdTag contains value }
+            Comparator.NOT_CONTAINS -> mpdFilter { !(key.mpdTag contains value) }
         }
 
     override fun toString() = "${key.displayName} ${comparator.displayName} \"$value\""
@@ -55,7 +52,6 @@ data class DynamicPlaylistFilter(
         )
         .setComparator(
             when (comparator) {
-                Comparator.EQUALS_PRE021 -> DynamicPlaylistProto.Comparator.EQUALS_PRE021
                 Comparator.EQUALS -> DynamicPlaylistProto.Comparator.EQUALS
                 Comparator.NOT_EQUALS -> DynamicPlaylistProto.Comparator.NOT_EQUALS
                 Comparator.CONTAINS -> DynamicPlaylistProto.Comparator.CONTAINS
@@ -67,8 +63,7 @@ data class DynamicPlaylistFilter(
 
     companion object {
         fun comparatorValuesByVersion(protocolVersion: MPDVersion): List<Comparator> =
-            if (protocolVersion >= MPDVersion("0.21"))
-                Comparator.values().filter { it != Comparator.EQUALS_PRE021 }
-            else listOf(Comparator.EQUALS_PRE021)
+            if (protocolVersion >= MPDVersion("0.21")) Comparator.values().toList()
+            else listOf(Comparator.EQUALS)
     }
 }

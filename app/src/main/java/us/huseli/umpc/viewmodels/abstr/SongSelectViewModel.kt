@@ -16,15 +16,15 @@ abstract class SongSelectViewModel(
     private val _selectedSongs = MutableStateFlow<List<MPDSong>>(emptyList())
     val selectedSongs = _selectedSongs.asStateFlow()
 
-    fun addSelectedSongsToPlaylist(playlistName: String, onFinish: (MPDBatchTextResponse) -> Unit) =
-        repo.addSongsToPlaylist(_selectedSongs.value, playlistName, onFinish)
+    inline fun addSelectedSongsToPlaylist(playlistName: String, crossinline onFinish: (MPDBatchTextResponse) -> Unit) =
+        repo.addSongsToPlaylist(selectedSongs.value, playlistName, onFinish)
 
     fun deselectAllSongs() {
         _selectedSongs.value = emptyList()
     }
 
-    fun enqueueSelectedSongs(onFinish: (MPDBatchTextResponse) -> Unit) =
-        repo.enqueueSongsLast(_selectedSongs.value.map { it.filename }, onFinish)
+    inline fun enqueueSelectedSongs(crossinline onFinish: (MPDBatchTextResponse) -> Unit) =
+        repo.enqueueSongsLast(selectedSongs.value.map { it.filename }, onFinish)
 
     fun playSelectedSongs() = repo.enqueueSongsNextAndPlay(_selectedSongs.value)
 

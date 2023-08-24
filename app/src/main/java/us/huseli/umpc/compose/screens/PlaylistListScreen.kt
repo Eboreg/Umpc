@@ -45,6 +45,7 @@ import us.huseli.umpc.PlaylistType
 import us.huseli.umpc.R
 import us.huseli.umpc.compose.DeletePlaylistDialog
 import us.huseli.umpc.compose.EditDynamicPlaylistDialog
+import us.huseli.umpc.compose.NotConnectedToMPD
 import us.huseli.umpc.compose.utils.SubMenuScreen
 import us.huseli.umpc.data.DynamicPlaylist
 import us.huseli.umpc.data.MPDPlaylist
@@ -125,6 +126,8 @@ fun PlaylistListScreen(
             )
         }
     ) {
+        if (!isConnected) NotConnectedToMPD()
+
         when (displayType) {
             PlaylistType.STORED -> {
                 val storedPlaylists by viewModel.storedPlaylists.collectAsStateWithLifecycle()
