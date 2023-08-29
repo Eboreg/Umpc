@@ -13,7 +13,7 @@ data class DynamicPlaylistFilter(
     val value: String = "",
     val comparator: Comparator = Comparator.EQUALS,
 ) : Parcelable {
-    enum class Key(val displayName: String, val mpdTag: String) {
+    enum class Key(val display: String, val mpdTag: String) {
         ARTIST("Artist", "artist"),
         ALBUM_ARTIST("Album artist", "albumartist"),
         ALBUM("Album", "album"),
@@ -37,8 +37,6 @@ data class DynamicPlaylistFilter(
             Comparator.NOT_CONTAINS -> mpdFilter { !(key.mpdTag contains value) }
         }
 
-    override fun toString() = "${key.displayName} ${comparator.displayName} \"$value\""
-
     fun toProto(): DynamicPlaylistProto.Filter = DynamicPlaylistProto.Filter
         .newBuilder()
         .setKey(
@@ -61,9 +59,11 @@ data class DynamicPlaylistFilter(
         .setValue(value)
         .build()
 
+    override fun toString() = "${key.display} ${comparator.displayName} \"$value\""
+
     companion object {
         fun comparatorValuesByVersion(protocolVersion: MPDVersion): List<Comparator> =
             if (protocolVersion >= MPDVersion("0.21")) Comparator.values().toList()
-            else listOf(Comparator.EQUALS)
+            else listOf(Comparator.CONTAINS)
     }
 }

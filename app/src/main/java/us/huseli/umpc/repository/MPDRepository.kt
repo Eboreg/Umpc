@@ -535,12 +535,19 @@ class MPDRepository @Inject constructor(
          *
          * TODO: Maybe disable search all together in <0.21, or implement
          * it in some completely different way
+         * TODO: Do "or" search with batch request instead
          */
         search(mpdFilter { "any" contains term }, onFinish)
     }
 
     fun search(filter: MPDFilter, onFinish: (MPDTextResponse) -> Unit) =
         client.enqueue(command = filter.search(protocolVersion.value), onFinish = onFinish)
+
+    fun searchAnd(filters: Iterable<MPDFilter>, onFinish: (MPDTextResponse) -> Unit) =
+        search(filters.reduce { acc, mpdFilter -> acc and mpdFilter }, onFinish)
+
+    inline fun searchOr(filters: Iterable<MPDFilter>, crossinline onFinish: (MPDBatchTextResponse) -> Unit) =
+        client.enqueueBatch(filters.map { it.search(protocolVersion.value) }, onFinish)
 
     fun seek(time: Double) = client.enqueue("seekcur $time")
 

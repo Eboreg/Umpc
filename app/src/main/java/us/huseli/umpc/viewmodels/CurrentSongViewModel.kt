@@ -34,10 +34,6 @@ class CurrentSongViewModel @Inject constructor(
     val streamingUrl = settingsRepository.streamingUrl
     val stopAfterCurrent = repo.stopAfterCurrent
 
-    init {
-        dynamicPlaylistRepo.loadActiveDynamicPlaylist(playOnLoad = false, replaceCurrentQueue = false)
-    }
-
     fun deactivateDynamicPlaylist() = dynamicPlaylistRepo.deactivateDynamicPlaylist()
 
     fun next() = repo.next()

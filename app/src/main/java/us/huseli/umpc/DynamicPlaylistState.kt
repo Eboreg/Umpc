@@ -39,7 +39,7 @@ class DynamicPlaylistState(
 
         ioScope.launch {
             mutex.withLock {
-                if (shouldLoadSongsFromMPD(playlist)) {
+                if (shouldLoadSongsFromMPD()) {
                     log("DYNAMICPLAYLISTSTATE: should load songs from MPD. currentOffset=$currentOffset, replaceCurrentQueue=$replaceCurrentQueue, playOnLoad=$playOnLoad")
                     loadSongsFromMPD { songs ->
                         ioScope.launch {
@@ -91,8 +91,8 @@ class DynamicPlaylistState(
                     if (filesToAdd > 0) {
                         loadFilenamesFromDisk(currentOffset, filesToAdd).also { filenames ->
                             fillMPDQueue(filenames = filenames)
+                            updateCurrentOffset(currentOffset + filenames.size)
                         }
-                        updateCurrentOffset(currentOffset + filesToAdd)
                     }
                 }
             }
@@ -132,24 +132,38 @@ class DynamicPlaylistState(
             )
         }
 
-    private inline fun loadSongsFromMPD(crossinline onFinish: (List<MPDSong>) -> Unit) =
-        repo.search(playlist.filter.mpdFilter) { response ->
-            if (response.isSuccess) {
-                val songs = response.extractSongs()
-                onFinish(if (playlist.shuffle) songs.shuffled() else songs)
-                repo.updateDynamicPlaylist(playlist, songCount = songs.size)
-            }
+    private inline fun loadSongsFromMPD(crossinline onFinish: (List<MPDSong>) -> Unit) {
+        val callback = { songs: List<MPDSong> ->
+            onFinish(if (playlist.shuffle) songs.shuffled() else songs)
+            repo.updateDynamicPlaylist(playlist, songCount = songs.size)
         }
 
-    private fun saveSongsToDisk(songs: List<MPDSong>) = ioScope.launch {
-        playlist.toProto(filenames = songs.map { it.filename }, currentOffset = currentOffset)?.let {
-            context.dynamicPlaylistDataStore.updateData { it }
+        if (playlist.operator == DynamicPlaylist.Operator.OR) {
+            repo.searchOr(playlist.mpdFilters) { response ->
+                if (response.isSuccess) callback(response.extractSongs())
+            }
+        } else {
+            repo.searchAnd(playlist.mpdFilters) { response ->
+                if (response.isSuccess) callback(response.extractSongs())
+            }
         }
     }
 
-    private suspend fun shouldLoadSongsFromMPD(playlist: DynamicPlaylist): Boolean =
+    private fun saveSongsToDisk(songs: List<MPDSong>) = ioScope.launch {
+        log("DYNAMICPLAYLISTSTATE: will update songs on disk. songs=$songs, currentOffset=$currentOffset")
+        playlist.toProto(filenames = songs.map { it.filename }, currentOffset = currentOffset)?.let { proto ->
+            context.dynamicPlaylistDataStore.updateData {
+                log("DYNAMICPLAYLISTSTATE: actually updating songs on disk. filenamesCount=${proto.filenamesCount}, currentOffset=$currentOffset")
+                proto
+            }
+        }
+    }
+
+    private suspend fun shouldLoadSongsFromMPD(): Boolean =
         try {
-            context.dynamicPlaylistDataStore.data.first().toNative() != playlist
+            val savedPlaylist = context.dynamicPlaylistDataStore.data.first().toNative()
+            log("DYNAMICPLAYLISTSTATE: shouldLoadSongsFromMPD, playlist=$playlist, savedPlaylist=$savedPlaylist, equal=${savedPlaylist == playlist}")
+            savedPlaylist != playlist
         } catch (e: Exception) {
             true
         }

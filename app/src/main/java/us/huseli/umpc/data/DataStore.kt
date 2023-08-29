@@ -37,8 +37,13 @@ fun DynamicPlaylistProto.Filter.toNative(): DynamicPlaylistFilter = DynamicPlayl
 )
 
 fun DynamicPlaylistProto.toNative(): DynamicPlaylist = DynamicPlaylist(
-    filter = filter.toNative(),
+    filters = filtersList.map { it.toNative() },
     shuffle = shuffle,
     songCount = filenamesCount,
+    operator = when (operator) {
+        DynamicPlaylistProto.Operator.AND -> DynamicPlaylist.Operator.AND
+        DynamicPlaylistProto.Operator.OR -> DynamicPlaylist.Operator.OR
+        else -> throw Exception("Unrecognised operator")
+    },
     server = MPDServer.fromString(server),
 )

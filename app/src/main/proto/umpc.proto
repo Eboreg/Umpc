@@ -22,15 +22,22 @@ message DynamicPlaylistProto {
         NOT_CONTAINS = 4;
     }
 
+    enum Operator {
+        UNDEFINED_OPERATOR = 0;
+        AND = 1;
+        OR = 2;
+    }
+
     message Filter {
         Key key = 1;
         string value = 2;
         Comparator comparator = 3;
     }
 
-    Filter filter = 1;
-    bool shuffle = 2;
-    int32 current_offset = 3;
-    repeated string filenames = 4;
-    string server = 5;
+    repeated Filter filters = 1;
+    Operator operator = 2;
+    bool shuffle = 3;
+    int32 current_offset = 4;
+    repeated string filenames = 5;
+    string server = 6;
 }

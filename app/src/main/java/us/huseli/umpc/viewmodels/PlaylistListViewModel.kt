@@ -32,8 +32,12 @@ class PlaylistListViewModel @Inject constructor(
 
     fun activateDynamicPlaylist(playlist: DynamicPlaylist) = dynamicPlaylistRepo.activateDynamicPlaylist(playlist)
 
-    fun createDynamicPlaylist(filter: DynamicPlaylistFilter, shuffle: Boolean) {
-        dynamicPlaylistRepo.addDynamicPlaylist(filter, shuffle)
+    fun createDynamicPlaylist(
+        filters: List<DynamicPlaylistFilter>,
+        shuffle: Boolean,
+        operator: DynamicPlaylist.Operator,
+    ) {
+        dynamicPlaylistRepo.addDynamicPlaylist(filters, shuffle, operator)
         dynamicPlaylistRepo.saveDynamicPlaylists()
     }
 
@@ -48,9 +52,10 @@ class PlaylistListViewModel @Inject constructor(
 
     fun updateDynamicPlaylist(
         playlist: DynamicPlaylist,
-        filter: DynamicPlaylistFilter,
+        filters: List<DynamicPlaylistFilter>,
         shuffle: Boolean,
-    ) = dynamicPlaylistRepo.updateDynamicPlaylist(playlist, filter, shuffle)
+        operator: DynamicPlaylist.Operator,
+    ) = dynamicPlaylistRepo.updateDynamicPlaylist(playlist, filters, shuffle, operator)
 
     override fun onMPDChanged(subsystems: List<String>) {
         if (subsystems.contains("stored_playlist")) {

@@ -3,8 +3,10 @@
     <string name="a_playlist_with_this_name_already_exists">A playlist with this name already exists.</string>
     <string name="about_dynamic_playlists">About dynamic playlists</string>
     <string name="active_dynamic_playlist_x">Active dynamic playlist: %1$s</string>
+    <string name="add">Add</string>
     <string name="add_albums_playlist_fail">Failed to add album(s) to playlist.</string>
     <string name="add_all_to_playlist">Add all to playlist</string>
+    <string name="add_filter">Add filter</string>
     <string name="add_mpd_server">Add MPD server</string>
     <string name="add_new">Add new</string>
     <string name="add_songs_playlist_fail">Failed to add song(s) to playlist.</string>
@@ -46,7 +48,7 @@
     <string name="dynamic_playlist_help1">A dynamic playlist will, when activated, search the MPD database for a given criteria, and feed the first 20 matching songs into the play queue.</string>
     <string name="dynamic_playlist_help2">As long as Umpc is running, and this dynamic playlist stays active, it will then continuously enqueue more matching songs whenever the playhead is nearing the end of the queue.</string>
     <string name="dynamic_playlist_help3">To shuffle all songs in the database, create a dynamic playlist with comparator = “contains” and empty value.</string>
-    <string name="dynamic_playlist_help4">For MPD versions prior to 0.21, only the “equals” comparator is available.</string>
+    <string name="dynamic_playlist_help4">For MPD versions prior to 0.21, only the “contains” comparator is available.</string>
     <string name="dynamic_playlists">Dynamic playlists</string>
     <string name="edit_dynamic_playlist">Edit dynamic playlist</string>
     <string name="enqueue">Enqueue</string>
@@ -57,6 +59,7 @@
     <string name="enter_at_least_3_characters">Enter at least 3 characters.</string>
     <string name="enter_the_name_of_a_new_playlist">Enter the name of a new playlist:</string>
     <string name="filter_by">Filter by</string>
+    <string name="filters">Filters</string>
     <string name="forward">Forward</string>
     <string name="go_to_album">Go to album</string>
     <string name="go_to_artist">Go to artist</string>
@@ -77,6 +80,7 @@
     <string name="no">No</string>
     <string name="no_albums_found_you_may_want_to_add">No albums found; you may want to add some music to your collection on the server.</string>
     <string name="no_artists_found_you_may_want_to_add">No artists found; you may want to add some music to your collection on the server.</string>
+    <string name="no_filters_defined">No filters defined; add at least one filter below.</string>
     <string name="no_mpd_servers_configured">No MPD servers configured.</string>
     <string name="no_server_selected">No server selected</string>
     <string name="no_servers_added_yet">No servers added yet</string>
@@ -84,6 +88,7 @@
     <string name="number_of_artists">Number of artists</string>
     <string name="number_of_songs">Number of songs</string>
     <string name="ok">OK</string>
+    <string name="operator_colon">Operator:</string>
     <string name="or_enter_the_name_of_a_new_playlist">Or enter the name of a new playlist:</string>
     <string name="outputs">Outputs</string>
     <string name="password">Password</string>

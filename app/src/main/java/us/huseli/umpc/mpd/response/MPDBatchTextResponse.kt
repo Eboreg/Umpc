@@ -16,6 +16,9 @@ class MPDBatchTextResponse : BaseMPDResponse() {
         maps.mapIndexedNotNull { index, map -> map.toMPDSong(position = index) }
     }
 
+    fun extractSongs(): List<MPDSong> =
+        _responseLines.batchResponseToMapLists().flatMap { it.toMPDSongs() }.toSet().toList()
+
     override fun toString() =
         "${javaClass.simpleName}[status=$status, error=$error, mpdError=$mpdError, response=$_responseLines]"
 }

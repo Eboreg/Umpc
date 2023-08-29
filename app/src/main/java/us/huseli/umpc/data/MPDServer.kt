@@ -40,7 +40,9 @@ open class MPDServer(val hostname: String, val port: Int, val protocolVersion: M
         protocolVersion?.hasCapability(capability) ?: false
 
     override fun toString() = "$hostname:$port"
+
     override fun equals(other: Any?) = other is MPDServer && other.hostname == hostname && other.port == port
+
     override fun hashCode(): Int = 31 * hostname.hashCode() + port
 
     companion object {

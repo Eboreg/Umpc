@@ -41,6 +41,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import us.huseli.umpc.Logger
 import us.huseli.umpc.PlaylistType
 import us.huseli.umpc.R
 import us.huseli.umpc.compose.DeletePlaylistDialog
@@ -72,9 +73,11 @@ fun PlaylistListScreen(
     if (isCreateDynamicPlaylistDialogOpen && protocolVersion != null) {
         EditDynamicPlaylistDialog(
             protocolVerion = protocolVersion,
-            onSave = { filter, shuffle ->
+            title = stringResource(R.string.create_dynamic_playlist),
+            onSave = { filters, shuffle, operator ->
                 isCreateDynamicPlaylistDialogOpen = false
-                viewModel.createDynamicPlaylist(filter, shuffle)
+                viewModel.createDynamicPlaylist(filters, shuffle, operator)
+                Logger.log("filters: $filters, shuffle: $shuffle, operator: $operator")
             },
             onCancel = { isCreateDynamicPlaylistDialogOpen = false },
         )
@@ -83,9 +86,10 @@ fun PlaylistListScreen(
             EditDynamicPlaylistDialog(
                 playlist = playlist,
                 protocolVerion = protocolVersion,
-                onSave = { filter, shuffle ->
-                    isCreateDynamicPlaylistDialogOpen = false
-                    viewModel.updateDynamicPlaylist(playlist, filter, shuffle)
+                title = stringResource(R.string.edit_dynamic_playlist),
+                onSave = { filters, shuffle, operator ->
+                    editingDynamicPlaylist = null
+                    viewModel.updateDynamicPlaylist(playlist, filters, shuffle, operator)
                 },
                 onCancel = { editingDynamicPlaylist = null },
             )
@@ -198,15 +202,13 @@ fun DynamicPlaylistRow(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        if (playlist.songCount != null) {
-            Column {
-                Text(playlist.filter.toString())
-                Text(
-                    text = pluralStringResource(R.plurals.x_songs, playlist.songCount, playlist.songCount),
-                    style = MaterialTheme.typography.bodySmall,
-                )
-            }
-        } else Text(playlist.filter.toString())
+        Column(modifier = Modifier.weight(1f).fillMaxWidth()) {
+            Text(playlist.toString())
+            if (playlist.songCount != null) Text(
+                text = pluralStringResource(R.plurals.x_songs, playlist.songCount, playlist.songCount),
+                style = MaterialTheme.typography.bodySmall,
+            )
+        }
         Row {
             IconButton(onClick = onEditClick) {
                 Icon(Icons.Sharp.Edit, stringResource(R.string.edit_dynamic_playlist))

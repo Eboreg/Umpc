@@ -25,7 +25,6 @@ class QueueViewModel @Inject constructor(
     val queue = repo.queue
 
     init {
-        dynamicPlaylistRepo.loadActiveDynamicPlaylist(playOnLoad = false, replaceCurrentQueue = false)
         repo.registerOnMPDChangeListener(this)
     }
 
