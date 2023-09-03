@@ -117,7 +117,6 @@ dependencies {
     implementation("androidx.compose.ui:ui-graphics:1.5.0")
     implementation("androidx.activity:activity-compose:1.7.2")
     implementation("androidx.navigation:navigation-compose:2.7.1")
-    // implementation("androidx.compose.foundation:foundation-layout-android:1.6.0-alpha01")
 
     // Material:
     implementation("androidx.compose.material:material:1.5.0")
@@ -130,9 +129,9 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.6.1")
 
     // Hilt:
-    implementation("com.google.dagger:hilt-android:2.47")
+    implementation("com.google.dagger:hilt-android:2.48")
     implementation("androidx.hilt:hilt-navigation-compose:1.0.0")
-    kapt("com.google.dagger:hilt-compiler:2.47")
+    kapt("com.google.dagger:hilt-compiler:2.48")
 
     // Exoplayer:
     implementation("androidx.media3:media3-exoplayer:1.1.1")

@@ -27,6 +27,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import us.huseli.umpc.PlayerState
@@ -78,6 +79,7 @@ fun LargeSongRow(
         state = swipeableState,
         anchors = swipeAnchors,
         orientation = Orientation.Horizontal,
+        velocityThreshold = Dp.Infinity,
         resistance = ResistanceConfig(0f, 0f, 0f),
     )
 

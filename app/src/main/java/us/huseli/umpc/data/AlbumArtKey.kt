@@ -4,6 +4,6 @@ data class AlbumArtKey(val artist: String, val album: String, val filename: Stri
     val imageFilename = hashCode().toString()
 
     override fun hashCode() = 31 * artist.hashCode() + album.hashCode()
-    override fun equals(other: Any?) = other is AlbumArtKey && other.hashCode() == hashCode()
-    override fun toString() = "AlbumArtKey[artist=$artist, album=$album]"
+    override fun equals(other: Any?) = other is AlbumArtKey && other.artist == artist && other.album == album
+    override fun toString() = "AlbumArtKey[artist=$artist, album=$album, filename=$filename]"
 }

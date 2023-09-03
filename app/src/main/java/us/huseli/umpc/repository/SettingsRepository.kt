@@ -49,7 +49,7 @@ class SettingsRepository @Inject constructor(
     fun addServer(server: MPDServerCredentials) {
         _servers.value += server
         _currentServerIdx.value = _servers.value.lastIndex
-        save(PREF_SERVERS)
+        save(PREF_SERVERS, PREF_SERVER_IDX)
     }
 
     fun deleteServer(index: Int) {

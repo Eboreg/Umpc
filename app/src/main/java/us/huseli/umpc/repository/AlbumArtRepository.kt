@@ -13,6 +13,8 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import us.huseli.umpc.Constants.ALBUM_ART_MAXSIZE
 import us.huseli.umpc.Constants.THUMBNAIL_SIZE
 import us.huseli.umpc.LoggerInterface
@@ -37,6 +39,7 @@ class AlbumArtRepository @Inject constructor(
     private val thumbnailDirectory = File(albumArtDirectory, "thumbnails").apply { mkdirs() }
     private val onReadyCallbacks = mutableMapOf<AlbumArtKey, List<(MPDAlbumArt) -> Unit>>()
     private val pendingKeys = mutableListOf<AlbumArtKey>()
+    private val mutex = Mutex()
 
     init {
         ioScope.launch {
@@ -56,34 +59,36 @@ class AlbumArtRepository @Inject constructor(
 
     val currentSongAlbumArt = _currentSongAlbumArt.asStateFlow()
 
-    private fun addOnReadyCallback(key: AlbumArtKey, callback: (MPDAlbumArt) -> Unit) {
-        onReadyCallbacks[key] = onReadyCallbacks[key]?.let { it + callback } ?: listOf(callback)
-    }
-
-    private fun runOnReadyCallbacks(key: AlbumArtKey, albumArt: MPDAlbumArt) {
-        pendingKeys.remove(key)
-        onReadyCallbacks.remove(key)?.forEach { it.invoke(albumArt) }
+    private suspend fun runOnReadyCallbacks(key: AlbumArtKey, albumArt: MPDAlbumArt) {
+        mutex.withLock {
+            pendingKeys.remove(key)
+            onReadyCallbacks.remove(key)?.forEach { it.invoke(albumArt) }
+        }
     }
 
     fun getAlbumArt(key: AlbumArtKey, onFinish: (MPDAlbumArt) -> Unit) = ioScope.launch {
-        if (pendingKeys.contains(key)) {
-            addOnReadyCallback(key, onFinish)
-        } else {
-            pendingKeys.add(key)
+        var runNow = false
 
+        mutex.withLock {
+            onReadyCallbacks[key] = onReadyCallbacks[key]?.let { it + onFinish } ?: listOf(onFinish)
+            if (!pendingKeys.contains(key)) {
+                pendingKeys.add(key)
+                runNow = true
+            }
+        }
+
+        if (runNow) {
             val fullImage: Bitmap? = File(albumArtDirectory, key.imageFilename).toBitmap()
             val thumbnail: Bitmap? = File(thumbnailDirectory, key.imageFilename).toBitmap()
 
             if (thumbnail != null && fullImage != null) {
                 val albumArt =
                     MPDAlbumArt(key, fullImage = fullImage.asImageBitmap(), thumbnail = thumbnail.asImageBitmap())
-                onFinish(albumArt)
                 runOnReadyCallbacks(key, albumArt)
             } else {
                 mpdRepo.getAlbumArt(key) { response ->
                     if (response.isSuccess) saveAlbumArt(key = key, stream = response.stream) { albumArt ->
-                        onFinish(albumArt)
-                        runOnReadyCallbacks(key, albumArt)
+                        ioScope.launch { runOnReadyCallbacks(key, albumArt) }
                     }
                 }
             }

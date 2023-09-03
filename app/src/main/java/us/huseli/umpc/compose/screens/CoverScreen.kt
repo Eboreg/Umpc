@@ -19,7 +19,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.FractionalThreshold
-import androidx.compose.material.ResistanceConfig
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.sharp.Headphones
 import androidx.compose.material.icons.sharp.Repeat
@@ -44,6 +43,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -103,8 +103,8 @@ fun CoverScreen(
                 state = swipeableState,
                 anchors = anchors,
                 orientation = Orientation.Vertical,
+                velocityThreshold = Dp.Infinity,
                 thresholds = { _, _ -> FractionalThreshold(0.5f) },
-                resistance = ResistanceConfig(0f, 0f, 0f),
             )
             .fillMaxHeight()
     ) {
@@ -139,7 +139,9 @@ fun CoverScreen(
                 enabled = isConnected,
             )
             CoverScreenSongTechInfo(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 10.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 10.dp),
                 bitrate = bitrate,
                 audioFormat = audioFormat,
                 isDynamicPlaylistActive = isDynamicPlaylistActive,
@@ -186,7 +188,9 @@ fun CoverScreenSongInfoTexts(
 ) {
     song?.let {
         Column(
-            modifier = Modifier.padding(10.dp).fillMaxWidth(),
+            modifier = Modifier
+                .padding(10.dp)
+                .fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(5.dp),
         ) {
@@ -244,7 +248,9 @@ fun CoverScreenButtons(viewModel: CurrentSongViewModel = hiltViewModel()) {
     )
 
     FlowRow(
-        modifier = Modifier.padding(horizontal = 10.dp).fillMaxWidth(),
+        modifier = Modifier
+            .padding(horizontal = 10.dp)
+            .fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceEvenly,
         verticalArrangement = Arrangement.Center,
     ) {
@@ -273,7 +279,7 @@ fun CoverScreenButtons(viewModel: CurrentSongViewModel = hiltViewModel()) {
                     viewModel.addMessage(
                         if (started) {
                             streamingUrl?.let { context.getString(R.string.streaming_from_x_started, it) }
-                            ?: context.getString(R.string.streaming_started)
+                                ?: context.getString(R.string.streaming_started)
                         } else context.getString(R.string.streaming_stopped)
                     )
                 }
