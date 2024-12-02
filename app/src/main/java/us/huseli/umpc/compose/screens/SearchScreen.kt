@@ -40,12 +40,12 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import us.huseli.retaintheme.compose.SmallOutlinedButton
 import us.huseli.umpc.AddToPlaylistItemType
 import us.huseli.umpc.R
 import us.huseli.umpc.compose.BatchAddToPlaylistDialog
 import us.huseli.umpc.compose.LargeSongRowList
 import us.huseli.umpc.compose.NotConnectedToMPD
-import us.huseli.umpc.compose.utils.SmallOutlinedButton
 import us.huseli.umpc.data.MPDAlbum
 import us.huseli.umpc.data.MPDSong
 import us.huseli.umpc.repository.SnackbarMessage
@@ -68,11 +68,11 @@ fun SearchScreen(
     val searchFocusRequester = remember { FocusRequester() }
     val searchResults by viewModel.songSearchResults.collectAsStateWithLifecycle()
     val currentSong by viewModel.currentSong.collectAsStateWithLifecycle()
-    val playerState by viewModel.playerState.collectAsStateWithLifecycle()
     val isSearching by viewModel.isSearching.collectAsStateWithLifecycle()
     val playlists by viewModel.storedPlaylists.collectAsStateWithLifecycle()
     val isConnected by viewModel.isConnected.collectAsStateWithLifecycle()
     var isAddToPlaylistDialogOpen by rememberSaveable { mutableStateOf(false) }
+    val songs = if (searchTerm.text.length < 3) emptyList() else searchResults
 
     if (isAddToPlaylistDialogOpen) {
         BatchAddToPlaylistDialog(
@@ -92,16 +92,16 @@ fun SearchScreen(
     LargeSongRowList(
         modifier = modifier,
         viewModel = viewModel,
-        songs = if (searchTerm.text.length < 3) emptyList() else searchResults,
+        songs = songs,
         listState = listState,
         currentSong = currentSong,
-        playerState = playerState,
         highlight = searchTerm.text,
         onGotoAlbumClick = onGotoAlbumClick,
         onGotoArtistClick = onGotoArtistClick,
         onAddSongToPlaylistClick = onAddSongToPlaylistClick,
         onGotoPlaylistClick = onGotoPlaylistClick,
         onGotoQueueClick = onGotoQueueClick,
+        onPlaySongClick = { viewModel.playSongs(songs, it) },
         emptyListText = {
             if (!isConnected) NotConnectedToMPD()
             else if (searchTerm.text.length < 3) {

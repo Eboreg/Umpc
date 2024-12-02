@@ -8,7 +8,7 @@ enum class ConsumeState { OFF, ON, ONESHOT }
 
 enum class PlayerState { UNKNOWN, PLAY, STOP, PAUSE }
 
-enum class LibraryGrouping { ARTIST, ALBUM }
+enum class LibraryGrouping { ARTIST, ALBUM, DIRECTORY }
 
 enum class LibrarySearchType { ARTIST, ALBUM, NONE }
 

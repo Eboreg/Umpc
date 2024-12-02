@@ -30,7 +30,6 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
-import us.huseli.umpc.PlayerState
 import us.huseli.umpc.data.MPDSong
 import kotlin.math.roundToInt
 
@@ -41,7 +40,6 @@ fun LargeSongRow(
     albumArtModifier: Modifier = Modifier,
     song: MPDSong,
     isCurrentSong: Boolean,
-    playerState: PlayerState?,
     albumArt: ImageBitmap?,
     isExpanded: Boolean,
     isSelected: Boolean,
@@ -51,7 +49,7 @@ fun LargeSongRow(
     album: String? = null,
     highlight: String? = null,
     removable: Boolean = false,
-    onPlayPauseClick: () -> Unit,
+    onPlayClick: () -> Unit,
     onEnqueueClick: () -> Unit,
     onAddToPlaylistClick: () -> Unit,
     onClick: () -> Unit,
@@ -104,11 +102,10 @@ fun LargeSongRow(
                         // modifier = modifier,
                         song = song,
                         isCurrentSong = isCurrentSong,
-                        playerState = playerState,
                         position = position,
                         discNumber = discNumber,
                         showAlbumArt = true,
-                        onPlayPauseClick = onPlayPauseClick,
+                        onPlayClick = onPlayClick,
                         onEnqueueClick = onEnqueueClick,
                         onAddToPlaylistClick = onAddToPlaylistClick,
                         onGotoArtistClick = onGotoArtistClick,
@@ -121,8 +118,6 @@ fun LargeSongRow(
                     LargeSongRowContent(
                         // modifier = Modifier.background(MaterialTheme.colorScheme.surface),
                         song = song,
-                        isCurrentSong = isCurrentSong,
-                        playerState = playerState,
                         albumArt = albumArt,
                         albumArtModifier = albumArtModifier,
                         position = position,
@@ -130,7 +125,7 @@ fun LargeSongRow(
                         artist = artist,
                         album = album,
                         highlight = highlight,
-                        onPlayPauseClick = onPlayPauseClick,
+                        onPlayClick = onPlayClick,
                     )
                 }
             }

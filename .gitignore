@@ -1,6 +1,5 @@
 *.iml
 .gradle
-/local.properties
 /.idea/caches
 /.idea/libraries
 /.idea/modules.xml
@@ -13,6 +12,7 @@
 .externalNativeBuild
 .cxx
 local.properties
+secrets.properties
 /notes.txt
 /keystore.properties
 /run.expect

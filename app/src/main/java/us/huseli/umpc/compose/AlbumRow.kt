@@ -20,8 +20,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import us.huseli.retaintheme.formatDuration
 import us.huseli.umpc.data.MPDAlbumWithSongs
-import us.huseli.umpc.formatDuration
 import us.huseli.umpc.toYearRangeString
 
 @OptIn(ExperimentalFoundationApi::class)

@@ -54,11 +54,11 @@ import us.huseli.umpc.compose.PlayerControls
 import us.huseli.umpc.compose.SongProgressSlider
 import us.huseli.umpc.compose.VolumeSlider
 import us.huseli.umpc.compose.utils.FadingImageBox
-import us.huseli.umpc.compose.utils.SmallOutlinedButton
+import us.huseli.retaintheme.compose.SmallOutlinedButton
 import us.huseli.umpc.data.MPDAlbum
 import us.huseli.umpc.data.MPDAudioFormat
 import us.huseli.umpc.data.MPDSong
-import us.huseli.umpc.isInLandscapeMode
+import us.huseli.retaintheme.isInLandscapeMode
 import us.huseli.umpc.viewmodels.CurrentSongViewModel
 import kotlin.math.roundToInt
 

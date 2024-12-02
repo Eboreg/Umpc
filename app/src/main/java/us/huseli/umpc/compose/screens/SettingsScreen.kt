@@ -57,6 +57,7 @@ fun SettingsScreen(
     val isConnected by viewModel.isConnected.collectAsStateWithLifecycle()
     val servers by viewModel.servers.collectAsStateWithLifecycle()
     val serverIdx by viewModel.selectedServerIdx.collectAsStateWithLifecycle()
+    val fetchSpotifyAlbumArt by viewModel.fetchSpotifyAlbumArt.collectAsStateWithLifecycle()
 
     var isServerDropdownExpanded by rememberSaveable { mutableStateOf(false) }
     var isServerDialogOpen by rememberSaveable { mutableStateOf(false) }
@@ -115,10 +116,14 @@ fun SettingsScreen(
                     ExposedDropdownMenuBox(
                         expanded = isServerDropdownExpanded,
                         onExpandedChange = { isServerDropdownExpanded = !isServerDropdownExpanded },
-                        modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 10.dp),
                     ) {
                         TextField(
-                            modifier = Modifier.fillMaxWidth().menuAnchor(),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .menuAnchor(),
                             readOnly = true,
                             value = serverIdx?.let { servers.getOrNull(it)?.toString() } ?: stringResource(
                                 if (servers.isEmpty()) R.string.no_servers_added_yet
@@ -197,6 +202,18 @@ fun SettingsScreen(
                     Spacer(modifier = Modifier.height(20.dp))
                 }
 
+                Text(
+                    text = stringResource(R.string.various),
+                    style = MaterialTheme.typography.headlineMedium,
+                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Checkbox(
+                        modifier = Modifier.padding(start = 0.dp),
+                        checked = fetchSpotifyAlbumArt,
+                        onCheckedChange = { viewModel.setFetchSpotifyAlbumArt(it) }
+                    )
+                    Text(stringResource(R.string.fetch_missing_album_art_from_spotify))
+                }
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
                     OutlinedButton(
                         onClick = {

@@ -2,12 +2,9 @@ package us.huseli.umpc
 
 import android.content.Context
 import android.content.ContextWrapper
-import android.content.res.Configuration
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import androidx.activity.ComponentActivity
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -19,8 +16,6 @@ import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.DateTimeFormatterBuilder
-import kotlin.math.roundToInt
-import kotlin.time.Duration.Companion.seconds
 
 val SENSIBLE_DATE_TIME: DateTimeFormatter = DateTimeFormatterBuilder()
     .parseCaseSensitive()
@@ -28,11 +23,6 @@ val SENSIBLE_DATE_TIME: DateTimeFormatter = DateTimeFormatterBuilder()
     .appendLiteral(' ')
     .append(DateTimeFormatter.ISO_LOCAL_TIME)
     .toFormatter()
-
-fun Double.formatDuration() = seconds.toComponents { hours, minutes, seconds, _ ->
-    if (hours > 0) String.format("%d:%02d:%02d", hours, minutes, seconds)
-    else String.format("%d:%02d", minutes, seconds)
-}
 
 fun File.toBitmap(): Bitmap? = takeIf { it.isFile }?.inputStream().use { BitmapFactory.decodeStream(it) }
 
@@ -52,25 +42,13 @@ fun Context.getActivity(): ComponentActivity? = when (this) {
     else -> null
 }
 
-@Suppress("BooleanMethodIsAlwaysInverted")
-@Composable
-fun isInLandscapeMode() = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
-
-fun String.toInstant(): Instant? = try {
+fun String.toInstantOrNull(): Instant? = try {
     Instant.parse(this)
 } catch (e: Exception) {
     null
 }
 
 fun String.parseYear(): Int? = Regex("^([1-2]\\d{3})").find(this)?.value?.toInt()
-
-fun <T : Any> Collection<T>.skipEveryX(x: Int) = filterIndexed { index, _ -> (index + 1) % x != 0 }
-
-fun <T : Any> Collection<T>.includeEveryX(x: Int) = filterIndexed { index, _ -> index % x == 0 }
-
-fun <T : Any> Collection<T>.prune(maxLength: Int) =
-    if (maxLength < size / 2) includeEveryX((size.toFloat() / maxLength).roundToInt())
-    else skipEveryX((size.toFloat() / (size - maxLength)).roundToInt())
 
 inline fun <T : Any> Flow<List<T>>.leadingChars(crossinline transform: (T) -> String) = map { items ->
     items.mapNotNull {

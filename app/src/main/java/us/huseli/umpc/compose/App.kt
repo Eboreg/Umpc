@@ -383,7 +383,9 @@ fun App(
                 content = {
                     Row(modifier = Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically) {
                         CircularProgressIndicator(
-                            modifier = Modifier.padding(end = 8.dp).size(24.dp),
+                            modifier = Modifier
+                                .padding(end = 8.dp)
+                                .size(24.dp),
                             strokeWidth = 2.dp,
                         )
                         Text(stringResource(R.string.loading_dynamic_playlist))

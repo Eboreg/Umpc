@@ -56,7 +56,6 @@ fun StoredPlaylistScreen(
     val context = LocalContext.current
     val playlist by viewModel.playlist.collectAsStateWithLifecycle(null)
     val currentSong by viewModel.currentSong.collectAsStateWithLifecycle()
-    val playerState by viewModel.playerState.collectAsStateWithLifecycle()
     var isRenameDialogOpen by rememberSaveable { mutableStateOf(false) }
     var isDeleteDialogOpen by rememberSaveable { mutableStateOf(false) }
 
@@ -113,7 +112,6 @@ fun StoredPlaylistScreen(
         songs = playlist?.songs ?: emptyList(),
         listState = viewModel.listState,
         currentSong = currentSong,
-        playerState = playerState,
         reorderable = true,
         removable = true,
         showSongPositions = true,
@@ -132,6 +130,7 @@ fun StoredPlaylistScreen(
             viewModel.removeSelectedSongs()
             addRemovedSongsMessage(songCount)
         },
+        onPlaySongClick = { viewModel.playSongs(playlist?.songs ?: emptyList(), it) },
         subMenu = {
             playlist?.let {
                 Surface(tonalElevation = 2.dp, modifier = Modifier.fillMaxWidth()) {

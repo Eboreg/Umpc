@@ -91,8 +91,8 @@ class DynamicPlaylistRepository @Inject constructor(
         _dynamicPlaylists.value -= playlist
     }
 
-    inline fun enqueueSongsLast(filenames: Collection<String>, crossinline onFinish: (MPDBatchTextResponse) -> Unit) =
-        mpdRepo.enqueueSongsLast(filenames, onFinish)
+    inline fun enqueueSongs(filenames: Collection<String>, crossinline onFinish: (MPDBatchTextResponse) -> Unit) =
+        mpdRepo.enqueueSongs(filenames, onFinish)
 
     fun loadDynamicPlaylists() {
         val listType = object : TypeToken<List<DynamicPlaylist>>() {}

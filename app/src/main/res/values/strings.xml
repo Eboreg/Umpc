@@ -80,6 +80,7 @@
     <string name="no">No</string>
     <string name="no_albums_found_you_may_want_to_add">No albums found; you may want to add some music to your collection on the server.</string>
     <string name="no_artists_found_you_may_want_to_add">No artists found; you may want to add some music to your collection on the server.</string>
+    <string name="no_files_found_you_may_want_to_add">No files found; you may want to add some music to your collection on the server.</string>
     <string name="no_filters_defined">No filters defined; add at least one filter below.</string>
     <string name="no_mpd_servers_configured">No MPD servers configured.</string>
     <string name="no_server_selected">No server selected</string>
@@ -147,6 +148,12 @@
     <string name="value">Value</string>
     <string name="x_kbps">%1$d Kbps</string>
     <string name="yes">Yes</string>
+    <string name="various">Various</string>
+    <string name="fetch_missing_album_art_from_spotify">Fetch missing album art from Spotify (no login required)</string>
+    <string name="artists">Artists</string>
+    <string name="directories">Directories</string>
+    <string name="parent_directory">Parent directory</string>
+    <string name="loading">Loading ...</string>
     <plurals name="add_albums_playlist_success">
         <item quantity="one">Album was added to playlist.</item>
         <item quantity="other">%1$d albums were added to playlist.</item>

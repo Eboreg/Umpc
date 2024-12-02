@@ -30,10 +30,9 @@ import org.burnoutcrew.reorderable.ReorderableItem
 import org.burnoutcrew.reorderable.detectReorder
 import org.burnoutcrew.reorderable.rememberReorderableLazyListState
 import org.burnoutcrew.reorderable.reorderable
+import us.huseli.retaintheme.compose.ListWithNumericBar
 import us.huseli.umpc.AddToPlaylistItemType
-import us.huseli.umpc.PlayerState
 import us.huseli.umpc.R
-import us.huseli.umpc.compose.utils.ListWithNumericBar
 import us.huseli.umpc.data.MPDAlbum
 import us.huseli.umpc.data.MPDSong
 import us.huseli.umpc.repository.SnackbarMessage
@@ -47,7 +46,6 @@ fun LargeSongRowList(
     songs: List<MPDSong>,
     listState: LazyListState,
     currentSong: MPDSong?,
-    playerState: PlayerState?,
     highlight: String? = null,
     reorderable: Boolean = false,
     removable: Boolean = false,
@@ -57,6 +55,7 @@ fun LargeSongRowList(
     onGotoPlaylistClick: (String) -> Unit,
     onGotoQueueClick: () -> Unit,
     onAddSongToPlaylistClick: (MPDSong) -> Unit,
+    onPlaySongClick: (MPDSong) -> Unit,
     onMoveSong: ((Int, Int) -> Unit)? = null,
     onRemoveSong: ((MPDSong) -> Unit)? = null,
     onRemoveSelectedSongs: (() -> Unit)? = null,
@@ -166,7 +165,6 @@ fun LargeSongRowList(
                                 isCurrentSong = currentSong == song,
                                 isSelected = selectedSongs.contains(song),
                                 isExpanded = isExpanded,
-                                playerState = playerState,
                                 artist = song.artist,
                                 album = song.album.name,
                                 albumArt = albumArt,
@@ -179,9 +177,9 @@ fun LargeSongRowList(
                                     else isExpanded = !isExpanded
                                 },
                                 onLongClick = { viewModel.toggleSongSelected(song) },
-                                onPlayPauseClick = { viewModel.playOrPauseSong(song) },
+                                onPlayClick = { onPlaySongClick(song) },
                                 onEnqueueClick = {
-                                    viewModel.enqueueSongLast(song) { response ->
+                                    viewModel.enqueueSong(song) { response ->
                                         if (response.isSuccess) viewModel.addMessage(
                                             SnackbarMessage(
                                                 message = context.getString(R.string.the_song_was_enqueued),

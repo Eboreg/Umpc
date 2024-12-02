@@ -11,7 +11,6 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import us.huseli.umpc.PlayerState
 import us.huseli.umpc.data.MPDSong
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -23,11 +22,10 @@ fun SmallSongRow(
     isCurrentSong: Boolean,
     isExpanded: Boolean,
     isSelected: Boolean,
-    playerState: PlayerState?,
     color: Color = MaterialTheme.colorScheme.onSurface,
     showArtist: Boolean = false,
     showYear: Boolean = true,
-    onPlayPauseClick: () -> Unit,
+    onPlayClick: () -> Unit,
     onEnqueueClick: () -> Unit,
     onAddToPlaylistClick: () -> Unit,
     onGotoArtistClick: () -> Unit,
@@ -45,24 +43,22 @@ fun SmallSongRow(
                     modifier = modifier,
                     song = song,
                     isCurrentSong = isCurrentSong,
-                    playerState = playerState,
                     position = song.trackNumber,
                     discNumber = discNumber,
                     showAlbumArt = false,
-                    onPlayPauseClick = onPlayPauseClick,
+                    onPlayClick = onPlayClick,
                     onEnqueueClick = onEnqueueClick,
                     onAddToPlaylistClick = onAddToPlaylistClick,
                     onGotoArtistClick = onGotoArtistClick,
                 )
             } else {
                 SmallSongRowContent(
+                    modifier = modifier,
                     song = song,
                     discNumber = discNumber,
-                    isCurrentSong = isCurrentSong,
                     showArtist = showArtist || song.artist != song.album.artist,
                     showYear = showYear,
-                    playerState = playerState,
-                    onPlayPauseClick = onPlayPauseClick,
+                    onPlayClick = onPlayClick,
                 )
             }
         }

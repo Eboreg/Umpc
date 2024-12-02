@@ -30,6 +30,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import us.huseli.retaintheme.compose.SmallOutlinedButton
+import us.huseli.retaintheme.isInLandscapeMode
 import us.huseli.umpc.AddToPlaylistItemType
 import us.huseli.umpc.R
 import us.huseli.umpc.compose.AddToPlaylistDialog
@@ -38,10 +40,8 @@ import us.huseli.umpc.compose.BatchAddToPlaylistDialog
 import us.huseli.umpc.compose.SelectedItemsSubMenu
 import us.huseli.umpc.compose.SmallSongRow
 import us.huseli.umpc.compose.utils.FadingImageBox
-import us.huseli.umpc.compose.utils.SmallOutlinedButton
 import us.huseli.umpc.data.MPDAlbum
 import us.huseli.umpc.data.MPDSong
-import us.huseli.umpc.isInLandscapeMode
 import us.huseli.umpc.repository.SnackbarMessage
 import us.huseli.umpc.viewmodels.AlbumViewModel
 
@@ -58,7 +58,6 @@ fun AlbumScreen(
     val albumArt by viewModel.albumArt.collectAsStateWithLifecycle()
     val albumWithSongs by viewModel.albumWithSongs.collectAsStateWithLifecycle()
     val currentSongFilename by viewModel.currentSongFilename.collectAsStateWithLifecycle(null)
-    val playerState by viewModel.playerState.collectAsStateWithLifecycle()
     val playlists by viewModel.storedPlaylists.collectAsStateWithLifecycle()
     var isAddAlbumToPlaylistDialogOpen by rememberSaveable { mutableStateOf(false) }
     var isAddSongsToPlaylistDialogOpen by rememberSaveable { mutableStateOf(false) }
@@ -66,7 +65,7 @@ fun AlbumScreen(
     val isConnected by viewModel.isConnected.collectAsStateWithLifecycle()
 
     val onEnqueueClick: () -> Unit = {
-        viewModel.enqueueLast { response ->
+        viewModel.enqueue { response ->
             if (response.isSuccess) viewModel.addMessage(
                 SnackbarMessage(
                     message = context.getString(R.string.the_album_was_enqueued),
@@ -201,10 +200,9 @@ fun AlbumScreen(
                     isCurrentSong = currentSongFilename == song.filename,
                     isExpanded = isExpanded,
                     isSelected = selectedSongs.contains(song),
-                    playerState = playerState,
                     showYear = albumWithSongs?.yearRange?.first != albumWithSongs?.yearRange?.last,
                     onEnqueueClick = {
-                        viewModel.enqueueSongLast(song) { response ->
+                        viewModel.enqueueSong(song) { response ->
                             if (response.isSuccess) viewModel.addMessage(
                                 SnackbarMessage(
                                     message = context.getString(R.string.the_song_was_enqueued),
@@ -221,7 +219,7 @@ fun AlbumScreen(
                             )
                         }
                     },
-                    onPlayPauseClick = { viewModel.playOrPauseSong(song) },
+                    onPlayClick = { viewModel.playSongs(album.songs, song) },
                     onGotoArtistClick = { onGotoArtistClick(song.artist) },
                     onAddToPlaylistClick = { onAddSongToPlaylistClick(song) },
                     onClick = {

@@ -12,6 +12,7 @@ object Constants {
     const val NOTIFICATION_ID_NOW_PLAYING = 1
     const val PREF_ACTIVE_DYNAMIC_PLAYLIST = "activeDynamicPlaylist"
     const val PREF_DYNAMIC_PLAYLISTS = "dynamicPlaylists"
+    const val PREF_FETCH_SPOTIFY_ALBUMART = "fetchSpotifyAlbumArt"
     const val PREF_OUTPUTS_ENABLED = "outputsEnabled"
     const val PREF_SERVER_IDX = "serverIdx"
     const val PREF_SERVERS = "servers"

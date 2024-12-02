@@ -42,14 +42,14 @@ class StoredPlaylistViewModel @Inject constructor(
         repo.deletePlaylist(playlistName) { onFinish(it) }
 
     inline fun enqueue(crossinline onFinish: (MPDTextResponse) -> Unit) =
-        repo.enqueuePlaylistLast(playlistName) { onFinish(it) }
+        repo.enqueuePlaylist(playlistName) { onFinish(it) }
 
     fun moveSong(fromIdx: Int, toIdx: Int) = repo.moveSongInPlaylist(playlistName, fromIdx, toIdx)
 
     inline fun rename(newName: String, crossinline onFinish: (Boolean) -> Unit) =
         repo.renamePlaylist(playlistName, newName) { onFinish(it.isSuccess) }
 
-    fun play() = repo.enqueuePlaylistNextAndPlay(playlistName)
+    fun play() = repo.playPlaylist(playlistName)
 
     fun removeSelectedSongs() {
         _removedSongs.clear()

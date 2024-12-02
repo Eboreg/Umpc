@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
+import us.huseli.umpc.Constants.PREF_FETCH_SPOTIFY_ALBUMART
 import us.huseli.umpc.Constants.PREF_OUTPUTS_ENABLED
 import us.huseli.umpc.Constants.PREF_SERVERS
 import us.huseli.umpc.Constants.PREF_SERVER_IDX
@@ -33,12 +34,14 @@ class SettingsRepository @Inject constructor(
             value = outputs.map { it.toInt() }.toSet()
         }
     }
+    private val _fetchSpotifyAlbumArt = MutableStateFlow(preferences.getBoolean(PREF_FETCH_SPOTIFY_ALBUMART, true))
 
     val currentServerIdx = _currentServerIdx.asStateFlow()
     val servers = _servers.asStateFlow()
     val currentServer = combine(_servers, _currentServerIdx) { servers, serverIdx ->
         serverIdx?.let { servers.getOrNull(it) }
     }
+    val fetchSpotifyAlbumArt = _fetchSpotifyAlbumArt.asStateFlow()
     val streamingUrl = currentServer.map { it?.streamingUrl }
 
     init {
@@ -62,6 +65,10 @@ class SettingsRepository @Inject constructor(
     }
 
     fun save() = save(PREF_OUTPUTS_ENABLED, PREF_SERVER_IDX)
+
+    fun setFetchSpotifyAlbumArt(value: Boolean) {
+        _fetchSpotifyAlbumArt.value = value
+    }
 
     fun setServerIdx(value: Int) {
         _currentServerIdx.value = value
@@ -94,10 +101,13 @@ class SettingsRepository @Inject constructor(
             PREF_OUTPUTS_ENABLED -> preferences.getStringSet(key, emptySet())?.let { outputs ->
                 _enabledOutputs.value = outputs.map { it.toInt() }.toSet()
             }
+
             PREF_SERVERS -> loadServers()
             PREF_SERVER_IDX -> preferences.getInt(key, -1).takeIf { it > -1 }?.let {
                 setServerIdx(it)
             }
+
+            PREF_FETCH_SPOTIFY_ALBUMART -> _fetchSpotifyAlbumArt.value = preferences.getBoolean(key, true)
         }
     }
 }

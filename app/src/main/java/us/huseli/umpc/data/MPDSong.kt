@@ -24,12 +24,16 @@ data class MPDSong(
     val position: Int?,
 ) : Parcelable {
     @IgnoredOnParcel
-    @Transient
-    val albumArtKey = AlbumArtKey(album.artist, album.name, filename)
+    val albumArtKey: AlbumArtKey
+        get() = AlbumArtKey(album.artist, album.name, filename)
 
     @IgnoredOnParcel
-    @Transient
-    val listKey = id ?: position ?: filename
+    val listKey: Any
+        get() = id ?: position ?: filename
+
+    @IgnoredOnParcel
+    val basename: String
+        get() = filename.substringAfterLast('/')
 
     override fun equals(other: Any?): Boolean {
         if (other is MPDSong && other.filename == filename) {

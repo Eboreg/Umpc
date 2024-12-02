@@ -51,22 +51,15 @@ abstract class BaseViewModel(
 
     fun addMessage(message: SnackbarMessage) = messageRepo.addMessage(message)
 
-    inline fun enqueueAlbumLast(album: MPDAlbum, crossinline onFinish: (MPDBatchTextResponse) -> Unit) =
-        repo.enqueueAlbumLast(album, onFinish)
+    inline fun enqueueAlbum(album: MPDAlbum, crossinline onFinish: (MPDBatchTextResponse) -> Unit) =
+        repo.enqueueAlbum(album, onFinish)
 
-    inline fun enqueueSongLast(song: MPDSong, crossinline onFinish: (MPDBatchTextResponse) -> Unit) =
-        repo.enqueueSongLast(song, onFinish)
-
-    fun playAlbum(album: MPDAlbum?) = album?.let { repo.enqueueAlbumNextAndPlay(album) }
+    inline fun enqueueSong(song: MPDSong, crossinline onFinish: (MPDBatchTextResponse) -> Unit) =
+        repo.enqueueSong(song, onFinish)
 
     fun playOrPause() = repo.playOrPause()
 
-    fun playOrPauseSong(song: MPDSong) {
-        if (song.id != null) {
-            if (song.id == repo.currentSongId.value) playOrPause()
-            else repo.playSongById(song.id)
-        } else repo.enqueueSongNextAndPlay(song)
-    }
+    fun playSong(song: MPDSong) = song.id?.also { repo.playSongById(it) }
 
-    fun playSongByPosition(pos: Int) = repo.playSongByPosition(pos)
+    fun playSongs(songs: Collection<MPDSong>, startSong: MPDSong) = repo.playSongs(songs, songs.indexOf(startSong))
 }

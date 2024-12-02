@@ -3,6 +3,7 @@ package us.huseli.umpc.mpd.response
 import android.util.Log
 import us.huseli.umpc.LoggerInterface
 import us.huseli.umpc.data.MPDAlbum
+import us.huseli.umpc.data.MPDDirectory
 import us.huseli.umpc.data.MPDOutput
 import us.huseli.umpc.data.MPDPlaylist
 import us.huseli.umpc.data.MPDSong
@@ -17,6 +18,20 @@ class MPDTextResponse : BaseMPDResponse(), LoggerInterface {
     fun extractAlbums(): List<MPDAlbum> = _responseLines.responseToMultimapList().flatMap { it.toMPDAlbums() }
 
     fun extractAlbums(artist: String): List<MPDAlbum> = _responseLines.responseToMultimap().toMPDAlbums(artist)
+
+    fun extractDirectory(name: String): MPDDirectory {
+        /*
+        val directories = extractSongs().groupBy { it.directoryName }
+            .map { (directoryName, songs) -> MPDDirectory(path = directoryName, songs = songs) }
+        directories.forEach { dir -> dir.path.split('/') }
+         */
+
+        val directories = extractValues("directory")
+            .sortedBy { it.lowercase() }
+            .map { MPDDirectory(it, contentsLoaded = false) }
+        val songs = extractSongs().sortedBy { it.filename.lowercase() }
+        return MPDDirectory(name, directories, songs, contentsLoaded = true)
+    }
 
     fun extractOutputs(): List<MPDOutput> = _responseLines.responseToMapList().mapNotNull { it.toMPDOutput() }
 

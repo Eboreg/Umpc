@@ -7,7 +7,7 @@ class MPDBatchRequest(
     onFinish: ((MPDBatchTextResponse) -> Unit)? = null,
 ) : BaseMPDTextRequest<MPDBatchTextResponse>(generateCommand(commands), onFinish) {
     constructor(commands: Iterable<String>, onFinish: ((MPDBatchTextResponse) -> Unit)? = null) :
-        this(commands.toSet(), onFinish)
+            this(commands.toSet(), onFinish)
 
     fun addCommands(newCommands: Iterable<String>) {
         commands += newCommands

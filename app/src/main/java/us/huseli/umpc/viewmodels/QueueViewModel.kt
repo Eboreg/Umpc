@@ -51,10 +51,9 @@ class QueueViewModel @Inject constructor(
         repo.removeSongFromQueue(song)
     }
 
-    fun undoRemoveSongs() =
-        repo.enqueueSongs(removedSongs) { response ->
-            if (response.isSuccess) removedSongs.clear()
-        }
+    fun undoRemoveSongs() = repo.enqueueSongsPositioned(removedSongs) { response ->
+        if (response.isSuccess) removedSongs.clear()
+    }
 
     override fun onMPDChanged(subsystems: List<String>) {
         if (subsystems.contains("playlist")) repo.loadQueue()

@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.sharp.Pause
 import androidx.compose.material.icons.sharp.PlayArrow
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -20,22 +19,19 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import us.huseli.umpc.PlayerState
+import us.huseli.retaintheme.formatDuration
+import us.huseli.retaintheme.isInLandscapeMode
 import us.huseli.umpc.R
 import us.huseli.umpc.data.MPDSong
-import us.huseli.umpc.formatDuration
-import us.huseli.umpc.isInLandscapeMode
 
 @Composable
 fun SmallSongRowContent(
     modifier: Modifier = Modifier,
     song: MPDSong,
     discNumber: Int? = null,
-    isCurrentSong: Boolean,
     showArtist: Boolean = false,
     showYear: Boolean = true,
-    playerState: PlayerState?,
-    onPlayPauseClick: () -> Unit,
+    onPlayClick: () -> Unit,
 ) {
     val durationAndYear = listOfNotNull(
         song.duration?.formatDuration(),
@@ -82,10 +78,8 @@ fun SmallSongRowContent(
                 }
             }
         }
-        IconButton(onClick = onPlayPauseClick) {
-            if (isCurrentSong && playerState == PlayerState.PLAY)
-                Icon(Icons.Sharp.Pause, stringResource(R.string.pause))
-            else Icon(Icons.Sharp.PlayArrow, stringResource(R.string.play))
+        IconButton(onClick = onPlayClick) {
+            Icon(Icons.Sharp.PlayArrow, stringResource(R.string.play))
         }
     }
 }

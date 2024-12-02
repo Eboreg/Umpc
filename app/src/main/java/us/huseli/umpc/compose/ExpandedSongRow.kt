@@ -11,7 +11,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.sharp.Album
 import androidx.compose.material.icons.sharp.InterpreterMode
 import androidx.compose.material.icons.sharp.MusicNote
-import androidx.compose.material.icons.sharp.Pause
 import androidx.compose.material.icons.sharp.PlayArrow
 import androidx.compose.material.icons.sharp.PlaylistAdd
 import androidx.compose.material.icons.sharp.PlaylistPlay
@@ -29,26 +28,24 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import us.huseli.umpc.PlayerState
+import us.huseli.retaintheme.formatDuration
+import us.huseli.retaintheme.isInLandscapeMode
 import us.huseli.umpc.R
 import us.huseli.umpc.compose.utils.AutoScrollingTextLine
 import us.huseli.umpc.data.MPDSong
-import us.huseli.umpc.formatDuration
 import us.huseli.umpc.highlight
-import us.huseli.umpc.isInLandscapeMode
 
 @Composable
 fun ExpandedSongRow(
     modifier: Modifier = Modifier,
     song: MPDSong,
     isCurrentSong: Boolean,
-    playerState: PlayerState?,
     position: Int? = null,
     discNumber: Int? = null,
     showAlbumArt: Boolean = true,
     albumArt: ImageBitmap? = null,
     highlight: String? = null,
-    onPlayPauseClick: () -> Unit,
+    onPlayClick: () -> Unit,
     onEnqueueClick: () -> Unit,
     onAddToPlaylistClick: () -> Unit,
     onGotoAlbumClick: (() -> Unit)? = null,
@@ -132,10 +129,8 @@ fun ExpandedSongRow(
                         IconButton(onClick = onAddToPlaylistClick) {
                             Icon(Icons.Sharp.PlaylistAdd, stringResource(R.string.add_to_playlist))
                         }
-                        IconButton(onClick = onPlayPauseClick) {
-                            if (isCurrentSong && playerState == PlayerState.PLAY)
-                                Icon(Icons.Sharp.Pause, stringResource(R.string.pause))
-                            else Icon(Icons.Sharp.PlayArrow, stringResource(R.string.play))
+                        IconButton(onClick = onPlayClick) {
+                            Icon(Icons.Sharp.PlayArrow, stringResource(R.string.play))
                         }
                     }
                 }

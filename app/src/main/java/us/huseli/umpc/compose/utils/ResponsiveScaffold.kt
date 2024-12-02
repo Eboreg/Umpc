@@ -13,7 +13,7 @@ import androidx.compose.ui.Modifier
 import us.huseli.umpc.ContentScreen
 import us.huseli.umpc.compose.HorizontalMainMenu
 import us.huseli.umpc.compose.VerticalMainMenu
-import us.huseli.umpc.isInLandscapeMode
+import us.huseli.retaintheme.isInLandscapeMode
 
 @Composable
 fun ResponsiveScaffold(

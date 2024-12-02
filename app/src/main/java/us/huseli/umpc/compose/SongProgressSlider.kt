@@ -24,7 +24,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
 import us.huseli.umpc.PlayerState
-import us.huseli.umpc.formatDuration
+import us.huseli.retaintheme.formatDuration
 
 @Composable
 fun SongProgressSlider(

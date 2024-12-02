@@ -37,8 +37,8 @@ import us.huseli.umpc.compose.BatchAddToPlaylistDialog
 import us.huseli.umpc.compose.SelectedItemsSubMenu
 import us.huseli.umpc.compose.utils.FadingImageBox
 import us.huseli.umpc.data.MPDAlbum
-import us.huseli.umpc.formatDuration
-import us.huseli.umpc.isInLandscapeMode
+import us.huseli.retaintheme.formatDuration
+import us.huseli.retaintheme.isInLandscapeMode
 import us.huseli.umpc.repository.SnackbarMessage
 import us.huseli.umpc.viewmodels.ArtistViewModel
 

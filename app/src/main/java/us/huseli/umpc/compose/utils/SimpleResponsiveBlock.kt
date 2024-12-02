@@ -11,7 +11,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import us.huseli.umpc.isInLandscapeMode
+import us.huseli.retaintheme.isInLandscapeMode
 
 @Composable
 inline fun SimpleResponsiveBlock(

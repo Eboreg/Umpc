@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.sharp.MusicNote
-import androidx.compose.material.icons.sharp.Pause
 import androidx.compose.material.icons.sharp.PlayArrow
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -24,19 +23,16 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import us.huseli.umpc.PlayerState
+import us.huseli.retaintheme.formatDuration
+import us.huseli.retaintheme.isInLandscapeMode
 import us.huseli.umpc.R
 import us.huseli.umpc.data.MPDSong
-import us.huseli.umpc.formatDuration
-import us.huseli.umpc.isInLandscapeMode
 import us.huseli.umpc.highlight
 
 @Composable
 fun LargeSongRowContent(
     modifier: Modifier = Modifier,
     song: MPDSong,
-    isCurrentSong: Boolean,
-    playerState: PlayerState?,
     albumArt: ImageBitmap?,
     albumArtModifier: Modifier = Modifier,
     position: Int? = null,
@@ -44,7 +40,7 @@ fun LargeSongRowContent(
     artist: String? = null,
     album: String? = null,
     highlight: String? = null,
-    onPlayPauseClick: () -> Unit,
+    onPlayClick: () -> Unit,
 ) {
     val titleRow =
         if (discNumber != null && position != null) "${discNumber}-${position}. ${song.title}"
@@ -98,11 +94,7 @@ fun LargeSongRowContent(
             modifier = Modifier.width(IntrinsicSize.Min),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            IconButton(onClick = onPlayPauseClick) {
-                if (isCurrentSong && playerState == PlayerState.PLAY)
-                    Icon(Icons.Sharp.Pause, stringResource(R.string.pause))
-                else Icon(Icons.Sharp.PlayArrow, stringResource(R.string.play))
-            }
+            IconButton(onClick = onPlayClick) { Icon(Icons.Sharp.PlayArrow, stringResource(R.string.play)) }
         }
     }
 }

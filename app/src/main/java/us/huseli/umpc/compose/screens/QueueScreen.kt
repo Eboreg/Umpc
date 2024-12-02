@@ -36,17 +36,17 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.launch
+import us.huseli.retaintheme.compose.SmallOutlinedButton
+import us.huseli.retaintheme.formatDuration
+import us.huseli.retaintheme.isInLandscapeMode
 import us.huseli.umpc.R
 import us.huseli.umpc.compose.AddToPlaylistDialog
 import us.huseli.umpc.compose.LargeSongRowList
 import us.huseli.umpc.compose.NotConnectedToMPD
-import us.huseli.umpc.compose.utils.SmallOutlinedButton
 import us.huseli.umpc.data.DynamicPlaylist
 import us.huseli.umpc.data.MPDAlbum
 import us.huseli.umpc.data.MPDSong
 import us.huseli.umpc.data.MPDVersion
-import us.huseli.umpc.formatDuration
-import us.huseli.umpc.isInLandscapeMode
 import us.huseli.umpc.repository.SnackbarMessage
 import us.huseli.umpc.viewmodels.QueueViewModel
 import kotlin.math.max
@@ -68,7 +68,6 @@ fun QueueScreen(
     val queue by viewModel.queue.collectAsStateWithLifecycle()
     val currentSong by viewModel.currentSong.collectAsStateWithLifecycle()
     val currentSongPosition by viewModel.currentSongPosition.collectAsStateWithLifecycle()
-    val playerState by viewModel.playerState.collectAsStateWithLifecycle()
     val playlists by viewModel.storedPlaylists.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
     var totalDuration by rememberSaveable { mutableDoubleStateOf(0.0) }
@@ -129,7 +128,6 @@ fun QueueScreen(
         songs = queue,
         listState = listState,
         currentSong = currentSong,
-        playerState = playerState,
         reorderable = true,
         removable = true,
         showSongPositions = true,
@@ -148,6 +146,7 @@ fun QueueScreen(
             viewModel.removeSelectedSongs()
             addRemovedSongsMessage(songCount)
         },
+        onPlaySongClick = { viewModel.playSong(it) },
         emptyListText = {
             if (connectedServer == null) NotConnectedToMPD()
             else Text(

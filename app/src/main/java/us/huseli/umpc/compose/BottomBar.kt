@@ -29,10 +29,10 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import us.huseli.retaintheme.isInLandscapeMode
 import us.huseli.umpc.PlayerState
 import us.huseli.umpc.R
 import us.huseli.umpc.compose.utils.AutoScrollingTextLine
-import us.huseli.umpc.isInLandscapeMode
 import us.huseli.umpc.viewmodels.CurrentSongViewModel
 
 @Composable
@@ -100,7 +100,7 @@ fun BottomBar(
                                             streamingUrl?.let {
                                                 context.getString(R.string.streaming_from_x_started, it)
                                             }
-                                            ?: context.getString(R.string.streaming_started)
+                                                ?: context.getString(R.string.streaming_started)
                                         } else context.getString(R.string.streaming_stopped)
                                     )
                                 }

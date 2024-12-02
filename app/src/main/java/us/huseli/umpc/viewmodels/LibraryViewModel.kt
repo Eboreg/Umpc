@@ -29,16 +29,20 @@ class LibraryViewModel @Inject constructor(
 ) : AlbumSelectViewModel(repo, messageRepo, albumArtRepo), OnMPDChangeListener {
     private val _activeLibrarySearchType = MutableStateFlow(LibrarySearchType.NONE)
     private val _albums = MutableStateFlow<List<MPDAlbum>>(emptyList())
+    private val _albumsLoaded = MutableStateFlow(false)
     private val _albumsWithSongs = MutableStateFlow<List<MPDAlbumWithSongs>>(emptyList())
     private val _artists = MutableStateFlow<List<MPDArtistWithAlbums>>(emptyList())
+    private val _artistsLoaded = MutableStateFlow(false)
     private var _grouping = MutableStateFlow(LibraryGrouping.ARTIST)
     private val _librarySearchTerm = MutableStateFlow("")
     private val _pendingAlbumsWithSongs = mutableSetOf<MPDAlbum>()
 
     val albumLeadingChars = _albums.leadingChars { it.name }
     val albums = _albums.asStateFlow()
+    val albumsLoaded = _albumsLoaded.asStateFlow()
     val artistLeadingChars = _artists.leadingChars { it.name }
     val artists = _artists.asStateFlow()
+    val artistsLoaded = _artistsLoaded.asStateFlow()
     val grouping = _grouping.asStateFlow()
     val isLibrarySearchActive = _activeLibrarySearchType.map { it != LibrarySearchType.NONE }
     val librarySearchTerm = _librarySearchTerm.asStateFlow()
@@ -57,7 +61,9 @@ class LibraryViewModel @Inject constructor(
                 }
             }.collect { albums ->
                 _albums.value = albums
+                _albumsLoaded.value = true
                 _artists.value = albums.groupByArtist()
+                _artistsLoaded.value = true
             }
         }
     }
@@ -66,6 +72,7 @@ class LibraryViewModel @Inject constructor(
         _activeLibrarySearchType.value = when (grouping) {
             LibraryGrouping.ARTIST -> LibrarySearchType.ARTIST
             LibraryGrouping.ALBUM -> LibrarySearchType.ALBUM
+            LibraryGrouping.DIRECTORY -> TODO()
         }
     }
 
@@ -76,23 +83,23 @@ class LibraryViewModel @Inject constructor(
     fun getAlbumWithSongsFlow(album: MPDAlbum) =
         _albumsWithSongs.map { flow -> flow.find { it.album == album } ?: MPDAlbumWithSongs(album, emptyList()) }
 
-    fun loadAlbumsWithSongs(albums: List<MPDAlbum>) =
-        albums
-            .minus(_pendingAlbumsWithSongs)
-            .minus(_albumsWithSongs.value.map { it.album }.toSet())
-            .takeIf { it.isNotEmpty() }
-            ?.let { filteredAlbums ->
-                _pendingAlbumsWithSongs.addAll(filteredAlbums)
-                repo.getAlbumsWithSongs(filteredAlbums) { albumsWithSongs ->
-                    _albumsWithSongs.value += albumsWithSongs.minus(_albumsWithSongs.value.toSet())
-                    _pendingAlbumsWithSongs.removeAll(albumsWithSongs.map { it.album }.toSet())
-                }
+    fun loadAlbumsWithSongs(albums: List<MPDAlbum>) = albums
+        .minus(_pendingAlbumsWithSongs)
+        .minus(_albumsWithSongs.value.map { it.album }.toSet())
+        .takeIf { it.isNotEmpty() }
+        ?.let { filteredAlbums ->
+            _pendingAlbumsWithSongs.addAll(filteredAlbums)
+            repo.getAlbumsWithSongs(filteredAlbums) { albumsWithSongs ->
+                _albumsWithSongs.value += albumsWithSongs.minus(_albumsWithSongs.value.toSet())
+                _pendingAlbumsWithSongs.removeAll(albumsWithSongs.map { it.album }.toSet())
             }
+        }
 
     fun searchLibrary() {
         when (_grouping.value) {
             LibraryGrouping.ARTIST -> _activeLibrarySearchType.value = LibrarySearchType.ARTIST
             LibraryGrouping.ALBUM -> _activeLibrarySearchType.value = LibrarySearchType.ALBUM
+            LibraryGrouping.DIRECTORY -> TODO()
         }
     }
 

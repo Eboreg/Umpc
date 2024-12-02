@@ -34,7 +34,7 @@ class SearchViewModel @Inject constructor(
     }
 
     inline fun enqueueAll(crossinline onFinish: (MPDBatchTextResponse) -> Unit) =
-        repo.enqueueSongsLast(songSearchResults.value.map { it.filename }, onFinish)
+        repo.enqueueSongs(songSearchResults.value.map { it.filename }, onFinish)
 
     fun setSongSearchTerm(value: TextFieldValue) {
         _songSearchTerm.value = value
@@ -53,9 +53,10 @@ class SearchViewModel @Inject constructor(
                 onFinish(
                     response.extractSongs().filter {
                         it.album.name.contains(term, true) ||
-                        it.artist.contains(term, true) ||
-                        it.album.artist.contains(term, true) ||
-                        it.title.contains(term, true)
+                                it.artist.contains(term, true) ||
+                                it.album.artist.contains(term, true) ||
+                                it.title.contains(term, true) ||
+                                it.filename.contains(term, true)
                     }
                 )
             }

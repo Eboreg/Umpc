@@ -28,12 +28,12 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.delay
+import us.huseli.retaintheme.compose.AlternatingTable
+import us.huseli.retaintheme.compose.AlternatingTableScope
 import us.huseli.umpc.BuildConfig
 import us.huseli.umpc.PlayerState
 import us.huseli.umpc.R
 import us.huseli.umpc.compose.NotConnectedToMPD
-import us.huseli.umpc.compose.utils.AlternatingTable
-import us.huseli.umpc.compose.utils.AlternatingTableScope
 import us.huseli.umpc.repository.SnackbarMessage
 import us.huseli.umpc.viewmodels.InfoViewModel
 import kotlin.time.Duration

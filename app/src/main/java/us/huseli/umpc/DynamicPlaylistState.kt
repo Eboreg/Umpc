@@ -109,7 +109,7 @@ class DynamicPlaylistState(
 
         log("DYNAMICPLAYLISTSTATE: fill MPD queue. filenames.size=${filenames.size}, firstPosition=$firstPosition, currentOffset=$currentOffset, replaceCurrentQueue=$replaceCurrentQueue, playOnLoad=$playOnLoad")
         if (replaceCurrentQueue) repo.clearQueue()
-        repo.enqueueSongsLast(filenames) { response ->
+        repo.enqueueSongs(filenames) { response ->
             if (response.isSuccess && playOnLoad) repo.playSongByPosition(firstPosition)
             onFinish?.invoke()
         }
@@ -189,8 +189,8 @@ class DynamicPlaylistState(
                     saveSongsToDisk(songs)
                     val songsToAdd =
                         (DYNAMIC_PLAYLIST_CHUNK_SIZE / 2) -
-                        repo.queue.value.size +
-                        (repo.currentSongPosition.value ?: 0) + 1
+                                repo.queue.value.size +
+                                (repo.currentSongPosition.value ?: 0) + 1
 
                     if (songsToAdd > 0) {
                         fillMPDQueue(songs.subList(0, songsToAdd).map { it.filename })

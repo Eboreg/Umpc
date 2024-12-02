@@ -24,9 +24,9 @@ abstract class AlbumSelectViewModel(
     }
 
     inline fun enqueueSelectedAlbums(crossinline onFinish: (MPDBatchTextResponse) -> Unit) =
-        repo.enqueueAlbumsLast(selectedAlbums.value, onFinish)
+        repo.enqueueAlbums(selectedAlbums.value, onFinish)
 
-    fun playSelectedAlbums() = repo.enqueueAlbumsNextAndPlay(_selectedAlbums.value)
+    fun playSelectedAlbums() = repo.playAlbums(_selectedAlbums.value)
 
     fun toggleAlbumSelected(album: MPDAlbum) {
         _selectedAlbums.value = _selectedAlbums.value.toMutableList().apply {

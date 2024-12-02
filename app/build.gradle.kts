@@ -5,8 +5,10 @@ import java.io.FileInputStream
 import java.util.Properties
 
 val keystoreProperties = Properties()
+val secretsProperties = Properties()
 
 keystoreProperties.load(FileInputStream(rootProject.file("keystore.properties")))
+secretsProperties.load(FileInputStream(rootProject.file("secrets.properties")))
 
 plugins {
     id("com.android.application")
@@ -35,6 +37,9 @@ android {
     compileSdk = 34
 
     defaultConfig {
+        val spotifyClientId = secretsProperties["spotifyClientId"] as String
+        val spotifyClientSecret = secretsProperties["spotifyClientSecret"] as String
+
         applicationId = "us.huseli.umpc"
         minSdk = 26
         targetSdk = 34
@@ -46,6 +51,8 @@ android {
         vectorDrawables.useSupportLibrary = true
 
         setProperty("archivesBaseName", "umpc_$versionName")
+        buildConfigField("String", "spotifyClientId", "\"$spotifyClientId\"")
+        buildConfigField("String", "spotifyClientSecret", "\"$spotifyClientSecret\"")
     }
 
     buildTypes {
@@ -79,7 +86,7 @@ android {
     }
 
     composeOptions {
-        kotlinCompilerExtensionVersion = "1.4.4"
+        kotlinCompilerExtensionVersion = "1.5.3"
     }
 
     packaging {
@@ -108,30 +115,33 @@ protobuf {
     }
 }
 
+val lifecycleVersion = "2.6.2"
+val composeVersion = "1.5.4"
+
 dependencies {
-    implementation("androidx.core:core-ktx:1.10.1")
+    implementation("androidx.core:core-ktx:1.12.0")
     implementation("androidx.preference:preference-ktx:1.2.1")
 
     // Compose:
-    implementation("androidx.compose.ui:ui:1.5.0")
-    implementation("androidx.compose.ui:ui-graphics:1.5.0")
-    implementation("androidx.activity:activity-compose:1.7.2")
-    implementation("androidx.navigation:navigation-compose:2.7.1")
+    implementation("androidx.compose.ui:ui:$composeVersion")
+    implementation("androidx.compose.ui:ui-graphics:$composeVersion")
+    implementation("androidx.activity:activity-compose:1.8.0")
+    implementation("androidx.navigation:navigation-compose:2.7.4")
 
     // Material:
-    implementation("androidx.compose.material:material:1.5.0")
-    implementation("androidx.compose.material3:material3:1.1.1")
-    implementation("androidx.compose.material:material-icons-extended:1.5.0")
+    implementation("androidx.compose.material:material:$composeVersion")
+    implementation("androidx.compose.material3:material3:1.1.2")
+    implementation("androidx.compose.material:material-icons-extended:$composeVersion")
 
     // Lifecycle:
-    implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.6.1")
-    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.6.1")
-    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.6.1")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:$lifecycleVersion")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:$lifecycleVersion")
+    implementation("androidx.lifecycle:lifecycle-runtime-compose:$lifecycleVersion")
 
     // Hilt:
-    implementation("com.google.dagger:hilt-android:2.48")
+    implementation("com.google.dagger:hilt-android:2.48.1")
     implementation("androidx.hilt:hilt-navigation-compose:1.0.0")
-    kapt("com.google.dagger:hilt-compiler:2.48")
+    kapt("com.google.dagger:hilt-compiler:2.48.1")
 
     // Exoplayer:
     implementation("androidx.media3:media3-exoplayer:1.1.1")
@@ -153,5 +163,8 @@ dependencies {
     implementation("androidx.core:core-splashscreen:1.0.1")
 
     // Theme:
-    implementation("com.github.Eboreg:RetainTheme:1.1.3")
+    implementation("com.github.Eboreg:RetainTheme:2.2.1")
+
+    // Volley:
+    implementation("com.android.volley:volley:1.2.1")
 }

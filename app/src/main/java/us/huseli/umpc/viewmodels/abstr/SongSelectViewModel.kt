@@ -24,9 +24,9 @@ abstract class SongSelectViewModel(
     }
 
     inline fun enqueueSelectedSongs(crossinline onFinish: (MPDBatchTextResponse) -> Unit) =
-        repo.enqueueSongsLast(selectedSongs.value.map { it.filename }, onFinish)
+        repo.enqueueSongs(selectedSongs.value.map { it.filename }, onFinish)
 
-    fun playSelectedSongs() = repo.enqueueSongsNextAndPlay(_selectedSongs.value)
+    fun playSelectedSongs() = repo.playSongs(_selectedSongs.value)
 
     fun toggleSongSelected(song: MPDSong) {
         _selectedSongs.value = _selectedSongs.value.toMutableList().apply {

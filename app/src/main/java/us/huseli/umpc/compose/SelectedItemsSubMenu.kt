@@ -18,8 +18,8 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
+import us.huseli.retaintheme.compose.SmallOutlinedButton
 import us.huseli.umpc.R
-import us.huseli.umpc.compose.utils.SmallOutlinedButton
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable

@@ -22,16 +22,17 @@ import javax.inject.Inject
 class SettingsViewModel @Inject constructor(
     repo: MPDRepository,
     messageRepo: MessageRepository,
-    private val settingsRepository: SettingsRepository,
+    private val settingsRepo: SettingsRepository,
     @ApplicationContext context: Context,
 ) : BaseViewModel(repo, messageRepo), OnMPDChangeListener {
-    private val _selectedServerIdx = MutableStateFlow(settingsRepository.currentServerIdx.value)
+    private val _selectedServerIdx = MutableStateFlow(settingsRepo.currentServerIdx.value)
     private val albumArtDirectory = File(context.cacheDir, "albumArt").apply { mkdirs() }
     private val thumbnailDirectory = File(albumArtDirectory, "thumbnails").apply { mkdirs() }
 
     val outputs = repo.outputs
-    val servers = settingsRepository.servers
+    val servers = settingsRepo.servers
     val selectedServerIdx = _selectedServerIdx.asStateFlow()
+    val fetchSpotifyAlbumArt = settingsRepo.fetchSpotifyAlbumArt
 
     init {
         repo.loadOutputs()
@@ -44,8 +45,8 @@ class SettingsViewModel @Inject constructor(
     }
 
     fun addServer(server: MPDServerCredentials) {
-        settingsRepository.addServer(server)
-        _selectedServerIdx.value = settingsRepository.servers.value.lastIndex
+        settingsRepo.addServer(server)
+        _selectedServerIdx.value = settingsRepo.servers.value.lastIndex
     }
 
     fun clearAlbumArtCache(onFinish: (() -> Unit)? = null) = viewModelScope.launch {
@@ -55,25 +56,27 @@ class SettingsViewModel @Inject constructor(
     }
 
     fun deleteServer(index: Int) {
-        settingsRepository.deleteServer(index)
-        _selectedServerIdx.value = settingsRepository.currentServerIdx.value
+        settingsRepo.deleteServer(index)
+        _selectedServerIdx.value = settingsRepo.currentServerIdx.value
     }
 
     fun save() {
-        _selectedServerIdx.value?.let { settingsRepository.setServerIdx(it) }
-        settingsRepository.save()
+        _selectedServerIdx.value?.let { settingsRepo.setServerIdx(it) }
+        settingsRepo.save()
     }
 
     fun selectServer(index: Int) {
         _selectedServerIdx.value = index
     }
 
+    fun setFetchSpotifyAlbumArt(value: Boolean) = settingsRepo.setFetchSpotifyAlbumArt(value)
+
     fun setOutputEnabled(id: Int, isEnabled: Boolean) = repo.setOutputEnabled(id, isEnabled)
 
     inline fun updateDatabase(crossinline onFinish: (MPDTextResponse) -> Unit, crossinline onUpdateFinish: () -> Unit) =
         repo.updateDatabase(onFinish = { onFinish(it) }, onUpdateFinish = { onUpdateFinish() })
 
-    fun updateServer(index: Int, server: MPDServerCredentials) = settingsRepository.updateServer(index, server)
+    fun updateServer(index: Int, server: MPDServerCredentials) = settingsRepo.updateServer(index, server)
 
     override fun onMPDChanged(subsystems: List<String>) {
         if (subsystems.contains("output")) repo.loadOutputs()

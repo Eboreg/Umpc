@@ -1,7 +1,7 @@
 package us.huseli.umpc.data
 
 import kotlinx.parcelize.IgnoredOnParcel
-import us.huseli.umpc.toInstant
+import us.huseli.umpc.toInstantOrNull
 import java.time.Instant
 import kotlin.math.roundToInt
 import kotlin.time.Duration
@@ -33,7 +33,7 @@ data class MPDPlaylist(
 fun Map<String, String>.toMPDPlaylist() = try {
     MPDPlaylist(
         name = this["playlist"]!!,
-        lastModified = this["last-modified"]?.toInstant(),
+        lastModified = this["last-modified"]?.toInstantOrNull(),
     )
 } catch (e: NullPointerException) {
     null
